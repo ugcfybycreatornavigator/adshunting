@@ -1,0 +1,223 @@
+import type { AdProvider, AdSearchFilters, AdSearchResult, NormalizedAd, ProviderCapabilities } from "@/lib/types";
+import { daysBetween, safeExternalUrl, sanitizeAdCopy } from "@/lib/utils";
+import { ProviderError, providerErrorFromStatus } from "@/lib/providers/errors";
+import { computeAdIntelligence } from "@/lib/intelligence";
+
+type MetaRawAd = {
+  id: string;
+  page_id?: string;
+  page_name?: string;
+  ad_creation_time?: string;
+  ad_delivery_start_time?: string;
+  ad_delivery_stop_time?: string;
+  ad_snapshot_url?: string;
+  ad_creative_bodies?: string[];
+  ad_creative_link_titles?: string[];
+  ad_creative_link_descriptions?: string[];
+  ad_creative_link_captions?: string[];
+  publisher_platforms?: string[];
+  languages?: string[];
+};
+
+type MetaResponse = {
+  data?: MetaRawAd[];
+  paging?: { cursors?: { after?: string }; next?: string };
+  error?: { message?: string; type?: string; code?: number; error_subcode?: number; error_user_msg?: string };
+};
+
+const fields = [
+  "id",
+  "page_id",
+  "page_name",
+  "ad_creation_time",
+  "ad_delivery_start_time",
+  "ad_delivery_stop_time",
+  "ad_snapshot_url",
+  "ad_creative_bodies",
+  "ad_creative_link_titles",
+  "ad_creative_link_descriptions",
+  "ad_creative_link_captions",
+  "publisher_platforms",
+  "languages",
+].join(",");
+
+export class MetaProvider implements AdProvider {
+  readonly capabilities: ProviderCapabilities = {
+    keywordSearch: true, advertiserSearch: true, commercialAds: true,
+    activeAds: true, inactiveAds: true, imageCreative: false, videoCreative: false,
+    carouselCreative: false, copy: true, landingPage: false, demographics: false,
+    pagination: true, countryFilter: true,
+  };
+  constructor(private config: { accessToken: string; apiVersion: string; defaultCountry?: string }) {
+    if (!/^v\d+\.\d+$/.test(config.apiVersion)) {
+      throw new ProviderError("PROVIDER_NOT_CONFIGURED", "META_API_VERSION must look like v25.0.", 503);
+    }
+  }
+
+  async healthCheck(): Promise<void> {
+    const params = new URLSearchParams({
+      access_token: this.config.accessToken,
+      fields: "id",
+    });
+    let response: Response;
+    try {
+      response = await fetch(`https://graph.facebook.com/${this.config.apiVersion}/me?${params}`, {
+        signal: AbortSignal.timeout(12_000),
+        cache: "no-store",
+      });
+    } catch (error) {
+      throw new ProviderError(
+        error instanceof DOMException && error.name === "TimeoutError" ? "PROVIDER_TIMEOUT" : "PROVIDER_UNAVAILABLE",
+        "Meta API connection failed before a response was received.",
+        502
+      );
+    }
+
+    const payload = (await response.json().catch(() => ({}))) as MetaResponse & { id?: string };
+    if (!response.ok || payload.error || !payload.id) {
+      const detail = payload.error?.error_user_msg || payload.error?.message;
+      const code = payload.error?.code;
+      if (code === 190 || detail?.toLowerCase().includes("expired") || detail?.toLowerCase().includes("session")) {
+        throw new ProviderError("META_TOKEN_EXPIRED", "Meta access token has expired.", 401);
+      }
+      throw providerErrorFromStatus("Meta API", response.status || 502, detail);
+    }
+  }
+
+  async searchAds(filters: AdSearchFilters): Promise<AdSearchResult> {
+    const country = (
+      filters.country && filters.country !== "ALL" ? filters.country : this.config.defaultCountry || "ALL"
+    ).toUpperCase();
+    const params = new URLSearchParams({
+      access_token: this.config.accessToken,
+      ad_reached_countries: JSON.stringify([country]),
+      ad_type: "ALL",
+      fields,
+      limit: "25",
+    });
+
+    if (filters.brand) {
+      params.set("search_page_ids", filters.brand);
+    } else if (filters.query?.trim()) {
+      params.set("search_terms", filters.query.trim());
+    } else {
+      // Default discovery search query for Meta Ad Library
+      params.set("search_terms", "a");
+    }
+
+    if (filters.status && filters.status !== "all") {
+      params.set("ad_active_status", filters.status.toUpperCase());
+    }
+    if (filters.mediaType && !["all", "carousel", "unknown"].includes(filters.mediaType)) {
+      params.set("media_type", filters.mediaType.toUpperCase());
+    }
+    if (filters.platforms?.length) {
+      params.set(
+        "publisher_platforms",
+        JSON.stringify(filters.platforms.map((value) => value.toUpperCase()))
+      );
+    }
+    if (filters.startDate) params.set("ad_delivery_date_min", filters.startDate);
+    if (filters.endDate) params.set("ad_delivery_date_max", filters.endDate);
+    if (filters.cursor) params.set("after", filters.cursor);
+
+    const url = `https://graph.facebook.com/${this.config.apiVersion}/ads_archive?${params}`;
+    let response: Response;
+    try {
+      response = await fetch(url, { signal: AbortSignal.timeout(20_000), cache: "no-store" });
+    } catch (error) {
+      throw new ProviderError(
+        error instanceof DOMException && error.name === "TimeoutError" ? "PROVIDER_TIMEOUT" : "PROVIDER_UNAVAILABLE",
+        "Meta API request failed before a response was received.",
+        502
+      );
+    }
+
+    const payload = (await response.json().catch(() => ({}))) as MetaResponse;
+    if (!response.ok || payload.error) {
+      const detail = payload.error?.error_user_msg || payload.error?.message;
+      const code = payload.error?.code;
+      if (code === 10 || payload.error?.error_subcode === 2332002) {
+        throw new ProviderError("META_PERMISSION_ERROR", "Meta ads_archive permission is not available for this token or query.", 403);
+      }
+      if (code === 190 || detail?.toLowerCase().includes("expired") || detail?.toLowerCase().includes("session")) {
+        throw new ProviderError("META_TOKEN_EXPIRED", "Meta access token has expired.", 401);
+      }
+      throw providerErrorFromStatus("Meta API", response.status || 502, detail);
+    }
+
+    const ads = (payload.data ?? []).map((ad) => normalizeMetaAd(ad, country));
+    return { ads, nextCursor: payload.paging?.cursors?.after ?? null, total: null, source: "provider" };
+  }
+}
+
+function normalizeMetaAd(raw: MetaRawAd, country: string): NormalizedAd {
+  const startDate = raw.ad_delivery_start_time || raw.ad_creation_time || null;
+  const stopDate = raw.ad_delivery_stop_time || null;
+  const status = stopDate ? ("inactive" as const) : ("active" as const);
+  const runningDays = daysBetween(startDate, stopDate);
+  const variants = 1;
+  const repetition = 0;
+  const safeSnapshot = `https://www.facebook.com/ads/library/?id=${encodeURIComponent(raw.id)}`;
+  const sanitizedRaw: Record<string, unknown> = { ...raw, ad_snapshot_url: safeSnapshot };
+  const platformsList = (raw.publisher_platforms ?? []).map((value) => value.toLowerCase());
+  const bodyText = sanitizeAdCopy(raw.ad_creative_bodies?.[0] || null);
+  const headlineText = sanitizeAdCopy(raw.ad_creative_link_titles?.[0] || null);
+
+  const intel = computeAdIntelligence({
+    startDate,
+    stopDate,
+    status,
+    lastSeenAt: new Date().toISOString(),
+    variants,
+    creativeRepetition: repetition,
+    platforms: platformsList,
+    mediaType: "unknown",
+    headline: headlineText,
+    body: bodyText,
+    advertiserId: raw.page_id,
+  });
+
+  return {
+    id: raw.id,
+    externalAdId: raw.id,
+    advertiserId: raw.page_id || "unknown",
+    advertiserName: raw.page_name || "Unknown advertiser",
+    advertiserAvatarUrl: null,
+    advertiserProfileUrl: null,
+    body: bodyText,
+    caption: bodyText,
+    headline: headlineText,
+    description: sanitizeAdCopy(raw.ad_creative_link_descriptions?.[0] || raw.ad_creative_link_captions?.[0] || null),
+    hashtags: extractHashtags(bodyText),
+    cta: null,
+    landingPageUrl: null,
+    sourceMediaUrl: null,
+    thumbnailUrl: null,
+    carouselAssets: [],
+    storedMediaPath: null,
+    archiveStatus: "not_requested",
+    mediaType: "unknown",
+    status,
+    startDate,
+    stopDate,
+    firstSeenAt: new Date().toISOString(),
+    lastSeenAt: new Date().toISOString(),
+    runningDays,
+    country,
+    platforms: platformsList,
+    demographics: null,
+    snapshotUrl: safeExternalUrl(safeSnapshot),
+    source: "meta",
+    variants,
+    creativeRepetition: repetition,
+    brandActiveAds: null,
+    winnerScore: intel.adjustedWinnerScore,
+    intelligenceLabels: [intel.badgeCategory, intel.longevityLabel.split(" ")[0]],
+    rawData: sanitizedRaw,
+  };
+}
+
+function extractHashtags(value: string | null) {
+  return [...new Set(value?.match(/#[\p{L}\p{N}_]+/gu) ?? [])].slice(0, 30);
+}
