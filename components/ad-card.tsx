@@ -1,38 +1,61 @@
 "use client";
 
-import type { Dispatch, RefObject, SetStateAction } from "react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bookmark, Check, Copy, ExternalLink, FolderPlus, ImageIcon, Images, MoreHorizontal, PlaySquare, Share2 } from "lucide-react";
-import { Badge, Button, Card } from "@/components/ui";
+import { Check, Copy, ExternalLink, FolderPlus, ImageIcon, Images, MoreHorizontal, PlaySquare, Share2, Loader2, ChevronDown, FileText, Tag, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui";
 import { VideoPreview } from "@/components/video-preview";
 import { CarouselPreview } from "@/components/carousel-preview";
 import type { NormalizedAd } from "@/lib/types";
-import { cn, formatDate, formatDuration, safeExternalUrl, sanitizeAdCopy } from "@/lib/utils";
+import { cn, formatDuration, safeExternalUrl, sanitizeAdCopy } from "@/lib/utils";
+
+// Extracted from original swipe file picker logic for inline use
+import { SwipeFilePicker, type SwipeFileResult } from "@/components/swipe-file-picker";
 
 export function AdCard({
   ad,
   saved,
   swipeFileCount = 0,
-  variant = "standard",
   onOpen,
   onSave,
-  onSwipeFile,
+  initialCollectionIds = [],
+  onSwipeFileAdded,
   onShare,
+  hasNote,
+  tags,
+  onNoteClick,
+  onTagsClick,
+  onRemoveClick,
 }: {
   ad: NormalizedAd;
   saved?: boolean;
   swipeFileCount?: number;
-  variant?: "standard" | "masonry";
   onOpen: () => void;
   onSave: () => Promise<void> | void;
-  onSwipeFile: () => void;
+  initialCollectionIds?: string[];
+  onSwipeFileAdded?: (result: SwipeFileResult) => void;
   onShare: () => Promise<void> | void;
+  hasNote?: boolean;
+  tags?: { id: string; name: string }[];
+  onNoteClick?: () => void;
+  onTagsClick?: () => void;
+  onRemoveClick?: () => void;
 }) {
   const [saving, setSaving] = useState(false);
-  const [sharing, setSharing] = useState(false);
+  const [sharing] = useState(false);
+  const [optimisticSaved, setOptimisticSaved] = useState(false);
+  const isSaved = saved || optimisticSaved;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const saveBtnRef = useRef<HTMLDivElement>(null);
+  const [showPicker, setShowPicker] = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  
+  // Reset failure states if the ad changes
+  useEffect(() => {
+    setAvatarFailed(false);
+  }, [ad.id]);
+  
   const media = safeExternalUrl(ad.sourceMediaUrl);
   const thumb = safeExternalUrl(ad.thumbnailUrl);
   const advertiserProfile = safeExternalUrl(ad.advertiserProfileUrl);
@@ -43,22 +66,16 @@ export function AdCard({
   const displayCopy =
     sanitizeAdCopy(ad.headline) ||
     sanitizeAdCopy(ad.body) ||
-    sanitizeAdCopy(ad.description) ||
-    "Ad copy not available";
+    sanitizeAdCopy(ad.description);
 
   useEffect(() => {
     if (!menuOpen) return;
-
     function closeOnOutsideClick(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setMenuOpen(false);
     }
-
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape") setMenuOpen(false);
     }
-
     document.addEventListener("mousedown", closeOnOutsideClick);
     document.addEventListener("keydown", closeOnEscape);
     return () => {
@@ -67,447 +84,236 @@ export function AdCard({
     };
   }, [menuOpen]);
 
-  if (variant === "masonry") {
-    return (
-      <MasonryAdCard
-        ad={ad}
-        media={media}
-        thumb={thumb}
-        advertiserName={advertiserName}
-        advertiserProfile={advertiserProfile}
-        landingPage={landingPage}
-        initial={initial}
-        displayCopy={displayCopy}
-        saved={saved}
-        swipeFileCount={swipeFileCount}
-        saving={saving}
-        sharing={sharing}
-        menuOpen={menuOpen}
-        menuRef={menuRef}
-        setMenuOpen={setMenuOpen}
-        setSaving={setSaving}
-        setSharing={setSharing}
-        onOpen={onOpen}
-        onSave={onSave}
-        onSwipeFile={onSwipeFile}
-        onShare={onShare}
-      />
-    );
-  }
-
   return (
-    <Card className="group overflow-hidden transition hover:border-zinc-300 hover:shadow-md">
-      <div className="relative block overflow-hidden bg-zinc-50 text-left">
-        <CreativePreview ad={ad} media={media} thumb={thumb} advertiserName={advertiserName} />
-        <button type="button" onClick={onOpen} className="absolute inset-0 z-10 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-signal" aria-label={`Open ad by ${advertiserName}`} />
-        <span className="pointer-events-none absolute left-3 top-3 z-20">
-          <Badge tone={ad.status === "active" ? "red" : "dark"} className="px-2 py-1 text-[10px]">
-            <span
-              className={`mr-1.5 size-1.5 rounded-full ${
-                ad.status === "active" ? "bg-signal" : "bg-white"
-              }`}
-            />
-            {ad.status.toUpperCase()}
-          </Badge>
-        </span>
-        {ad.intelligenceLabels[0] && (
-          <span className="pointer-events-none absolute right-3 top-3 z-20">
-            <Badge className="bg-white/90 px-2 py-1 text-[10px] text-ink shadow-sm backdrop-blur">{signalLabel(ad.intelligenceLabels[0], ad)}</Badge>
-          </span>
-        )}
-      </div>
-
-      <div className="flex min-h-[260px] flex-col p-4">
-        <div className="flex items-start gap-3">
-          {ad.advertiserAvatarUrl ? (
-            <img
-              src={ad.advertiserAvatarUrl}
-              alt=""
-              className="size-9 rounded-full border border-line object-cover"
-              loading="lazy"
-            />
-          ) : (
-            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-black text-xs font-bold text-white">
-              {initial}
-            </span>
-          )}
-          <div className="min-w-0 flex-1">
-            <Link
-              href={`/brands/${encodeURIComponent(ad.advertiserId)}`}
-              onClick={(event) => event.stopPropagation()}
-              className="block truncate text-sm font-semibold hover:text-signal"
-            >
-              {advertiserName}
-            </Link>
-            <p className="mt-0.5 truncate text-[11px] font-medium text-muted">{brandDescriptor(ad)}</p>
-          </div>
-          <div className="relative" ref={menuRef}>
-            <button
-              type="button"
-              aria-label="More actions"
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-              className="grid size-9 place-items-center rounded-md text-muted hover:bg-zinc-50"
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                setMenuOpen((current) => !current);
-              }}
-            >
-              <MoreHorizontal size={17} />
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 top-10 z-40 w-48 rounded-lg border border-line bg-white p-1 text-xs font-semibold shadow-card" role="menu">
-                {advertiserProfile && (
-                  <a href={advertiserProfile} target="_blank" rel="noreferrer noopener" role="menuitem" onClick={() => setMenuOpen(false)} className="flex min-h-9 items-center gap-2 rounded-md px-2.5 hover:bg-zinc-50">
-                    <ExternalLink size={14} />
-                    Visit advertiser
-                  </a>
-                )}
-                {landingPage && (
-                  <a href={landingPage} target="_blank" rel="noreferrer noopener" role="menuitem" onClick={() => setMenuOpen(false)} className="flex min-h-9 items-center gap-2 rounded-md px-2.5 hover:bg-zinc-50">
-                    <ExternalLink size={14} />
-                    Visit landing page
-                  </a>
-                )}
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="flex min-h-9 w-full items-center gap-2 rounded-md px-2.5 text-left hover:bg-zinc-50"
-                  onClick={async () => {
-                    await onShare();
-                    setMenuOpen(false);
-                  }}
-                >
-                  <Share2 size={14} />
-                  Copy share link
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="flex min-h-9 w-full items-center gap-2 rounded-md px-2.5 text-left hover:bg-zinc-50"
-                  onClick={async () => {
-                    await copyText(ad.externalAdId);
-                    setMenuOpen(false);
-                  }}
-                >
-                  <Copy size={14} />
-                  Copy Ad ID
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <p className="mt-3 line-clamp-2 min-h-10 text-sm leading-5 text-ink">{displayCopy}</p>
-
-        <div className="mt-4 flex items-center justify-between border-t border-line pt-3 text-xs">
-          <div>
-            <p className="font-semibold text-ink">
-              Running {formatDuration(ad.runningDays).toLowerCase()}
-            </p>
-            <p className="mt-1 text-muted">
-              Started {ad.startDate ? formatDate(ad.startDate) : "—"}
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 text-muted">
-            {ad.mediaType === "video" ? <PlaySquare size={15} /> : ad.mediaType === "carousel" ? <Images size={15} /> : <ImageIcon size={15} />}
-            <span className="capitalize">{ad.mediaType}</span>
-          </div>
-        </div>
-
-        <div className="mt-auto pt-4">
-          <Button type="button" variant="primary" onClick={onOpen} className="w-full px-3">
-            Open Ad
-          </Button>
-          <div className="mt-2 grid grid-cols-3 gap-1.5">
-            <button
-              type="button"
-              title="Save this ad to your research"
-              aria-label={saved ? "Ad saved" : "Save this ad"}
-              disabled={saving || saved}
-              onClick={async () => {
-                if (saved) return;
-                setSaving(true);
-                try {
-                  await onSave();
-                } finally {
-                  setSaving(false);
-                }
-              }}
-              className={cn(
-                "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-semibold transition disabled:cursor-default",
-                saved ? "border-red-100 bg-red-50 text-signal" : "border-line bg-white text-ink hover:bg-zinc-50"
-              )}
-            >
-              {saving ? <LoaderDot /> : saved ? <Check size={14} /> : <Bookmark size={14} />}
-              <span>{saving ? "Saving" : saved ? "Saved" : "Save"}</span>
-            </button>
-            <button
-              type="button"
-              title="Add this creative to a Swipe File"
-              onClick={onSwipeFile}
-              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-line bg-white px-2 text-xs font-semibold text-ink transition hover:bg-zinc-50"
-            >
-              <FolderPlus size={14} />
-              <span>{swipeFileCount > 0 ? `${swipeFileCount} Files` : "Swipe File"}</span>
-            </button>
-            <button
-              type="button"
-              title="Copy a protected Runlytics share link"
-              aria-label="Share ad"
-              disabled={sharing}
-              onClick={async () => {
-                setSharing(true);
-                try {
-                  await onShare();
-                } finally {
-                  setSharing(false);
-                }
-              }}
-              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-line bg-white px-2 text-xs font-semibold text-ink transition hover:bg-zinc-50 disabled:opacity-60"
-            >
-              {sharing ? <LoaderDot /> : <Share2 size={14} />}
-              <span>{sharing ? "Sharing" : "Share"}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function MasonryAdCard({
-  ad,
-  media,
-  thumb,
-  advertiserName,
-  advertiserProfile,
-  landingPage,
-  initial,
-  displayCopy,
-  saved,
-  swipeFileCount,
-  saving,
-  sharing,
-  menuOpen,
-  menuRef,
-  setMenuOpen,
-  setSaving,
-  setSharing,
-  onOpen,
-  onSave,
-  onSwipeFile,
-  onShare,
-}: {
-  ad: NormalizedAd;
-  media: string | null;
-  thumb: string | null;
-  advertiserName: string;
-  advertiserProfile: string | null;
-  landingPage: string | null;
-  initial: string;
-  displayCopy: string;
-  saved?: boolean;
-  swipeFileCount: number;
-  saving: boolean;
-  sharing: boolean;
-  menuOpen: boolean;
-  menuRef: RefObject<HTMLDivElement | null>;
-  setMenuOpen: Dispatch<SetStateAction<boolean>>;
-  setSaving: Dispatch<SetStateAction<boolean>>;
-  setSharing: Dispatch<SetStateAction<boolean>>;
-  onOpen: () => void;
-  onSave: () => Promise<void> | void;
-  onSwipeFile: () => void;
-  onShare: () => Promise<void> | void;
-}) {
-  return (
-    <article className="mb-3 inline-block w-full break-inside-avoid overflow-hidden rounded-[10px] border border-line bg-white align-top transition hover:border-zinc-300">
-      <div className="flex min-h-12 items-center gap-2.5 px-2.5 py-2">
-        {ad.advertiserAvatarUrl ? (
-          <img src={ad.advertiserAvatarUrl} alt="" className="size-7 rounded-full border border-line object-cover" loading="lazy" />
+    <article className="group flex flex-col w-full overflow-hidden rounded-[12px] border border-line bg-white shadow-sm transition-all duration-200 hover:border-zinc-300 hover:shadow-md">
+      {/* Header */}
+      <div className="flex h-[52px] items-center gap-2.5 px-3">
+        {ad.advertiserAvatarUrl && !avatarFailed ? (
+          <img 
+            src={ad.advertiserAvatarUrl} 
+            alt="" 
+            className="size-7 shrink-0 rounded-full border border-line object-cover bg-zinc-50" 
+            loading="lazy"
+            onError={() => setAvatarFailed(true)}
+          />
         ) : (
           <span className="grid size-7 shrink-0 place-items-center rounded-full bg-black text-[10px] font-bold text-white">{initial}</span>
         )}
-        <Link
-          href={`/brands/${encodeURIComponent(ad.advertiserId)}`}
-          onClick={(event) => event.stopPropagation()}
-          className="min-w-0 flex-1 truncate text-xs font-semibold text-ink hover:text-signal"
-        >
-          {advertiserName}
-        </Link>
-        <MoreActionsMenu
-          ad={ad}
-          saved={saved}
-          saving={saving}
-          sharing={sharing}
-          advertiserProfile={advertiserProfile}
-          landingPage={landingPage}
-          menuOpen={menuOpen}
-          menuRef={menuRef}
-          setMenuOpen={setMenuOpen}
-          setSaving={setSaving}
-          setSharing={setSharing}
-          onSave={onSave}
-          onShare={onShare}
-        />
+        <div className="flex flex-col min-w-0 flex-1 justify-center">
+          <Link
+            href={`/brands/${encodeURIComponent(ad.advertiserId)}`}
+            onClick={(event) => event.stopPropagation()}
+            className="truncate text-[13px] font-semibold text-ink hover:text-signal"
+          >
+            {advertiserName}
+          </Link>
+          {ad.platforms.length > 0 && (
+            <span className="truncate text-[11px] text-muted">
+              {ad.platforms.slice(0, 2).map(titleCase).join(" + ")}
+            </span>
+          )}
+        </div>
+        <div className="relative shrink-0" ref={menuRef}>
+          <button
+            type="button"
+            aria-label="More actions"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            className="grid size-10 place-items-center rounded-md text-muted hover:bg-zinc-50 transition"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              setMenuOpen((current) => !current);
+            }}
+          >
+            <MoreHorizontal size={18} />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-11 z-40 w-48 rounded-lg border border-line bg-white p-1 text-xs font-semibold shadow-card" role="menu">
+              {advertiserProfile && (
+                <a href={advertiserProfile} target="_blank" rel="noreferrer noopener" role="menuitem" onClick={() => setMenuOpen(false)} className="flex min-h-9 items-center gap-2 rounded-md px-2.5 hover:bg-zinc-50">
+                  <ExternalLink size={14} />
+                  Visit advertiser
+                </a>
+              )}
+              {landingPage && (
+                <a href={landingPage} target="_blank" rel="noreferrer noopener" role="menuitem" onClick={() => setMenuOpen(false)} className="flex min-h-9 items-center gap-2 rounded-md px-2.5 hover:bg-zinc-50">
+                  <ExternalLink size={14} />
+                  Visit landing page
+                </a>
+              )}
+              <button
+                type="button"
+                role="menuitem"
+                disabled={sharing}
+                className="flex min-h-9 w-full items-center gap-2 rounded-md px-2.5 text-left hover:bg-zinc-50 disabled:opacity-50"
+                onClick={async () => {
+                  await onShare();
+                  setMenuOpen(false);
+                }}
+              >
+                <Share2 size={14} />
+                Copy share link
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="flex min-h-9 w-full items-center gap-2 rounded-md px-2.5 text-left hover:bg-zinc-50"
+                onClick={async () => {
+                  await copyText(ad.externalAdId);
+                  setMenuOpen(false);
+                }}
+              >
+                <Copy size={14} />
+                Copy Ad ID
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="relative bg-zinc-50">
-        <div className="cursor-pointer" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(event) => (event.key === "Enter" || event.key === " ") && onOpen()}>
+      {/* Media 4:5 Fixed Viewport */}
+      <div className="relative aspect-[4/5] w-full bg-zinc-50 overflow-hidden border-y border-line group-hover:border-zinc-300 transition-colors">
+        <div className="absolute inset-0 cursor-pointer" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen()} aria-label={`Open ad by ${advertiserName}`}>
           <CreativePreview ad={ad} media={media} thumb={thumb} advertiserName={advertiserName} />
         </div>
-        <span className="pointer-events-none absolute left-2 top-2 z-20">
-          <Badge tone={ad.status === "active" ? "red" : "dark"} className="px-2 py-1 text-[9px]">
-            {ad.status.toUpperCase()}
+        <div className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex items-center gap-1.5">
+          <Badge tone={ad.status === "active" ? "red" : "dark"} className="px-2 py-1 text-[10px] shadow-sm uppercase">
+            {ad.status}
           </Badge>
-        </span>
-        {ad.intelligenceLabels[0] && (
-          <span className="pointer-events-none absolute right-2 top-2 z-20">
-            <Badge className="bg-white/90 px-2 py-1 text-[9px] text-ink shadow-sm">{signalLabel(ad.intelligenceLabels[0], ad)}</Badge>
-          </span>
-        )}
+          {ad.intelligenceLabels[0] && (
+            <Badge className="bg-white/95 px-2 py-1 text-[10px] text-ink shadow-sm backdrop-blur">{signalLabel(ad.intelligenceLabels[0], ad)}</Badge>
+          )}
+        </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onSwipeFile}
-        title="Add this creative to a Swipe File"
-        className="flex min-h-11 w-full items-center justify-between gap-2 border-t border-line px-3 text-left text-xs font-semibold text-ink transition hover:bg-zinc-50"
-      >
-        <span className="inline-flex min-w-0 items-center gap-2">
-          <FolderPlus size={15} className="shrink-0 text-signal" />
-          <span className="truncate">{swipeFileCount > 0 ? `${swipeFileCount} Swipe Files` : "Save to Swipe File"}</span>
-        </span>
-        <ChevronGlyph />
-      </button>
+      {/* Primary Action Row */}
+      <div className="flex w-full min-h-[44px] border-b border-line relative" ref={saveBtnRef}>
+        <div className="flex flex-1">
+          <button 
+            type="button"
+            disabled={isSaved || saving}
+            onClick={async () => {
+               if (saving || isSaved) return;
+               setOptimisticSaved(true);
+               setSaving(true);
+               try { await onSave(); } catch { setOptimisticSaved(false); } finally { setSaving(false); }
+            }}
+            className={cn("flex min-h-[44px] flex-1 items-center gap-2.5 px-3 text-sm font-semibold transition hover:bg-zinc-50 disabled:opacity-100", (isSaved || swipeFileCount > 0) ? "text-signal" : "text-ink")}
+            aria-label={isSaved ? "Saved" : "Save to Saved Ads"}
+          >
+            {saving ? <Loader2 size={16} className="shrink-0 animate-spin" /> : (isSaved || swipeFileCount > 0) ? <Check size={16} className="shrink-0" /> : <FolderPlus size={16} className="shrink-0" />}
+            <span className="truncate">
+              {saving ? "Saving..." : (isSaved || swipeFileCount > 0) ? "Saved" : "Save"}
+            </span>
+          </button>
+          {!(isSaved || swipeFileCount > 0) && (
+            <>
+              <div className="w-px bg-line my-2" />
+              <button
+                type="button"
+                onClick={() => setShowPicker(true)}
+                className="flex min-h-[44px] w-12 shrink-0 items-center justify-center text-muted hover:bg-zinc-50 hover:text-ink transition"
+                aria-label="Choose Swipe File"
+                aria-expanded={showPicker}
+              >
+                <ChevronDown size={16} />
+              </button>
+            </>
+          )}
+        </div>
+        
+        <div className="w-px bg-line my-2" />
+        
+        <button
+          type="button"
+          onClick={async (e) => {
+             e.preventDefault();
+             await onShare();
+          }}
+          className="flex min-h-[44px] px-3 shrink-0 items-center gap-2 text-sm font-semibold text-muted hover:bg-zinc-50 hover:text-ink transition"
+          aria-label="Share creative"
+        >
+          Share <Share2 size={14} className="opacity-75 text-ink" />
+        </button>
+      </div>
 
-      <div className="border-t border-line px-3 py-2">
-        <p className="line-clamp-1 text-[11px] leading-4 text-muted">{displayCopy}</p>
-        <div className="mt-1.5 flex items-center justify-between gap-2 text-[10px] font-medium text-muted">
+      {/* Metadata */}
+      <div className="flex flex-col border-t border-line px-3 py-3">
+        <h3 className={cn("line-clamp-2 text-[13px] leading-5 font-medium min-h-[40px]", displayCopy ? "text-ink" : "text-muted")}>
+          {displayCopy || "Copy unavailable"}
+        </h3>
+
+        <div className="mt-2.5 flex items-center justify-between gap-2 text-[11px] font-medium text-muted">
           <span className="truncate">{formatDuration(ad.runningDays)}</span>
-          <span className="inline-flex shrink-0 items-center gap-1 capitalize">
-            {ad.mediaType === "video" ? <PlaySquare size={12} /> : ad.mediaType === "carousel" ? <Images size={12} /> : <ImageIcon size={12} />}
+          <span className="inline-flex shrink-0 items-center gap-1.5 capitalize">
+            {ad.mediaType === "video" ? <PlaySquare size={13} /> : ad.mediaType === "carousel" ? <Images size={13} /> : <ImageIcon size={13} />}
             {ad.mediaType}
           </span>
         </div>
       </div>
-    </article>
-  );
-}
+      
+      {/* Footer Actions (Optional) */}
+      {(onNoteClick || onTagsClick || onRemoveClick) && (
+        <div className="flex w-full min-h-[44px] border-t border-line items-center px-2">
+          {onNoteClick && (
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onNoteClick(); }}
+              className={cn("flex flex-1 items-center justify-center gap-1.5 px-2 py-2 text-[12px] font-semibold transition rounded-md", hasNote ? "text-ink bg-zinc-50 hover:bg-zinc-100" : "text-muted hover:bg-zinc-50 hover:text-ink")}
+              aria-label="Notes"
+            >
+              <FileText size={14} className={hasNote ? "text-signal" : ""} /> Note {hasNote && <span className="text-signal font-bold">&bull;</span>}
+            </button>
+          )}
+          
+          {onTagsClick && (
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onTagsClick(); }}
+              className={cn("flex flex-1 items-center justify-center gap-1.5 px-2 py-2 text-[12px] font-semibold transition rounded-md", (tags && tags.length > 0) ? "text-ink bg-zinc-50 hover:bg-zinc-100" : "text-muted hover:bg-zinc-50 hover:text-ink")}
+              aria-label="Tags"
+            >
+              <Tag size={14} className={(tags && tags.length > 0) ? "text-signal" : ""} />
+              Tags
+              {tags && tags.length > 0 && (
+                <div className="flex items-center gap-1 ml-1">
+                   {tags.slice(0, 2).map(t => (
+                      <span key={t.id} className="inline-flex h-[20px] items-center rounded-sm bg-zinc-200/50 px-1.5 text-[10px] font-semibold text-zinc-700 truncate max-w-[60px]">{t.name}</span>
+                   ))}
+                   {tags.length > 2 && <span className="text-[10px] text-zinc-500 font-bold">+{tags.length - 2}</span>}
+                </div>
+              )}
+            </button>
+          )}
 
-function MoreActionsMenu({
-  ad,
-  saved,
-  saving,
-  sharing,
-  advertiserProfile,
-  landingPage,
-  menuOpen,
-  menuRef,
-  setMenuOpen,
-  setSaving,
-  setSharing,
-  onSave,
-  onShare,
-}: {
-  ad: NormalizedAd;
-  saved?: boolean;
-  saving: boolean;
-  sharing: boolean;
-  advertiserProfile: string | null;
-  landingPage: string | null;
-  menuOpen: boolean;
-  menuRef: RefObject<HTMLDivElement | null>;
-  setMenuOpen: Dispatch<SetStateAction<boolean>>;
-  setSaving: Dispatch<SetStateAction<boolean>>;
-  setSharing: Dispatch<SetStateAction<boolean>>;
-  onSave: () => Promise<void> | void;
-  onShare: () => Promise<void> | void;
-}) {
-  return (
-    <div className="relative" ref={menuRef}>
-      <button
-        type="button"
-        aria-label="More actions"
-        aria-haspopup="menu"
-        aria-expanded={menuOpen}
-        className="grid size-8 place-items-center rounded-md text-muted hover:bg-zinc-50"
-        onClick={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          setMenuOpen((current) => !current);
-        }}
-      >
-        <MoreHorizontal size={16} />
-      </button>
-      {menuOpen && (
-        <div className="absolute right-0 top-9 z-40 w-48 rounded-lg border border-line bg-white p-1 text-xs font-semibold shadow-card" role="menu">
-          <button
-            type="button"
-            role="menuitem"
-            disabled={saving || saved}
-            className="flex min-h-9 w-full items-center gap-2 rounded-md px-2.5 text-left hover:bg-zinc-50 disabled:opacity-60"
-            onClick={async () => {
-              if (saved) return;
-              setSaving(true);
-              try {
-                await onSave();
-              } finally {
-                setSaving(false);
-                setMenuOpen(false);
-              }
-            }}
-          >
-            {saved ? <Check size={14} /> : <Bookmark size={14} />}
-            {saving ? "Saving..." : saved ? "Saved" : "Save"}
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            disabled={sharing}
-            className="flex min-h-9 w-full items-center gap-2 rounded-md px-2.5 text-left hover:bg-zinc-50 disabled:opacity-60"
-            onClick={async () => {
-              setSharing(true);
-              try {
-                await onShare();
-              } finally {
-                setSharing(false);
-                setMenuOpen(false);
-              }
-            }}
-          >
-            <Share2 size={14} />
-            {sharing ? "Sharing..." : "Copy share link"}
-          </button>
-          {landingPage && (
-            <a href={landingPage} target="_blank" rel="noreferrer noopener" role="menuitem" onClick={() => setMenuOpen(false)} className="flex min-h-9 items-center gap-2 rounded-md px-2.5 hover:bg-zinc-50">
-              <ExternalLink size={14} />
-              Visit landing page
-            </a>
+          {onRemoveClick && (
+            <div className="flex shrink-0 items-center border-l border-line ml-1 pl-1">
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemoveClick(); }}
+                className="grid size-9 place-items-center rounded-md text-muted hover:bg-zinc-50 hover:text-signal transition group/trash"
+                title="Remove from Saved Ads"
+                aria-label="Remove from Saved Ads"
+              >
+                <Trash2 size={15} className="group-hover/trash:text-signal" />
+              </button>
+            </div>
           )}
-          {advertiserProfile && (
-            <a href={advertiserProfile} target="_blank" rel="noreferrer noopener" role="menuitem" onClick={() => setMenuOpen(false)} className="flex min-h-9 items-center gap-2 rounded-md px-2.5 hover:bg-zinc-50">
-              <ExternalLink size={14} />
-              Visit advertiser
-            </a>
-          )}
-          <button
-            type="button"
-            role="menuitem"
-            className="flex min-h-9 w-full items-center gap-2 rounded-md px-2.5 text-left hover:bg-zinc-50"
-            onClick={async () => {
-              await copyText(ad.externalAdId);
-              setMenuOpen(false);
-            }}
-          >
-            <Copy size={14} />
-            Copy Ad ID
-          </button>
         </div>
       )}
-    </div>
+      
+      {showPicker && (
+        <SwipeFilePicker
+          ad={ad}
+          saved={saved}
+          initialCollectionIds={initialCollectionIds}
+          anchorRef={saveBtnRef}
+          onClose={() => setShowPicker(false)}
+          onAdded={onSwipeFileAdded}
+        />
+      )}
+    </article>
   );
 }
 
@@ -534,80 +340,65 @@ function CreativePreview({
     return <ImageCreativePreview src={media || thumb!} alt={`Creative from ${advertiserName}`} />;
   }
 
+  // Fallback
   return (
-    <div className="grid aspect-[4/5] w-full place-items-center bg-zinc-50 text-muted">
-      <ImageIcon size={28} strokeWidth={1.5} />
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-zinc-50/80 text-muted">
+      <div className="grid size-12 place-items-center rounded-full bg-white shadow-sm border border-line">
+        <ImageIcon size={20} className="text-zinc-400" />
+      </div>
+      <p className="text-xs font-medium">Preview unavailable</p>
     </div>
   );
 }
 
 function VideoCreativePreview({ src, poster }: { src: string; poster: string | null }) {
-  const [ratio, setRatio] = useState<number | null>(null);
-  const orientation = orientationFromRatio(ratio);
-
+  // Always object-fit: contain to avoid cutting off essential creative on vertical ads inside a 4:5 box
   return (
-    <div className="bg-zinc-950 p-0">
-      <div
-        className={cn(
-          "relative mx-auto w-full overflow-hidden bg-black",
-          orientation === "portrait" && "aspect-[9/16]",
-          orientation === "landscape" && "aspect-video",
-          orientation === "square" && "aspect-square"
-        )}
-        style={ratio ? { aspectRatio: `${ratio}` } : undefined}
-      >
-        <VideoPreview
-          src={src}
-          poster={poster}
-          objectFit="contain"
-          className="h-full w-full"
-          onMetadata={({ width, height }) => setRatio(width / height)}
-        />
-      </div>
+    <div className="h-full w-full bg-zinc-950 flex items-center justify-center relative">
+      <VideoPreview
+        src={src}
+        poster={poster}
+        objectFit="contain"
+        className="h-full w-full"
+      />
     </div>
   );
 }
 
 function ImageCreativePreview({ src, alt }: { src: string; alt: string }) {
-  const [ratio, setRatio] = useState<number | null>(null);
-
+  const [failed, setFailed] = useState(false);
+  
+  if (failed) {
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-zinc-50/80 text-muted">
+        <div className="grid size-12 place-items-center rounded-full bg-white shadow-sm border border-line">
+          <ImageIcon size={20} className="text-zinc-400" />
+        </div>
+        <p className="text-xs font-medium">Creative unavailable</p>
+      </div>
+    );
+  }
+  
   return (
-    <div
-      className="relative w-full overflow-hidden bg-zinc-50"
-      style={{ aspectRatio: ratio ? `${ratio}` : "4 / 5" }}
-    >
+    <div className="h-full w-full bg-zinc-900 flex items-center justify-center">
       <img
         src={src}
         alt={alt}
         loading="lazy"
-        className="h-full w-full object-contain transition duration-500 group-hover:scale-[1.01]"
-        onLoad={(event) => {
-          const image = event.currentTarget;
-          if (image.naturalWidth && image.naturalHeight) {
-            setRatio(image.naturalWidth / image.naturalHeight);
-          }
-        }}
+        onError={() => setFailed(true)}
+        className="h-full w-full object-contain text-transparent"
       />
     </div>
   );
 }
 
 function CarouselCreativePreview({ assets, alt }: { assets: string[]; alt: string }) {
+  // Using the existing CarouselPreview component but constraining it
   return (
-    <div className="relative aspect-[4/5] w-full overflow-hidden bg-zinc-50">
+    <div className="h-full w-full bg-zinc-900 flex items-center justify-center relative">
       <CarouselPreview assets={assets} alt={alt} className="h-full w-full" />
-      <span className="pointer-events-none absolute left-3 bottom-3 z-20 rounded-full bg-white px-2 py-1 text-[10px] font-bold uppercase text-ink shadow-sm">
-        Carousel
-      </span>
     </div>
   );
-}
-
-function orientationFromRatio(ratio: number | null) {
-  if (!ratio) return "portrait";
-  if (ratio > 1.15) return "landscape";
-  if (ratio < 0.9) return "portrait";
-  return "square";
 }
 
 function signalLabel(label: string, ad: NormalizedAd) {
@@ -617,14 +408,6 @@ function signalLabel(label: string, ad: NormalizedAd) {
   if (label === "Standard") return ad.winnerScore >= 70 ? "Strong Signal" : ad.winnerScore >= 55 ? "Promising" : "Testing";
   if (label === "Testing") return "Testing";
   return label.replace(/\(.+\)/, "").trim();
-}
-
-function brandDescriptor(ad: NormalizedAd) {
-  const caption = sanitizeAdCopy(ad.caption);
-  if (caption && caption.length <= 42 && caption !== ad.body && caption !== ad.headline) return caption;
-  if (ad.platforms.length) return ad.platforms.slice(0, 2).map(titleCase).join(" + ");
-  if (ad.country) return `Meta page · ${ad.country}`;
-  return "Meta advertiser";
 }
 
 function titleCase(value: string) {
@@ -644,12 +427,4 @@ async function copyText(value: string) {
     document.execCommand("copy");
     document.body.removeChild(field);
   }
-}
-
-function LoaderDot() {
-  return <span className="size-3 animate-pulse rounded-full bg-current" aria-hidden />;
-}
-
-function ChevronGlyph() {
-  return <span className="shrink-0 text-muted" aria-hidden>▾</span>;
 }

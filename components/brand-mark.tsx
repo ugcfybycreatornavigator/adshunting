@@ -1,25 +1,31 @@
 import Link from "next/link";
-import { Activity } from "lucide-react";
+import { BucketIcon } from "@/components/bucket-icon";
+import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 export function BrandMark({
   href = "/dashboard",
-  compact = false,
   className,
+  inverted = false,
 }: {
   href?: string;
   compact?: boolean;
   className?: string;
+  inverted?: boolean;
 }) {
   return (
-    <Link href={href} className={cn("inline-flex items-center gap-2.5", className)} aria-label="Runlytics dashboard">
-      <span className="relative grid size-9 shrink-0 place-items-center rounded-lg bg-black text-white shadow-sm">
-        <span className="absolute -right-1 -top-1 size-3 rounded-full border-2 border-white bg-signal" />
-        <Activity size={17} strokeWidth={2.4} />
+    <Link href={href} className={cn("inline-flex h-[58px] items-center gap-[12px]", className)} aria-label={`${BRAND.name} Home`}>
+      <span className={cn(
+        "relative grid size-[34px] shrink-0 place-items-center rounded-[8px] shadow-sm",
+        inverted ? "bg-white text-black" : "bg-[#FF3347] text-white"
+      )}>
+        <BucketIcon size={20} />
       </span>
-      <span className="min-w-0">
-        <span className="block text-[19px] font-extrabold leading-none tracking-[-.045em] text-black">Runlytics</span>
-        {!compact && <span className="mt-1 block text-[10px] font-bold uppercase tracking-[.16em] text-zinc-400">Ads Intelligence</span>}
+      <span className={cn(
+        "text-[17px] font-[650] tracking-tight",
+        inverted ? "text-white" : "text-current"
+      )}>
+        {BRAND.name}
       </span>
     </Link>
   );

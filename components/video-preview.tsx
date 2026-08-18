@@ -23,6 +23,7 @@ export function VideoPreview({
   const pendingPlay = useRef(false);
   const [playing, setPlaying] = useState(false);
   const [nearby, setNearby] = useState(controls);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -82,22 +83,29 @@ export function VideoPreview({
         muted
         playsInline
         preload={controls ? "metadata" : "none"}
-        controls={controls}
-        className={`h-full w-full ${objectFit === "contain" ? "object-contain" : "object-cover"}`}
+        controls={controls && !failed}
+        className={`h-full w-full ${objectFit === "contain" ? "object-contain" : "object-cover"} ${failed && poster ? "opacity-50" : ""}`}
         onLoadedMetadata={(event) => {
+          setFailed(false);
           const video = event.currentTarget;
           if (video.videoWidth && video.videoHeight) {
             onMetadata?.({ width: video.videoWidth, height: video.videoHeight });
           }
         }}
+        onError={() => setFailed(true)}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
       />
-      {!controls && <button
+      {failed && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-black/40 text-white backdrop-blur-[2px]">
+          <span className="text-xs font-semibold">Video unavailable</span>
+        </div>
+      )}
+      {!controls && !failed && <button
         type="button"
         onClick={toggle}
         aria-label={playing ? "Pause preview" : "Play muted preview"}
-        className="absolute bottom-3 left-3 z-30 grid size-11 place-items-center rounded-full bg-black/75 text-white backdrop-blur transition hover:bg-black focus-visible:ring-2 focus-visible:ring-white"
+        className="absolute bottom-3 left-3 z-10 grid size-11 place-items-center rounded-full bg-black/75 text-white backdrop-blur transition hover:bg-black focus-visible:ring-2 focus-visible:ring-white"
       >
         {playing ? (
           <Pause size={16} fill="currentColor" />
@@ -105,7 +113,7 @@ export function VideoPreview({
           <Play className="ml-0.5" size={16} fill="currentColor" />
         )}
       </button>}
-      {!controls && <span className="absolute bottom-3 right-3 z-20 flex items-center gap-1 rounded-full bg-black/65 px-2 py-1 text-[10px] font-medium text-white">
+      {!controls && <span className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-full bg-black/65 px-2 py-1 text-[10px] font-medium text-white">
         <VolumeX size={11} /> Muted
       </span>}
     </div>

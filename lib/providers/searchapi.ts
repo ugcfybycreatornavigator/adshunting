@@ -32,36 +32,61 @@ function text(value: unknown): string | null {
 function creativeFromSnapshot(snapshot: UnknownRecord) {
   const cards = Array.isArray(snapshot.cards) ? snapshot.cards.map(record) : [];
   const firstCard = record(cards[0]);
-  const video = record(Array.isArray(snapshot.videos) ? snapshot.videos[0] : firstCard.video);
+  
+  // Videos array
+  const videos = Array.isArray(snapshot.videos) ? snapshot.videos.map(record) : [];
+  const firstVideo = record(videos[0] || firstCard.video || firstCard);
+  
+  // Images array
+  const images = Array.isArray(snapshot.images) ? snapshot.images.map(record) : [];
+  const firstImage = record(images[0] || firstCard);
+
   const sourceMediaUrl = safeExternalUrl(
-    text(video.video_hd_url) ||
-      text(video.video_sd_url) ||
-      text(snapshot.video_hd_url) ||
-      text(snapshot.video_sd_url) ||
-      text(firstCard.original_image_url) ||
-      text(firstCard.resized_image_url) ||
-      text(snapshot.original_image_url) ||
-      text(snapshot.resized_image_url)
+    text(firstVideo.video_hd_url) ||
+    text(firstVideo.video_sd_url) ||
+    text(snapshot.video_hd_url) ||
+    text(snapshot.video_sd_url) ||
+    text(firstImage.original_image_url) ||
+    text(firstImage.resized_image_url) ||
+    text(snapshot.original_image_url) ||
+    text(snapshot.resized_image_url)
   );
+
   const thumbnailUrl = safeExternalUrl(
-    text(video.video_preview_image_url) ||
-      text(firstCard.resized_image_url) ||
-      text(snapshot.resized_image_url) ||
-      sourceMediaUrl
+    text(firstVideo.video_preview_image_url) ||
+    text(firstImage.resized_image_url) ||
+    text(firstImage.original_image_url) ||
+    text(snapshot.resized_image_url) ||
+    text(snapshot.original_image_url) ||
+    sourceMediaUrl
   );
+
   const display = String(snapshot.display_format || "").toLowerCase();
-  const carouselAssets = cards
-    .flatMap((card) => [text(card.video), text(card.original_image_url), text(card.resized_image_url)])
-    .map(safeExternalUrl)
-    .filter((value): value is string => Boolean(value));
-  const mediaType: MediaType =
-    text(video.video_hd_url) || text(video.video_sd_url) || display.includes("video")
-      ? "video"
-      : Array.isArray(snapshot.cards) && snapshot.cards.length > 1
-      ? "carousel"
-      : sourceMediaUrl
-      ? "image"
-      : "unknown";
+  
+  // Build carousel assets from cards or images
+  let carouselAssets: string[] = [];
+  if (cards.length > 1) {
+    carouselAssets = cards.flatMap((card) => {
+      const v = record(card.video || card);
+      return [
+        text(v.video_hd_url), text(v.video_sd_url),
+        text(card.original_image_url), text(card.resized_image_url)
+      ];
+    }).map(safeExternalUrl).filter((value): value is string => Boolean(value));
+  } else if (images.length > 1) {
+    carouselAssets = images.flatMap((img) => [text(img.original_image_url), text(img.resized_image_url)])
+      .map(safeExternalUrl).filter((value): value is string => Boolean(value));
+  } else if (videos.length > 1) {
+    carouselAssets = videos.flatMap((vid) => [text(vid.video_hd_url), text(vid.video_sd_url)])
+      .map(safeExternalUrl).filter((value): value is string => Boolean(value));
+  }
+  
+  const hasVideo = text(firstVideo.video_hd_url) || text(firstVideo.video_sd_url) || display.includes("video");
+  const isCarousel = cards.length > 1 || images.length > 1 || videos.length > 1;
+
+  const mediaType: MediaType = 
+    isCarousel ? "carousel" : hasVideo ? "video" : sourceMediaUrl ? "image" : "unknown";
+
   return { firstCard, sourceMediaUrl, thumbnailUrl, mediaType, carouselAssets: [...new Set(carouselAssets)] };
 }
 
@@ -74,11 +99,12 @@ export function normalizeSearchApiAd(input: UnknownRecord, country?: string): No
   const runningDays = daysBetween(startDate, stopDate);
   const variants = Math.max(1, Number(input.collation_count) || 1);
   const repetition = Math.max(0, variants - 1);
-  const bodyText = sanitizeAdCopy(text(snapshot.body) || text(creative.firstCard.body));
+  const bodyText = sanitizeAdCopy(text(snapshot.body)) || sanitizeAdCopy(text(creative.firstCard.body)) || sanitizeAdCopy(text(input.ad_creative_body));
   const captionText = sanitizeAdCopy(text(snapshot.caption)) || bodyText;
-  const headlineText = sanitizeAdCopy(text(snapshot.title) || text(creative.firstCard.title));
+  const headlineText = sanitizeAdCopy(text(snapshot.title)) || sanitizeAdCopy(text(creative.firstCard.title)) || sanitizeAdCopy(text(input.ad_creative_link_title));
   const ctaText = text(snapshot.cta_text) || text(creative.firstCard.cta_text);
   const landingUrl = safeExternalUrl(text(snapshot.link_url) || text(creative.firstCard.link_url));
+  const descText = sanitizeAdCopy(text(snapshot.link_description)) || sanitizeAdCopy(text(creative.firstCard.link_description)) || sanitizeAdCopy(text(input.ad_creative_link_description));
   const platformsList = Array.isArray(input.publisher_platform)
     ? input.publisher_platform.map((p: unknown) => String(p).toLowerCase())
     : [];
@@ -111,7 +137,7 @@ export function normalizeSearchApiAd(input: UnknownRecord, country?: string): No
     body: bodyText,
     caption: captionText,
     headline: headlineText,
-    description: sanitizeAdCopy(text(snapshot.link_description) || text(creative.firstCard.link_description)),
+    description: descText,
     hashtags: extractHashtags([bodyText, captionText].filter(Boolean).join(" ")),
     cta: ctaText,
     landingPageUrl: landingUrl,
@@ -144,9 +170,15 @@ export function normalizeSearchApiAd(input: UnknownRecord, country?: string): No
 export class SearchApiProvider implements AdProvider {
   readonly capabilities: ProviderCapabilities = {
     keywordSearch: true, advertiserSearch: true, commercialAds: true,
-    activeAds: true, inactiveAds: true, imageCreative: true, videoCreative: true,
-    carouselCreative: true, copy: true, landingPage: true, demographics: true,
-    pagination: true, countryFilter: true,
+    pagination: true, demographics: true, copy: true, landingPage: true,
+    formats: "NATIVE",
+    statuses: "NATIVE",
+    markets: "NATIVE",
+    languages: "NATIVE",
+    niches: "UNSUPPORTED",
+    contentStyles: "UNSUPPORTED",
+    runtime: "POST_FILTER",
+    videoLength: "UNSUPPORTED",
   };
   private endpoint = "https://www.searchapi.io/api/v1/search";
   private apiKeys: string[];
@@ -250,39 +282,106 @@ export class SearchApiProvider implements AdProvider {
 
   async searchAds(filters: AdSearchFilters): Promise<AdSearchResult> {
     const searchQuery = filters.query?.trim() || (filters.brand ? undefined : "a");
-    const body: UnknownRecord = {
-      engine: "meta_ad_library",
-      q: searchQuery,
-      country: filters.country || "ALL",
-      active_status: filters.status && filters.status !== "all" ? filters.status : "all",
-      media_type:
-        filters.mediaType === "carousel"
-          ? "image_and_meme"
-          : filters.mediaType && filters.mediaType !== "all"
-          ? filters.mediaType
-          : "all",
-      platforms: filters.platforms?.length ? filters.platforms.join(",") : undefined,
-      content_languages: filters.language || undefined,
-      start_date: filters.startDate || undefined,
-      end_date: filters.endDate || undefined,
-      sort_by: filters.sort === "newest" ? "most_recent" : "impressions_high_to_low",
-      page_id: filters.brand || undefined,
-      next_page_token: filters.cursor || undefined,
-    };
-    Object.keys(body).forEach((key) => body[key] === undefined && delete body[key]);
-    const payload = await this.request(body);
-    let ads = Array.isArray(payload.ads)
-      ? payload.ads.map((ad) => normalizeSearchApiAd(record(ad), filters.country))
-      : [];
-    if (filters.cta) ads = ads.filter((ad: NormalizedAd) => ad.cta?.toLowerCase() === filters.cta?.toLowerCase());
-    if (filters.duration) ads = ads.filter((ad: NormalizedAd) => durationMatches(ad.runningDays, filters.duration!));
-    ads = sortNormalizedAds(ads, filters.sort);
-    const pagination = record(payload.pagination);
-    const information = record(payload.search_information);
+    
+    // Resolve multiple values
+    let activeStatus = "all";
+    if (filters.statuses && filters.statuses.length > 0) {
+      if (filters.statuses.includes("active") && !filters.statuses.includes("inactive")) activeStatus = "active";
+      else if (filters.statuses.includes("inactive") && !filters.statuses.includes("active")) activeStatus = "inactive";
+    } else if (filters.status && filters.status !== "all") {
+      activeStatus = filters.status;
+    }
+
+    let mediaType = "all";
+    if (filters.formats && filters.formats.length > 0) {
+      if (filters.formats.includes("carousel")) mediaType = "image_and_meme";
+      else if (filters.formats.includes("video")) mediaType = "video";
+      else if (filters.formats.includes("image")) mediaType = "image";
+    } else if (filters.mediaType && filters.mediaType !== "all") {
+      mediaType = filters.mediaType === "carousel" ? "image_and_meme" : filters.mediaType;
+    }
+
+    const contentLanguages = filters.languages?.length ? filters.languages.join(",") : filters.language || undefined;
+
+    const markets = filters.markets?.length 
+      ? filters.markets 
+      : filters.country && filters.country !== "ALL" 
+        ? [filters.country] 
+        : ["ALL"];
+
+    let allAds: NormalizedAd[] = [];
+    let nextCursor: string | null = null;
+    let total: number | null = null;
+
+    // SearchAPI only supports one country at a time, so we iterate for multi-market selections
+    // We limit to 3 markets to prevent quota exhaustion in a single search, or just run them.
+    const marketsToFetch = markets.slice(0, 3); 
+
+    for (const country of marketsToFetch) {
+      const body: UnknownRecord = {
+        engine: "meta_ad_library",
+        q: searchQuery,
+        country: country,
+        active_status: activeStatus,
+        media_type: mediaType,
+        platforms: filters.platforms?.length ? filters.platforms.join(",") : undefined,
+        content_languages: contentLanguages,
+        start_date: filters.startDate || undefined,
+        end_date: filters.endDate || undefined,
+        sort_by: filters.sort === "newest" ? "most_recent" : "impressions_high_to_low",
+        page_id: filters.brand || undefined,
+        next_page_token: filters.cursor || undefined,
+      };
+      Object.keys(body).forEach((key) => body[key] === undefined && delete body[key]);
+      
+      const payload = await this.request(body);
+      const parsedAds = Array.isArray(payload.ads)
+        ? payload.ads.map((ad) => normalizeSearchApiAd(record(ad), country))
+        : [];
+      
+      allAds = [...allAds, ...parsedAds];
+      
+      const pagination = record(payload.pagination);
+      const information = record(payload.search_information);
+      
+      // If we are doing multi-market, pagination gets tricky. We'll only return the cursor of the first market.
+      // This is a known limitation of multi-region searches without a unified provider cursor.
+      if (!nextCursor && text(pagination.next_page_token)) {
+        nextCursor = text(pagination.next_page_token);
+      }
+      if (typeof information.total_results === "number") {
+        total = (total || 0) + information.total_results;
+      }
+    }
+
+    // Deduplicate cross-region ads
+    const seen = new Set<string>();
+    allAds = allAds.filter((ad) => {
+      if (seen.has(ad.externalAdId)) return false;
+      seen.add(ad.externalAdId);
+      return true;
+    });
+
+    if (filters.cta) allAds = allAds.filter((ad: NormalizedAd) => ad.cta?.toLowerCase() === filters.cta?.toLowerCase());
+    
+    // Support advanced runtime filter
+    if (filters.runtime) {
+      allAds = allAds.filter((ad: NormalizedAd) => {
+        if (ad.runningDays === null) return false;
+        if (filters.runtime!.minDays !== undefined && ad.runningDays < filters.runtime!.minDays) return false;
+        if (filters.runtime!.maxDays !== undefined && ad.runningDays > filters.runtime!.maxDays) return false;
+        return true;
+      });
+    } else if (filters.duration) {
+      allAds = allAds.filter((ad: NormalizedAd) => durationMatches(ad.runningDays, filters.duration!));
+    }
+    
+    allAds = sortNormalizedAds(allAds, filters.sort);
+
     return {
-      ads,
-      nextCursor: text(pagination.next_page_token),
-      total: typeof information.total_results === "number" ? information.total_results : null,
+      ads: allAds,
+      nextCursor,
+      total,
       source: "provider",
     };
   }

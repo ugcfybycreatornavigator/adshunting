@@ -156,6 +156,12 @@ async function testMeta(env: ReturnType<typeof getServerEnv>, configured: boolea
     await provider.healthCheck();
   } catch (error: unknown) {
     const isMetaTokenExpired = error instanceof ProviderError && error.code === "META_TOKEN_EXPIRED";
+    const isPermission = error instanceof ProviderError && error.code === "META_PERMISSION_ERROR";
+    if (isPermission) {
+      const msg = "Meta API is connected. This app's direct ads_archive probe is not permitted; other Meta API calls are unaffected.";
+      setProviderHealth("meta", "DEGRADED", msg);
+      return { configured: true, connected: true, status: "DEGRADED", error: msg };
+    }
     const statusStr = isMetaTokenExpired ? "TOKEN_EXPIRED" : "UNAVAILABLE";
     const msg = isMetaTokenExpired
       ? "Error validating access token: Session has expired"

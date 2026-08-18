@@ -35,11 +35,15 @@ export function HeaderUserMenu() {
     <div className="flex items-center gap-3">
       <div className="hidden sm:block text-right">
         <p className="text-xs font-bold text-ink truncate max-w-[140px]">
-          {user.fullName || user.primaryEmailAddress?.emailAddress}
+          {user.fullName || user.primaryEmailAddress?.emailAddress?.split('@')[0] || "User"}
         </p>
-        <p className="text-[10px] text-muted font-medium">Pro Workspace</p>
+        <p className="text-[10px] text-muted font-medium">
+          Personal account
+        </p>
       </div>
       <UserButton
+        userProfileMode="navigation"
+        userProfileUrl="/settings/account"
         appearance={{
           elements: {
             avatarBox: "size-8 rounded-full border border-line shadow-sm",

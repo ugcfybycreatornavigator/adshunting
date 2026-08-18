@@ -1,20 +1,207 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
-import { Activity, ArrowRight, Bookmark, CalendarPlus, Compass, Flame, FolderHeart, Layers3, Plus, Target, Timer, Users } from "lucide-react";
-import { Badge, Button, Card, EmptyState } from "@/components/ui";
+import { ArrowUpRight, ArrowRight, Compass, Bookmark, Link2, Users, Settings, Store, ImageIcon, PlayCircle, Images } from "lucide-react";
 import type { DashboardData } from "@/lib/dashboard";
 import type { NormalizedAd } from "@/lib/types";
-import { formatDate, formatDuration } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 
 export function DashboardView({ data }: { data: DashboardData }) {
-  const metrics = [
-    ["Total ads tracked", data.metrics.totalAds, Layers3, "Catalog size"], ["Active ads", data.metrics.activeAds, Activity, "Currently observable"],
-    ["New ads today", data.metrics.newToday, CalendarPlus, "Launched today"], ["Saved ads", data.metrics.savedAds, Bookmark, "Your swipe file"],
-    ["Competitors", data.metrics.competitors, Users, "Brands tracked"], ["Longest running", `${data.metrics.longestRunning}d`, Timer, "Active creative"],
-    ["New this week", data.metrics.newThisWeek, Plus, "Creative velocity"], ["Long runners", data.metrics.winningAds, Flame, "30+ days active"],
-  ] as const;
-  return <><section className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.17em] text-signal">Workspace overview</p><h1 className="mt-3 text-3xl font-semibold tracking-[-.045em] sm:text-4xl">Ads Intelligence</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted sm:text-base">Discover winning creatives and understand what competitors are running.</p></div><Link href="/discover"><Button variant="signal"><Compass size={17} />Discover ads</Button></Link></section><section className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">{metrics.map(([label, value, Icon, note]) => <Card key={label} className="min-h-32 p-4 shadow-none"><div className="flex items-center justify-between"><Icon size={16} className="text-signal" /><span className="text-[10px] text-zinc-400">Live</span></div><p className="mt-5 text-2xl font-semibold tracking-[-.04em]">{typeof value === "number" ? value.toLocaleString() : value}</p><p className="mt-1 text-[11px] font-medium text-muted">{label}</p><p className="mt-0.5 hidden text-[10px] text-zinc-400 xl:block">{note}</p></Card>)}</section><div className="mt-10 grid gap-8 xl:grid-cols-[1.35fr_.65fr]"><section><SectionHeader title="Top running ads" subtitle="Longest active duration" href="/discover?sort=longest" />{data.topRunning.length ? <div className="mt-4 divide-y divide-line rounded-card border border-line">{data.topRunning.map((ad, index) => <AdRow key={ad.id} ad={ad} rank={index + 1} />)}</div> : <div className="mt-4"><EmptyState icon={<Timer />} title="No tracked ads yet" body="Run your first live search and save a creative to begin building observable longevity intelligence." action={<Link href="/discover"><Button variant="secondary">Start discovering</Button></Link>} /></div>}</section><section><SectionHeader title="Activity signals" subtitle="What changed recently" /><div className="mt-4 space-y-3"><Signal icon={<Flame />} title={`${data.metrics.newThisWeek} new creatives`} body="Discovered in the last seven days" /><Signal icon={<Target />} title={`${data.metrics.activeAds} active ads`} body="Still observable in the catalogue" /><Signal icon={<FolderHeart />} title={`${data.metrics.savedAds} saved references`} body="Organized in your swipe file" /></div><Card className="mt-4 overflow-hidden bg-black p-5 text-white"><Badge tone="red">How Runlytics scores</Badge><h3 className="mt-4 text-xl font-semibold tracking-tight">Evidence over hype.</h3><p className="mt-2 text-xs leading-5 text-white/55">Winner estimates combine longevity, repeated creatives, variants, and continued activity. They never claim private ROAS or CTR.</p><Link href="/analytics" className="mt-5 inline-flex items-center gap-2 text-xs font-semibold text-white">Explore intelligence <ArrowRight size={14} /></Link></Card></section></div><section className="mt-10"><SectionHeader title="Trending creatives" subtitle="Strongest blend of repetition, variants, and longevity" />{data.trending.length ? <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">{data.trending.map(ad => <MiniCard key={ad.id} ad={ad} />)}</div> : <div className="mt-4"><EmptyState title="No trending signals yet" body="Trending creatives appear when repeated variants and continued activity are observed." /></div>}</section><section className="mt-10"><SectionHeader title="Recently launched" subtitle="Newest observable advertisements" href="/discover?sort=newest" />{data.recent.length ? <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">{data.recent.map(ad => <MiniCard key={ad.id} ad={ad} />)}</div> : <div className="mt-4"><EmptyState title="No recently launched ads" body="New ads will appear here as the live catalogue is populated." /></div>}</section><div className="mt-10 grid gap-8 xl:grid-cols-2"><section><SectionHeader title="Most saved" subtitle="Your latest high-signal references" href="/saved" />{data.mostSaved.length ? <div className="mt-4 divide-y divide-line rounded-card border border-line">{data.mostSaved.map((ad,index)=><AdRow key={ad.id} ad={ad} rank={index+1}/>)}</div> : <div className="mt-4"><EmptyState title="Nothing saved yet" body="Saved creatives will appear here for fast access."/></div>}</section><section><SectionHeader title="Competitor activity" subtitle="Tracked advertiser movement" href="/competitors" />{data.competitors.length ? <div className="mt-4 divide-y divide-line rounded-card border border-line">{data.competitors.map(competitor=><Link key={competitor.advertiserId} href={`/competitors/${competitor.advertiserId}`} className="flex items-center gap-3 p-4 hover:bg-surface"><span className="grid size-9 place-items-center rounded-full bg-black text-xs font-bold text-white">{competitor.name[0]}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{competitor.name}</p><p className="mt-1 text-[11px] text-muted">{competitor.activeAds} active ads</p></div><Badge tone={competitor.newThisWeek>0?"red":"neutral"}>+{competitor.newThisWeek} this week</Badge></Link>)}</div> : <div className="mt-4"><EmptyState title="No competitors tracked" body="Add advertisers to compare their live launch activity."/></div>}</section></div></>;
+  const { user, actions } = data;
+
+  const currentHour = new Date().getHours();
+  let greeting = "Good Evening";
+  if (currentHour < 12) greeting = "Good Morning";
+  else if (currentHour < 18) greeting = "Good Afternoon";
+
+  const actionCards = [
+    { title: "Brands", count: actions.brands, description: "Explore brand intelligence", href: "/brands", icon: Store },
+    { title: "Saved Ads", count: actions.savedAds, description: "Review your saved creatives", href: actions.savedAdsHref, icon: Bookmark },
+    { title: "Shared Ads", count: actions.sharedAds, description: "Manage creatives you've shared", href: "/shared-ads", icon: Link2 },
+    { title: "Competitors", count: actions.competitors, description: "Monitor brands and creative activity", href: "/competitors", icon: Users },
+  ];
+
+  const learnCards = [
+    { step: "01", title: "Discover winning ads", description: "Search brands, creatives and markets", href: "/discover" },
+    { step: "02", title: "Build your Swipe Files", description: "Save and organize creative research", href: "/swipe-files" },
+    { step: "03", title: "Track competitors", description: "Monitor brands and creative patterns", href: "/competitors" },
+  ];
+
+  // Continue research items (take most recent from recent ads or most saved)
+  const continueResearchItems = [...data.mostSaved, ...data.recent].filter((v, i, a) => a.findIndex(t => t.id === v.id) === i).slice(0, 4);
+
+  return (
+    <div className="max-w-7xl mx-auto pb-24">
+      {/* Header */}
+      <header className="mb-8 flex items-center gap-4">
+        <div className="flex size-12 items-center justify-center rounded-xl bg-black text-white shadow-sm">
+          <Compass size={24} />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">Home</h1>
+          <p className="text-sm text-muted">Your Creative Intelligence Hub</p>
+        </div>
+      </header>
+
+      {/* Welcome Card */}
+      <section className="mb-8 overflow-hidden rounded-[20px] border border-line bg-white shadow-[0_2px_12px_rgba(0,0,0,0.02)] sm:mb-10">
+        <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+          <div className="flex items-center gap-5">
+            {user?.imageUrl ? (
+              <img src={user.imageUrl} alt="Avatar" className="size-16 rounded-full object-cover shadow-sm ring-1 ring-black/5 sm:size-20" />
+            ) : (
+              <div className="flex size-16 items-center justify-center rounded-full bg-surface text-xl font-bold text-muted ring-1 ring-black/5 sm:size-20">
+                {user?.firstName?.[0] || "?"}
+              </div>
+            )}
+            <div>
+              <h2 className="text-xl font-semibold text-ink sm:text-2xl">
+                {greeting}, {user?.firstName || "Welcome"}
+              </h2>
+              <p className="mt-1 text-sm text-muted">{user?.email || "Signed in"}</p>
+            </div>
+          </div>
+          <Link href="/settings" className="inline-flex h-10 w-fit items-center gap-2 rounded-lg border border-line bg-white px-4 text-sm font-semibold text-ink shadow-sm transition hover:bg-zinc-50">
+            <Settings size={16} className="text-muted" />
+            Account Settings
+          </Link>
+        </div>
+      </section>
+
+      {/* 4 Primary Actions */}
+      <section className="mb-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {actionCards.map((card) => (
+          <Link
+            key={card.title}
+            href={card.href}
+            className="group flex flex-col justify-between rounded-[20px] border border-line bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all duration-150 hover:-translate-y-[1px] hover:border-zinc-300 hover:shadow-[0_4px_16px_rgba(0,0,0,0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2"
+          >
+            <div className="flex items-start justify-between">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-surface text-ink transition-colors group-hover:bg-zinc-100">
+                <card.icon size={20} />
+              </span>
+              <ArrowUpRight size={18} className="text-zinc-400 transition-all duration-150 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-signal" />
+            </div>
+            <div className="mt-8">
+              <p className="text-4xl font-bold tracking-tight text-ink">
+                {card.count == null ? "—" : card.count.toLocaleString()}
+              </p>
+              <h3 className="mt-2 text-base font-semibold text-ink">{card.title}</h3>
+              <p className="mt-1 text-[13px] leading-relaxed text-muted">
+                {card.description}
+              </p>
+            </div>
+          </Link>
+        ))}
+      </section>
+
+            {/* Continue Research */}
+      <section className="mb-12">
+        <h2 className="text-lg font-semibold text-ink">Continue Research</h2>
+        <p className="mb-6 mt-1 text-sm text-muted">Pick up where you left off</p>
+        
+        {continueResearchItems.length > 0 ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {continueResearchItems.map((ad) => (
+              <ResearchCard key={ad.id} ad={ad} />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-[20px] border border-dashed border-zinc-300 bg-surface/50 py-12 text-center">
+            <Compass className="mb-4 text-zinc-400" size={32} />
+            <h3 className="text-sm font-semibold text-ink">Start exploring winning creatives</h3>
+            <p className="mt-1 text-xs text-muted max-w-sm">Discover top performing ads and save them to build your research library.</p>
+            <Link href="/discover" className="mt-6 inline-flex h-9 items-center justify-center rounded-lg bg-signal px-5 text-sm font-medium text-white shadow-sm hover:bg-signal/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2">
+              Discover Ads
+            </Link>
+          </div>
+        )}
+      </section>
+
+      {/* Learn Bucket */}
+      <section>
+        <h2 className="text-lg font-semibold text-ink">Learn Bucket</h2>
+        <p className="mb-6 mt-1 text-sm text-muted">Get more from your creative intelligence workflow</p>
+        
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {learnCards.map((card) => (
+            <Link key={card.step} href={card.href} className="group flex items-start gap-4 rounded-[16px] border border-line bg-white p-5 shadow-sm transition hover:border-zinc-300 hover:shadow-md">
+              <span className="text-xs font-bold text-zinc-300 tracking-wider pt-0.5">{card.step}</span>
+              <div>
+                <h3 className="text-sm font-semibold text-ink flex items-center gap-1.5 transition-colors group-hover:text-signal">
+                  {card.title}
+                  <ArrowRight size={14} className="opacity-0 -translate-x-2 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0" />
+                </h3>
+                <p className="mt-1.5 text-xs text-muted leading-relaxed">{card.description}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
 }
-function SectionHeader({ title, subtitle, href }: { title: string; subtitle: string; href?: string }) { return <div className="flex items-end justify-between"><div><h2 className="text-xl font-semibold tracking-[-.025em]">{title}</h2><p className="mt-1 text-xs text-muted">{subtitle}</p></div>{href && <Link href={href} className="flex items-center gap-1 text-xs font-semibold hover:text-signal">View all <ArrowRight size={13} /></Link>}</div>; }
-function AdRow({ ad, rank }: { ad: NormalizedAd; rank: number }) { return <Link href={`/discover?ad=${ad.externalAdId}`} className="grid grid-cols-[28px_44px_1fr_auto] items-center gap-3 p-3 transition hover:bg-surface sm:grid-cols-[28px_52px_1fr_130px_90px]"><span className="text-center text-xs font-bold text-zinc-400">{String(rank).padStart(2,"0")}</span>{ad.thumbnailUrl || ad.sourceMediaUrl ? <img src={ad.thumbnailUrl || ad.sourceMediaUrl!} alt="" className="aspect-square size-11 rounded-lg object-cover sm:size-13" /> : <span className="size-11 rounded-lg bg-surface" />}<div className="min-w-0"><p className="truncate text-sm font-semibold">{ad.advertiserName}</p><p className="mt-1 truncate text-xs text-muted">{ad.headline || ad.body || "Copy unavailable"}</p></div><div className="hidden sm:block"><p className="text-xs font-semibold">{formatDuration(ad.runningDays)}</p><p className="mt-1 text-[10px] text-muted">Running</p></div><Badge tone={ad.status === "active" ? "red" : "dark"}>{ad.status}</Badge></Link>; }
-function Signal({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) { return <Card className="flex items-center gap-3 p-4 shadow-none"><span className="grid size-10 place-items-center rounded-lg bg-red-50 text-signal [&>svg]:size-17">{icon}</span><div><p className="text-sm font-semibold">{title}</p><p className="mt-0.5 text-[11px] text-muted">{body}</p></div></Card>; }
-function MiniCard({ ad }: { ad: NormalizedAd }) { return <Card className="overflow-hidden shadow-none"><div className="aspect-[16/10] bg-surface">{ad.thumbnailUrl || ad.sourceMediaUrl ? <img src={ad.thumbnailUrl || ad.sourceMediaUrl!} alt="" className="h-full w-full object-cover" loading="lazy" /> : null}</div><div className="p-3"><p className="truncate text-xs font-semibold">{ad.advertiserName}</p><p className="mt-1 text-[10px] text-muted">Started {ad.startDate ? formatDate(ad.startDate) : "—"}</p></div></Card>; }
+
+
+function ResearchCard({ ad }: { ad: NormalizedAd }) {
+  const [failed, setFailed] = useState(false);
+  
+  let mediaUrl = ad.thumbnailUrl || ad.sourceMediaUrl;
+  const isVideo = ad.mediaType === "video";
+  const isCarousel = ad.mediaType === "carousel";
+  
+  if (isCarousel && ad.carouselAssets && ad.carouselAssets.length > 0) {
+    mediaUrl = ad.carouselAssets[0];
+  }
+
+  // If the primary media is a video file but we have no thumbnail, we can't reliably show an image.
+  if (isVideo && mediaUrl?.includes(".mp4")) {
+    mediaUrl = null; // force fallback if there's no actual thumbnail image
+  }
+
+  return (
+    <Link href={`/discover?ad=${ad.externalAdId}`} className="group flex flex-col overflow-hidden rounded-[16px] border border-line bg-white shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all duration-150 hover:-translate-y-[1px] hover:border-zinc-300 hover:shadow-[0_4px_16px_rgba(0,0,0,0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2">
+      <div className="aspect-[4/5] w-full bg-neutral-100 relative overflow-hidden flex items-center justify-center">
+        {!mediaUrl || failed ? (
+          <div className="flex flex-col items-center justify-center gap-2 text-zinc-400 p-4 text-center">
+            <ImageIcon size={24} />
+            <span className="text-[11px] font-medium uppercase tracking-wider">Preview unavailable</span>
+          </div>
+        ) : (
+          <img 
+            src={mediaUrl} 
+            alt={ad.advertiserName} 
+            onError={() => setFailed(true)}
+            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" 
+            loading="lazy" 
+          />
+        )}
+        
+        {isVideo && !failed && mediaUrl && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+            <PlayCircle size={40} className="text-white drop-shadow-md" strokeWidth={1.5} />
+          </div>
+        )}
+
+        {isCarousel && ad.carouselAssets && ad.carouselAssets.length > 0 && !failed && (
+          <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+            <Images size={10} />
+            Carousel · {ad.carouselAssets.length}
+          </div>
+        )}
+
+        <div className="absolute inset-0 bg-black/0 transition duration-150 group-hover:bg-black/5" />
+      </div>
+      <div className="flex flex-1 flex-col p-4">
+        <p className="truncate text-sm font-semibold text-ink">{ad.advertiserName}</p>
+        <p className="mt-1 line-clamp-1 text-xs text-muted">{ad.headline || ad.body || "View creative details"}</p>
+        <div className="mt-auto pt-3">
+          <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">
+            {ad.lastSeenAt ? formatDate(ad.lastSeenAt) : ad.startDate ? formatDate(ad.startDate) : "Recently active"}
+          </p>
+        </div>
+      </div>
+    </Link>
+  );
+}

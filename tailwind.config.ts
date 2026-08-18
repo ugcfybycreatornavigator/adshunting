@@ -23,6 +23,15 @@ export default {
         auth: "18px",
         button: "12px",
       },
+      keyframes: {
+        "auth-float": {
+          "0%, 100%": { transform: "translateY(0) scale(1)" },
+          "50%": { transform: "translateY(-6px) scale(1.02)" },
+        }
+      },
+      animation: {
+        "auth-float": "auth-float 12s ease-in-out infinite",
+      }
     },
   },
   plugins: [],

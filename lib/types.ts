@@ -1,20 +1,24 @@
 export type AdStatus = "active" | "inactive" | "unknown";
 export type MediaType = "image" | "video" | "carousel" | "unknown";
 
+export type FilterCapability = "NATIVE" | "CACHED" | "POST_FILTER" | "UNSUPPORTED";
+
 export type ProviderCapabilities = {
   keywordSearch: boolean;
   advertiserSearch: boolean;
   commercialAds: boolean;
-  activeAds: boolean;
-  inactiveAds: boolean;
-  imageCreative: boolean;
-  videoCreative: boolean;
-  carouselCreative: boolean;
+  pagination: boolean;
+  demographics: boolean;
   copy: boolean;
   landingPage: boolean;
-  demographics: boolean;
-  pagination: boolean;
-  countryFilter: boolean;
+  formats: FilterCapability;
+  statuses: FilterCapability;
+  markets: FilterCapability;
+  languages: FilterCapability;
+  niches: FilterCapability;
+  contentStyles: FilterCapability;
+  runtime: FilterCapability;
+  videoLength: FilterCapability;
 };
 
 export interface NormalizedDemographics {
@@ -65,18 +69,40 @@ export interface NormalizedAd {
 
 export interface AdSearchFilters {
   query?: string;
+  brand?: string;
+  platforms?: string[];
+  sort?: string;
+  cursor?: string;
+  cta?: string;
+  
+  // Legacy singular properties (preserved for backward compatibility)
   status?: "all" | AdStatus;
   country?: string;
-  platforms?: string[];
   mediaType?: "all" | MediaType;
-  cta?: string;
+  language?: string;
   duration?: string;
   startDate?: string;
   endDate?: string;
-  brand?: string;
-  language?: string;
-  sort?: string;
-  cursor?: string;
+
+  // New plural and advanced properties
+  formats?: MediaType[];
+  statuses?: AdStatus[];
+  markets?: string[];
+  languages?: string[];
+  niches?: string[];
+  contentStyles?: string[];
+  
+  runtime?: {
+    preset?: string;
+    minDays?: number;
+    maxDays?: number;
+  };
+  
+  videoLength?: {
+    preset?: string;
+    minSeconds?: number;
+    maxSeconds?: number;
+  };
 }
 
 export interface AdSearchResult {
@@ -100,11 +126,37 @@ export interface AdProvider {
   getAdvertiser?(id: string): Promise<Advertiser | null>;
 }
 
-export interface Collection {
+export interface SwipeFile {
   id: string;
   name: string;
   description: string | null;
+  isSystem: boolean;
+  systemKey: string | null;
   adCount?: number;
+  previewMedia?: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+export type SharedAdContentType = "single" | "multiple" | "swipe_file";
+
+export interface SharedAdLink {
+  id: string;
+  ownerUserId: string;
+  name: string;
+  message?: string;
+  tokenHash: string;
+  contentType: "single" | "multiple" | "swipe_file";
+  swipeFileId?: string;
+  expiresAt?: string;
+  revokedAt?: string;
+  visibility: "public" | "private";
+  allowSave: boolean;
+  allowDownload: boolean;
+  createdAt: string;
+  updatedAt: string;
+  lastViewedAt?: string;
+  status: "active" | "expired" | "disabled";
+  views: number;
+  itemCount: number;
 }

@@ -1,77 +1,72 @@
-import type { ReactNode } from "react";
-import { BarChart3, Bookmark, Search, ShieldCheck } from "lucide-react";
-import { BrandMark } from "@/components/brand-mark";
+"use client";
 
-const signals = [
-  ["Live Ad Discovery", "Search active competitor creatives by brand, market, format, and duration.", Search],
-  ["Observable Scoring", "Rank ads with longevity, repetition, variants, recency, and confidence.", BarChart3],
-  ["Swipe Files", "Save high-signal creative patterns into organized collections.", Bookmark],
-] as const;
+import type { ReactNode } from "react";
+import { BrandMark } from "@/components/brand-mark";
+import { BRAND } from "@/lib/brand";
 
 export function AuthShell({ children, mode }: { children: ReactNode; mode: "sign-in" | "sign-up" }) {
-  const title = mode === "sign-in" ? "Sign in to Runlytics" : "Create your Runlytics workspace";
+  const title = mode === "sign-in" ? "Welcome back" : "Create your Bucket account";
   const body =
     mode === "sign-in"
-      ? "Get back to competitor discovery, creative signals, and saved swipe files."
-      : "Start tracking observable ad signals without pretending public ads reveal private performance data.";
+      ? `Sign in to continue to ${BRAND.name}.`
+      : "Start building your creative intelligence library.";
 
   return (
-    <main className="min-h-screen bg-white text-ink">
-      <div className="grid min-h-screen lg:grid-cols-[minmax(0,1fr)_minmax(430px,520px)]">
-        <section className="hidden border-r border-line bg-zinc-50 px-10 py-8 lg:flex lg:flex-col">
-          <BrandMark href="/sign-in" />
-          <div className="flex flex-1 flex-col justify-center">
-            <p className="text-xs font-bold uppercase tracking-[.18em] text-signal">Performance marketers</p>
-            <h1 className="mt-4 max-w-xl text-5xl font-semibold leading-[1.02] tracking-[-.045em] text-ink">
-              Competitor ads, ranked by evidence.
-            </h1>
-            <p className="mt-5 max-w-lg text-base leading-7 text-muted">
-              Runlytics turns public ad-library observations into useful creative intelligence while keeping private CTR, ROAS, CPC, and revenue clearly private.
-            </p>
-            <div className="mt-10 grid max-w-xl gap-3">
-              {signals.map(([label, copy, Icon]) => (
-                <div key={label} className="flex items-start gap-3 rounded-xl border border-line bg-white p-4 shadow-card">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-red-50 text-signal">
-                    <Icon size={18} />
-                  </span>
-                  <div>
-                    <h2 className="text-sm font-semibold text-ink">{label}</h2>
-                    <p className="mt-1 text-xs leading-5 text-muted">{copy}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center gap-2 border-t border-line pt-5 text-xs font-medium text-muted">
-            <ShieldCheck size={15} className="text-signal" />
-            No fabricated competitor CTR, ROAS, CPC, sales, or revenue.
-          </div>
-        </section>
+    <main className="min-h-screen bg-white text-ink lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(420px,2fr)]">
+      {/* 60% Visual Side (Desktop/Tablet) */}
+      <section className="relative hidden flex-col justify-between overflow-hidden bg-[#090B10] px-12 pb-12 pt-14 lg:flex border-r border-line">
+        <div className="relative z-10">
+          <BrandMark inverted compact href="/" />
+        </div>
+        
+        {/* Animated Visual Asset */}
+        <div className="absolute inset-0 flex items-center justify-center p-12 overflow-hidden pointer-events-none">
+          <img 
+            src="/brand/bucket-auth-visual.svg" 
+            alt="Bucket Creative Intelligence" 
+            className="w-full h-full object-cover object-center mix-blend-lighten motion-safe:animate-[auth-float_12s_ease-in-out_infinite]"
+          />
+        </div>
 
-        <section className="flex min-h-screen flex-col px-4 py-5 sm:px-6 lg:px-10">
-          <div className="flex items-center justify-between lg:hidden">
-            <BrandMark href="/sign-in" compact />
-            <span className="rounded-full border border-line bg-zinc-50 px-3 py-1.5 text-[11px] font-semibold text-muted">
-              Ads Intelligence
-            </span>
+        <div className="relative z-10 max-w-xl">
+          <h1 className="text-3xl font-semibold leading-snug tracking-tight text-white mb-4">
+            Find the creative patterns<br />worth saving.
+          </h1>
+          <p className="text-[15px] leading-relaxed text-[#A1A1AA] max-w-md">
+            Discover competitor ads, understand observable signals, and organize winning creative research.
+          </p>
+          <div className="mt-8 flex items-center gap-3 text-[11px] font-bold uppercase tracking-[.15em] text-[#6F7380]">
+            <span>Discover</span>
+            <span className="text-[#FF3347] opacity-60">→</span>
+            <span>Analyze</span>
+            <span className="text-[#FF3347] opacity-60">→</span>
+            <span>Save</span>
+            <span className="text-[#FF3347] opacity-60">→</span>
+            <span>Organize</span>
           </div>
-          <div className="flex flex-1 items-center justify-center py-8 sm:py-10">
-            <div className="w-full max-w-[440px]">
-              <div className="mb-5">
-                <p className="text-xs font-bold uppercase tracking-[.18em] text-signal">Runlytics</p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-[-.035em] text-ink">{title}</h1>
-                <p className="mt-2 text-sm leading-6 text-muted">{body}</p>
-              </div>
-              <div className="rounded-xl border border-line bg-white p-4 shadow-auth sm:p-6">
-                {children}
-              </div>
-              <p className="mt-4 text-center text-xs font-medium text-muted">
-                Secure authentication powered by Clerk
-              </p>
-            </div>
+        </div>
+        
+        {/* Subtle noise/gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#090B10] via-transparent to-transparent opacity-80 pointer-events-none" />
+      </section>
+
+      {/* 40% Form Side */}
+      <section className="flex min-h-screen flex-col items-center justify-center px-6 py-8 lg:px-10">
+        <div className="w-full max-w-[420px]">
+          {/* Mobile Logo */}
+          <div className="mb-10 flex lg:hidden">
+            <BrandMark compact href="/" />
           </div>
-        </section>
-      </div>
+
+          <div className="mb-8">
+            <h2 className="text-[32px] font-bold tracking-tight text-[#111217]">{title}</h2>
+            <p className="mt-2 text-[15px] text-[#6F7380]">{body}</p>
+          </div>
+
+          {/* Clerk Form Injection */}
+          <div className="w-full">{children}</div>
+        </div>
+      </section>
     </main>
   );
 }

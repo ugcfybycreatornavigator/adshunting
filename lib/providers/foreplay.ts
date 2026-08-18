@@ -119,9 +119,15 @@ export function normalizeForeplayAd(input: UnknownRecord): NormalizedAd {
 export class ForeplayProvider implements AdProvider {
   readonly capabilities: ProviderCapabilities = {
     keywordSearch: true, advertiserSearch: false, commercialAds: true,
-    activeAds: true, inactiveAds: true, imageCreative: true, videoCreative: true,
-    carouselCreative: true, copy: true, landingPage: true, demographics: false,
-    pagination: true, countryFilter: false,
+    pagination: true, demographics: false, copy: true, landingPage: true,
+    formats: "NATIVE",
+    statuses: "NATIVE",
+    markets: "UNSUPPORTED",
+    languages: "NATIVE",
+    niches: "UNSUPPORTED",
+    contentStyles: "UNSUPPORTED",
+    runtime: "POST_FILTER",
+    videoLength: "UNSUPPORTED",
   };
 
   constructor(private apiKey: string) {}
@@ -151,17 +157,45 @@ export class ForeplayProvider implements AdProvider {
   async searchAds(filters: AdSearchFilters): Promise<AdSearchResult> {
     const params = new URLSearchParams({ limit: "20" });
     if (filters.query?.trim()) params.set("query", filters.query.trim());
-    if (filters.status && filters.status !== "all") params.set("live", filters.status === "active" ? "true" : "false");
-    if (filters.mediaType && !["all", "unknown"].includes(filters.mediaType)) params.append("display_format", filters.mediaType);
+    
+    let activeStatus = filters.status;
+    if (filters.statuses && filters.statuses.length > 0) {
+      if (filters.statuses.includes("active") && !filters.statuses.includes("inactive")) activeStatus = "active";
+      else if (filters.statuses.includes("inactive") && !filters.statuses.includes("active")) activeStatus = "inactive";
+      else activeStatus = "all";
+    }
+    if (activeStatus && activeStatus !== "all") params.set("live", activeStatus === "active" ? "true" : "false");
+    
+    const mediaType = filters.mediaType;
+    if (filters.formats && filters.formats.length > 0) {
+      filters.formats.forEach(f => {
+        if (f !== "unknown") params.append("display_format", f);
+      });
+    } else if (mediaType && String(mediaType) !== "all" && mediaType !== "unknown") {
+      params.append("display_format", mediaType);
+    }
+    
     filters.platforms?.forEach((platform) => params.append("publisher_platform", platform));
-    if (filters.language) params.append("languages", filters.language);
+    
+    if (filters.languages && filters.languages.length > 0) {
+      filters.languages.forEach(l => params.append("languages", l));
+    } else if (filters.language) {
+      params.append("languages", filters.language);
+    }
+    
     if (filters.startDate) params.set("start_date", filters.startDate);
     if (filters.endDate) params.set("end_date", filters.endDate);
     if (filters.cursor) params.set("cursor", filters.cursor);
     params.set("order", filters.sort === "oldest" ? "oldest" : filters.sort === "longest" ? "longest_running" : filters.sort === "relevant" ? "most_relevant" : "newest");
-    const duration = durationBounds(filters.duration);
-    if (duration.min !== undefined) params.set("running_duration_min_days", String(duration.min));
-    if (duration.max !== undefined) params.set("running_duration_max_days", String(duration.max));
+    
+    if (filters.runtime) {
+      if (filters.runtime.minDays !== undefined) params.set("running_duration_min_days", String(filters.runtime.minDays));
+      if (filters.runtime.maxDays !== undefined) params.set("running_duration_max_days", String(filters.runtime.maxDays));
+    } else {
+      const duration = durationBounds(filters.duration);
+      if (duration.min !== undefined) params.set("running_duration_min_days", String(duration.min));
+      if (duration.max !== undefined) params.set("running_duration_max_days", String(duration.max));
+    }
 
     const { payload } = await this.request("/api/discovery/ads", params);
     const data = Array.isArray(payload.data) ? payload.data.map(record) : [];

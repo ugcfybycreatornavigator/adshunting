@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { z } from "zod";
 import { isSupabaseConfigured } from "@/lib/env";
 import { isAnyAdsProviderConfigured } from "@/lib/env/server";
@@ -7,24 +7,47 @@ import { dbAdToNormalized } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
 import { getAdProviders, setProviderHealth, clearProviderCircuit } from "@/lib/providers";
 import { ProviderError } from "@/lib/providers/errors";
-import { adsForClient, persistNormalizedAds } from "@/lib/ads-persistence";
+import { adsForClient, persistNormalizedAds, archiveAdsInBackground } from "@/lib/ads-persistence";
 import { isPreviewMode } from "@/lib/preview";
-import type { AdSearchFilters, AdSearchResult, NormalizedAd } from "@/lib/types";
+import type { AdSearchResult, NormalizedAd } from "@/lib/types";
+import { normalizeDiscoverFilters } from "@/lib/filter-utils";
 
 const schema = z.object({
   query: z.string().trim().max(160).optional(),
+  brand: z.string().max(80).optional(),
+  platforms: z.array(z.enum(["facebook", "instagram", "messenger", "audience_network", "threads"])).max(5).optional(),
+  sort: z.string().max(32).optional(),
+  cursor: z.string().max(16_000).optional(),
+  cta: z.string().max(40).optional(),
+
+  // Legacy singular
   status: z.enum(["all", "active", "inactive"]).default("all"),
   country: z.string().max(8).optional(),
-  platforms: z.array(z.enum(["facebook", "instagram", "messenger", "audience_network", "threads"])).max(5).optional(),
   mediaType: z.enum(["all", "image", "video", "carousel", "unknown"]).optional(),
-  cta: z.string().max(40).optional(),
+  language: z.string().max(16).optional(),
   duration: z.string().max(20).optional(),
   startDate: z.string().date().optional(),
   endDate: z.string().date().optional(),
-  brand: z.string().max(80).optional(),
-  language: z.string().max(16).optional(),
-  sort: z.string().max(32).optional(),
-  cursor: z.string().max(16_000).optional(),
+
+  // New plural
+  formats: z.array(z.enum(["image", "video", "carousel", "unknown"])).optional(),
+  statuses: z.array(z.enum(["active", "inactive", "unknown"])).optional(),
+  markets: z.array(z.string().max(8)).optional(),
+  languages: z.array(z.string().max(16)).optional(),
+  niches: z.array(z.string().max(32)).optional(),
+  contentStyles: z.array(z.string().max(32)).optional(),
+  
+  runtime: z.object({
+    preset: z.string().optional(),
+    minDays: z.number().nonnegative().optional(),
+    maxDays: z.number().nonnegative().optional(),
+  }).optional(),
+  
+  videoLength: z.object({
+    preset: z.string().optional(),
+    minSeconds: z.number().nonnegative().optional(),
+    maxSeconds: z.number().nonnegative().optional(),
+  }).optional(),
 });
 
 type CacheEntry = { expires: number; payload: unknown };
@@ -66,8 +89,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const filters = parsed.data;
-  const key = JSON.stringify(filters);
+  const filters = normalizeDiscoverFilters(parsed.data);
+  
+  // Sort array fields for stable cache key
+  const normalizedFilters = { ...filters };
+  if (normalizedFilters.platforms) normalizedFilters.platforms.sort();
+  if (normalizedFilters.formats) normalizedFilters.formats.sort();
+  if (normalizedFilters.statuses) normalizedFilters.statuses.sort();
+  if (normalizedFilters.markets) normalizedFilters.markets.sort();
+  if (normalizedFilters.languages) normalizedFilters.languages.sort();
+  if (normalizedFilters.niches) normalizedFilters.niches.sort();
+  if (normalizedFilters.contentStyles) normalizedFilters.contentStyles.sort();
+  
+  const key = JSON.stringify(normalizedFilters);
   const hit = cache.get(key);
   if (hit && hit.expires > Date.now()) {
     return NextResponse.json(hit.payload, { headers: { "X-Cache": "HIT" } });
@@ -77,24 +111,87 @@ export async function POST(request: NextRequest) {
     let payload: AdSearchResult | null = null;
 
     // 1. Check Supabase preload/cache first if query is empty or requesting discovery feed
-    if (isSupabaseConfigured && (!filters.query || !filters.query.trim()) && !filters.brand && !filters.cursor) {
+    if (isSupabaseConfigured && (!filters.query || !filters.query.trim()) && !filters.brand) {
       try {
-        const { data: cachedRows } = await catalogClient!
-          .from("ads")
-          .select("*")
-          .order("last_seen_at", { ascending: false })
-          .limit(120);
+        let query = catalogClient!.from("ads").select("*", { count: "exact" });
+        
+        // Apply Plural filters
+        if (filters.formats?.length) query = query.in("media_type", filters.formats);
+        if (filters.statuses?.length) query = query.in("status", filters.statuses);
+        if (filters.markets?.length) query = query.in("country", filters.markets);
+        if (filters.platforms?.length) query = query.contains("platforms", filters.platforms);
+        
+        // Legacy singular filters
+        if (filters.status && filters.status !== "all" && !filters.statuses?.length) query = query.eq("status", filters.status);
+        if (filters.mediaType && filters.mediaType !== "all" && !filters.formats?.length) query = query.eq("media_type", filters.mediaType);
+        if (filters.country && filters.country !== "ALL" && !filters.markets?.length) query = query.eq("country", filters.country);
+        if (filters.cta) query = query.ilike("cta", `%${filters.cta}%`);
 
-        if (cachedRows) {
-          const ads = rankDiscoveryFeed(applyCatalogFilters(cachedRows.map(dbAdToNormalized), filters)).slice(0, 30);
-          if (ads.length >= 6) {
-          payload = { ads: adsForClient(ads), nextCursor: null, total: ads.length, source: "catalog" };
-          }
+        if (filters.runtime) {
+          if (filters.runtime.minDays !== undefined) query = query.gte("running_days", filters.runtime.minDays);
+          if (filters.runtime.maxDays !== undefined) query = query.lte("running_days", filters.runtime.maxDays);
         }
-      } catch {}
+        
+        // Fetch a large pool to allow in-memory diversity ranking before pagination
+        query = query.limit(1000);
+
+        // Apply sort
+        if (filters.sort === "newest") {
+          query = query.order("start_date", { ascending: false, nullsFirst: false });
+        } else if (filters.sort === "oldest") {
+          query = query.order("start_date", { ascending: true, nullsFirst: false });
+        } else if (filters.sort === "longest") {
+          query = query.order("running_days", { ascending: false, nullsFirst: false });
+        } else {
+          query = query.order("last_seen_at", { ascending: false });
+        }
+
+        const { data, error } = await query;
+
+        if (!error && data) {
+          const ads = data.map(dbAdToNormalized);
+          let ranked = ads;
+          const hasActiveFilters = Object.keys(filters).some(k => 
+            !['cursor', 'sort', 'query'].includes(k) && 
+            filters[k as keyof typeof filters] !== undefined && 
+            (Array.isArray(filters[k as keyof typeof filters]) ? (filters[k as keyof typeof filters] as unknown[]).length > 0 : true)
+          );
+          
+          // Re-sort the fetched dataset according to requested sort order, because 
+          // Supabase only sorted by last_seen_at (or newest/oldest) up to 1000 rows.
+          if (!filters.sort || filters.sort === "relevant") {
+            ranked = rankDiscoveryFeed(ads, !hasActiveFilters && !filters.query);
+          } else if (filters.sort === "newest") {
+            ranked.sort((a, b) => new Date(b.startDate || 0).getTime() - new Date(a.startDate || 0).getTime());
+          } else if (filters.sort === "oldest") {
+            ranked.sort((a, b) => new Date(a.startDate || 0).getTime() - new Date(b.startDate || 0).getTime());
+          } else if (filters.sort === "longest") {
+            ranked.sort((a, b) => (b.runningDays || 0) - (a.runningDays || 0));
+          } else if (filters.sort === "variations") {
+            ranked.sort((a, b) => b.variants - a.variants);
+          }
+          
+          // Now apply pagination
+          const limit = 25;
+          const offset = filters.cursor ? parseInt(filters.cursor, 10) : 0;
+          const paged = ranked.slice(offset, offset + limit);
+          
+          const nextOffset = offset + limit;
+          const nextCursor = nextOffset < ranked.length ? nextOffset.toString() : null;
+          
+          payload = { 
+            ads: adsForClient(paged), 
+            nextCursor, 
+            total: ranked.length, 
+            source: "catalog" 
+          };
+        }
+      } catch (err) {
+        console.error("[DiscoverAds] Supabase error:", err);
+      }
     }
 
-    // 2. Call provider if not satisfied by preloaded cache
+    // 2. Call provider if not satisfied by preloaded cache (e.g. we have a search query)
     if (!payload && isAnyAdsProviderConfigured) {
       let providers;
       try {
@@ -150,6 +247,10 @@ export async function POST(request: NextRequest) {
 
         if (result) {
           await persistNormalizedAds(result.ads);
+          const adsToArchive = result.ads;
+          after(() => {
+            archiveAdsInBackground(adsToArchive).catch(console.error);
+          });
           payload = { ...result, ads: adsForClient(result.ads) };
         } else if (isSupabaseConfigured) {
           // Fallback to Supabase stored ads on total provider failure
@@ -183,28 +284,29 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function applyCatalogFilters(ads: NormalizedAd[], filters: AdSearchFilters) {
-  return ads.filter((ad) => {
-    if (filters.status && filters.status !== "all" && ad.status !== filters.status) return false;
-    if (filters.mediaType && filters.mediaType !== "all" && ad.mediaType !== filters.mediaType) return false;
-    if (filters.country && filters.country !== "ALL" && ad.country !== filters.country) return false;
-    if (filters.platforms?.length && !filters.platforms.some((platform) => ad.platforms.includes(platform))) return false;
-    if (filters.cta && ad.cta?.toLowerCase() !== filters.cta.toLowerCase()) return false;
-    return true;
-  });
-}
 
-function rankDiscoveryFeed(ads: NormalizedAd[]) {
+function rankDiscoveryFeed(ads: NormalizedAd[], applyDiversityLimit: boolean) {
   const ranked = [...ads].sort((a, b) => {
+    // Relevance score proxies
     const aScore = a.winnerScore + (a.status === "active" ? 10 : 0) + Math.min(a.runningDays || 0, 120) / 6 + Math.min(a.variants, 10) * 2;
     const bScore = b.winnerScore + (b.status === "active" ? 10 : 0) + Math.min(b.runningDays || 0, 120) / 6 + Math.min(b.variants, 10) * 2;
     return bScore - aScore;
   });
+  
+  if (!applyDiversityLimit) return ranked;
+
   const advertiserCounts = new Map<string, number>();
-  return ranked.sort((a, b) => (advertiserCounts.get(a.advertiserId) || 0) - (advertiserCounts.get(b.advertiserId) || 0)).filter((ad) => {
-    const count = advertiserCounts.get(ad.advertiserId) || 0;
-    if (count >= 3) return false;
-    advertiserCounts.set(ad.advertiserId, count + 1);
+  return ranked.filter((ad) => {
+    // We group by advertiser ID to ensure diversity
+    
+    // We also roughly check for Frido domain variations so Frido doesn't bypass the limit using 5 different IDs
+    const isFrido = ad.advertiserName.toLowerCase().includes("frido");
+    const key = isFrido ? "global_frido_group" : ad.advertiserId;
+    
+    const currentCount = advertiserCounts.get(key) || 0;
+    if (currentCount >= 3) return false;
+    
+    advertiserCounts.set(key, currentCount + 1);
     return true;
   });
 }

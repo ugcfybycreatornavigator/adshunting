@@ -44,9 +44,15 @@ const fields = [
 export class MetaProvider implements AdProvider {
   readonly capabilities: ProviderCapabilities = {
     keywordSearch: true, advertiserSearch: true, commercialAds: true,
-    activeAds: true, inactiveAds: true, imageCreative: false, videoCreative: false,
-    carouselCreative: false, copy: true, landingPage: false, demographics: false,
-    pagination: true, countryFilter: true,
+    pagination: true, demographics: false, copy: true, landingPage: false,
+    formats: "POST_FILTER",
+    statuses: "NATIVE",
+    markets: "NATIVE",
+    languages: "POST_FILTER",
+    niches: "UNSUPPORTED",
+    contentStyles: "UNSUPPORTED",
+    runtime: "POST_FILTER",
+    videoLength: "UNSUPPORTED",
   };
   constructor(private config: { accessToken: string; apiVersion: string; defaultCountry?: string }) {
     if (!/^v\d+\.\d+$/.test(config.apiVersion)) {
@@ -57,11 +63,14 @@ export class MetaProvider implements AdProvider {
   async healthCheck(): Promise<void> {
     const params = new URLSearchParams({
       access_token: this.config.accessToken,
-      fields: "id",
+      ad_reached_countries: JSON.stringify([this.config.defaultCountry || "US"]),
+      search_terms: "a",
+      ad_active_status: "ALL",
+      limit: "1",
     });
     let response: Response;
     try {
-      response = await fetch(`https://graph.facebook.com/${this.config.apiVersion}/me?${params}`, {
+      response = await fetch(`https://graph.facebook.com/${this.config.apiVersion}/ads_archive?${params}`, {
         signal: AbortSignal.timeout(12_000),
         cache: "no-store",
       });
@@ -73,10 +82,13 @@ export class MetaProvider implements AdProvider {
       );
     }
 
-    const payload = (await response.json().catch(() => ({}))) as MetaResponse & { id?: string };
-    if (!response.ok || payload.error || !payload.id) {
+    const payload = (await response.json().catch(() => ({}))) as MetaResponse;
+    if (!response.ok || payload.error) {
       const detail = payload.error?.error_user_msg || payload.error?.message;
       const code = payload.error?.code;
+      if (code === 10 || payload.error?.error_subcode === 2332002) {
+        throw new ProviderError("META_PERMISSION_ERROR", "Meta ads_archive permission is not available for this token or query.", 403);
+      }
       if (code === 190 || detail?.toLowerCase().includes("expired") || detail?.toLowerCase().includes("session")) {
         throw new ProviderError("META_TOKEN_EXPIRED", "Meta access token has expired.", 401);
       }
@@ -85,12 +97,17 @@ export class MetaProvider implements AdProvider {
   }
 
   async searchAds(filters: AdSearchFilters): Promise<AdSearchResult> {
-    const country = (
-      filters.country && filters.country !== "ALL" ? filters.country : this.config.defaultCountry || "ALL"
-    ).toUpperCase();
+    let markets = filters.markets && filters.markets.length > 0 
+      ? filters.markets 
+      : filters.country && filters.country !== "ALL" 
+        ? [filters.country] 
+        : [this.config.defaultCountry || "ALL"];
+    
+    markets = markets.map(c => c.toUpperCase());
+    
     const params = new URLSearchParams({
       access_token: this.config.accessToken,
-      ad_reached_countries: JSON.stringify([country]),
+      ad_reached_countries: JSON.stringify(markets),
       ad_type: "ALL",
       fields,
       limit: "25",
@@ -105,7 +122,15 @@ export class MetaProvider implements AdProvider {
       params.set("search_terms", "a");
     }
 
-    if (filters.status && filters.status !== "all") {
+    if (filters.statuses && filters.statuses.length > 0) {
+      if (filters.statuses.includes("active") && !filters.statuses.includes("inactive")) {
+        params.set("ad_active_status", "ACTIVE");
+      } else if (filters.statuses.includes("inactive") && !filters.statuses.includes("active")) {
+        params.set("ad_active_status", "INACTIVE");
+      } else {
+        params.set("ad_active_status", "ALL");
+      }
+    } else if (filters.status && filters.status !== "all") {
       params.set("ad_active_status", filters.status.toUpperCase());
     }
     if (filters.mediaType && !["all", "carousel", "unknown"].includes(filters.mediaType)) {
@@ -146,7 +171,7 @@ export class MetaProvider implements AdProvider {
       throw providerErrorFromStatus("Meta API", response.status || 502, detail);
     }
 
-    const ads = (payload.data ?? []).map((ad) => normalizeMetaAd(ad, country));
+    const ads = (payload.data ?? []).map((ad) => normalizeMetaAd(ad, markets[0] || "ALL"));
     return { ads, nextCursor: payload.paging?.cursors?.after ?? null, total: null, source: "provider" };
   }
 }

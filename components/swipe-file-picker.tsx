@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Check, FolderPlus, Loader2, Plus, Search, X } from "lucide-react";
+import { useEffect, useMemo, useState, useLayoutEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import { Check, Loader2, Plus, Search, X } from "lucide-react";
 import { Button } from "@/components/ui";
-import type { Collection, NormalizedAd } from "@/lib/types";
+import type { SwipeFile, NormalizedAd } from "@/lib/types";
 
 export type SwipeFileResult = {
   savedAdId: string;
@@ -13,16 +14,20 @@ export type SwipeFileResult = {
 
 export function SwipeFilePicker({
   ad,
+  saved,
   initialCollectionIds = [],
+  anchorRef,
   onClose,
   onAdded,
 }: {
   ad: NormalizedAd;
+  saved?: boolean;
   initialCollectionIds?: string[];
+  anchorRef?: React.RefObject<HTMLElement | null>;
   onClose: () => void;
   onAdded?: (result: SwipeFileResult) => void;
 }) {
-  const [collections, setCollections] = useState<Collection[]>([]);
+  const [collections, setCollections] = useState<SwipeFile[]>([]);
   const [selected, setSelected] = useState<string[]>(initialCollectionIds);
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
@@ -30,16 +35,20 @@ export function SwipeFilePicker({
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [done, setDone] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(null);
 
   useEffect(() => {
+    setMounted(true);
     let active = true;
     setLoading(true);
-    fetch("/api/collections")
+    fetch("/api/swipe-files")
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Unable to load Swipe Files.");
-        if (active) setCollections(data.collections);
+        if (active) setCollections(Array.isArray(data) ? data.filter((c: SwipeFile) => !c.isSystem) : []);
       })
       .catch(() => active && setError("Couldn't load your Swipe Files. Try again."))
       .finally(() => active && setLoading(false));
@@ -47,6 +56,60 @@ export function SwipeFilePicker({
       active = false;
     };
   }, []);
+
+  useLayoutEffect(() => {
+    if (!anchorRef?.current || window.innerWidth < 640) return; // Mobile uses sheet
+    
+    const updatePosition = () => {
+      const rect = anchorRef.current!.getBoundingClientRect();
+      const popoverHeight = 360; // Max height approx
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      
+      let top: number | undefined = undefined;
+      let bottom: number | undefined = undefined;
+      
+      if (spaceBelow >= popoverHeight || spaceBelow > spaceAbove) {
+        top = rect.bottom + 8;
+      } else {
+        bottom = window.innerHeight - rect.top + 8;
+      }
+      
+      setPosition({
+        top,
+        bottom,
+        left: rect.left,
+        width: rect.width,
+      });
+    };
+    
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [anchorRef]);
+
+  useEffect(() => {
+    function closeOnOutsideClick(event: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+        // Also don't close if clicking the anchor
+        if (anchorRef?.current && anchorRef.current.contains(event.target as Node)) return;
+        onClose();
+      }
+    }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [onClose, anchorRef]);
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -59,26 +122,32 @@ export function SwipeFilePicker({
     setBusy(true);
     setError("");
     try {
-      const response = await fetch("/api/collections", {
+      const response = await fetch("/api/swipe-files", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      const collection: Collection = {
+      const collection: SwipeFile = {
         id: data.collection.id,
         name: data.collection.name,
         description: data.collection.description,
+        isSystem: false,
+        systemKey: null,
         createdAt: data.collection.created_at,
         updatedAt: data.collection.updated_at,
         adCount: data.collection.adCount ?? 0,
       };
       setCollections((current) => [collection, ...current]);
-      setSelected((current) => [...new Set([...current, collection.id])]);
+      
+      // Optimistic selection
+      const newSelected = [...new Set([...selected, collection.id])];
+      setSelected(newSelected);
       setName("");
       setCreating(false);
-      await addToSwipeFiles([collection.id], [collection.name]);
+      
+      await addToSwipeFiles(newSelected, [collection.name]);
     } catch {
       setError("Couldn't create that Swipe File. Try again.");
     } finally {
@@ -86,125 +155,174 @@ export function SwipeFilePicker({
     }
   }
 
-  async function addToSwipeFiles(ids = selected, names?: string[]) {
-    if (!ids.length) {
-      setError("Choose at least one Swipe File.");
-      return;
-    }
+  async function addToSwipeFiles(ids = selected, names?: string[], justToggledId?: string) {
+    if (!justToggledId) return; // we now do individual toggles
     setBusy(true);
     setError("");
     try {
-      const response = await fetch("/api/saved-ads", {
+      const response = await fetch("/api/swipe-files/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ad, collectionIds: ids }),
+        body: JSON.stringify({ externalAdId: ad.externalAdId, swipeFileId: justToggledId }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
+      
       const collectionNames = names ?? collections.filter((collection) => ids.includes(collection.id)).map((collection) => collection.name);
-      const firstName = collectionNames[0] || "Swipe File";
-      setDone(collectionNames.length > 1 ? `Added to ${collectionNames.length} Swipe Files` : `Added to ${firstName}`);
-      onAdded?.({ savedAdId: data.savedAdId, collectionIds: ids, collectionNames });
-      window.setTimeout(onClose, 900);
+      onAdded?.({ savedAdId: data.savedAdId || ad.id, collectionIds: ids, collectionNames });
     } catch {
       setError("Couldn't add this ad to a Swipe File. Try again.");
+      setSelected(initialCollectionIds);
     } finally {
       setBusy(false);
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-[70] grid place-items-end bg-black/25 p-0 sm:place-items-center sm:p-4" role="dialog" aria-modal="true" aria-label="Add to Swipe File" onMouseDown={onClose}>
-      <div className="w-full rounded-t-2xl bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-2xl" onMouseDown={(event) => event.stopPropagation()}>
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight">Add to Swipe File</h2>
-            <p className="mt-1 text-xs text-muted">Choose a folder or create one for this creative.</p>
+  const toggleSelection = async (collectionId: string, collectionName: string) => {
+    const isChecked = selected.includes(collectionId);
+    let newSelected;
+    if (isChecked) {
+      newSelected = selected.filter(id => id !== collectionId);
+    } else {
+      newSelected = [...selected, collectionId];
+    }
+    
+    // Optimistic UI update
+    setSelected(newSelected);
+    
+    // Auto-save on toggle for a smoother experience
+    await addToSwipeFiles(newSelected, [collectionName], collectionId);
+  };
+
+  const content = (
+    <div 
+      ref={popoverRef}
+      className="flex w-full flex-col bg-white shadow-xl sm:rounded-xl sm:border border-line overflow-hidden max-h-[85vh] sm:max-h-[380px]"
+      onMouseDown={(event) => event.stopPropagation()}
+    >
+      <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-3">
+        <div>
+          <h2 className="text-[13px] font-semibold text-ink">Save to Swipe File</h2>
+        </div>
+        <button type="button" onClick={onClose} className="grid size-7 shrink-0 place-items-center rounded-md text-muted hover:bg-zinc-50" aria-label="Close">
+          <X size={15} />
+        </button>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="shrink-0 p-2 border-b border-line">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search folders..."
+              className="h-8 w-full rounded-md border border-transparent bg-zinc-50 pl-8 pr-3 text-xs outline-none transition focus:border-line focus:bg-white focus:ring-1 focus:ring-signal"
+            />
           </div>
-          <button type="button" onClick={onClose} className="grid size-10 shrink-0 place-items-center rounded-lg hover:bg-zinc-50" aria-label="Close Swipe File picker">
-            <X size={18} />
-          </button>
         </div>
 
-        {done ? (
-          <div className="my-10 text-center">
-            <span className="mx-auto grid size-12 place-items-center rounded-full bg-red-50 text-signal"><Check /></span>
-            <p className="mt-3 font-semibold">{done}</p>
-          </div>
-        ) : (
-          <>
-            <label className="relative mt-5 block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search Swipe Files..."
-                className="h-11 w-full rounded-lg border border-line bg-white pl-9 pr-3 text-sm outline-none focus:border-signal"
-              />
-            </label>
-
-            <div className="mt-3 max-h-60 space-y-2 overflow-auto pr-1">
-              {loading ? (
-                <div className="rounded-lg border border-line p-4 text-sm text-muted">Loading Swipe Files...</div>
-              ) : filtered.length ? (
-                filtered.map((collection) => {
-                  const checked = selected.includes(collection.id);
-                  return (
-                    <label key={collection.id} className="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border border-line px-3 transition hover:bg-zinc-50">
+        <div className="flex-1 overflow-y-auto p-2 scrollbar-thin">
+          {loading ? (
+            <div className="flex flex-col gap-1">
+              {[...Array(4)].map((_, i) => <div key={i} className="h-10 animate-pulse rounded-md bg-zinc-50" />)}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-0.5">
+              {/* Pinned Default Folder */}
+              {(!query || "saved ads".includes(query.trim().toLowerCase())) && (
+                <div className="flex min-h-10 items-center gap-2.5 rounded-md px-2 opacity-80 cursor-default">
+                  <div className="relative flex size-4 items-center justify-center">
+                    <input type="checkbox" className="peer size-4 appearance-none rounded-[4px] border border-zinc-300 bg-white checked:border-signal checked:bg-signal transition" checked={saved} readOnly />
+                    <Check size={12} className="pointer-events-none absolute text-white opacity-0 peer-checked:opacity-100" strokeWidth={3} />
+                  </div>
+                  <span className="min-w-0 flex-1 flex items-center justify-between gap-2">
+                    <span className="truncate text-[13px] font-semibold text-ink">Saved Ads</span>
+                    <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">Default</span>
+                  </span>
+                </div>
+              )}
+              {filtered.length > 0 && <div className="my-1.5 h-px bg-line" />}
+              {filtered.map((collection) => {
+                const checked = selected.includes(collection.id);
+                return (
+                  <label key={collection.id} className="flex min-h-10 cursor-pointer items-center gap-2.5 rounded-md px-2 transition hover:bg-zinc-50">
+                    <div className="relative flex size-4 items-center justify-center">
                       <input
                         type="checkbox"
-                        className="size-4 accent-signal"
+                        className="peer size-4 cursor-pointer appearance-none rounded-[4px] border border-zinc-300 bg-white checked:border-signal checked:bg-signal transition"
                         checked={checked}
-                        onChange={() => setSelected((current) => checked ? current.filter((id) => id !== collection.id) : [...current, collection.id])}
+                        onChange={() => toggleSelection(collection.id, collection.name)}
                       />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold">{collection.name}</span>
-                        <span className="text-[11px] text-muted">{collection.adCount ?? 0} saved ads</span>
-                      </span>
-                    </label>
-                  );
-                })
-              ) : (
-                <div className="rounded-lg border border-dashed border-line p-4 text-sm text-muted">No matching Swipe Files.</div>
-              )}
+                      <Check size={12} className="pointer-events-none absolute text-white opacity-0 peer-checked:opacity-100" strokeWidth={3} />
+                    </div>
+                    <span className="min-w-0 flex-1 flex items-center justify-between gap-2">
+                      <span className="truncate text-[13px] font-medium text-ink">{collection.name}</span>
+                      <span className="text-[10px] font-medium text-muted">{collection.adCount ?? 0}</span>
+                    </span>
+                  </label>
+                );
+              })}
             </div>
+          )}
+          {!loading && filtered.length === 0 && query && "saved ads".indexOf(query.trim().toLowerCase()) === -1 && (
+            <div className="py-6 text-center text-[13px] text-muted">No matching folders</div>
+          )}
+        </div>
 
-            {creating ? (
-              <div className="mt-3 rounded-lg border border-line p-3">
-                <label className="block text-xs font-semibold text-muted">
-                  Name
-                  <input
-                    autoFocus
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    onKeyDown={(event) => event.key === "Enter" && createAndAdd()}
-                    placeholder="High-Converting Hooks"
-                    className="mt-2 h-11 w-full rounded-lg border border-line px-3 text-sm outline-none focus:border-signal"
-                  />
-                </label>
-                <Button variant="signal" className="mt-3 w-full" onClick={createAndAdd} disabled={busy || !name.trim()}>
-                  {busy ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                  Create & Add
+        <div className="shrink-0 border-t border-line p-2">
+          {creating ? (
+            <div className="flex flex-col gap-2 rounded-md bg-zinc-50 p-2">
+              <input
+                autoFocus
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                onKeyDown={(event) => event.key === "Enter" && createAndAdd()}
+                placeholder="Folder name"
+                className="h-8 w-full rounded-md border border-line px-2.5 text-xs outline-none focus:border-signal"
+              />
+              <div className="flex justify-end gap-1.5">
+                <Button variant="ghost" className="h-7 px-2.5 py-0 text-xs" onClick={() => setCreating(false)}>Cancel</Button>
+                <Button variant="signal" className="h-7 px-2.5 py-0 text-xs" onClick={createAndAdd} disabled={busy || !name.trim()}>
+                  {busy ? <Loader2 size={12} className="animate-spin mr-1" /> : null}
+                  Create
                 </Button>
               </div>
-            ) : (
-              <button type="button" onClick={() => setCreating(true)} className="mt-3 flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-sm font-semibold text-signal hover:bg-red-50">
-                <FolderPlus size={17} />
-                Create new Swipe File
-              </button>
-            )}
-
-            {error && <p className="mt-3 rounded-lg bg-red-50 p-3 text-xs leading-5 text-signal">{error}</p>}
-            <div className="mt-5 flex justify-end gap-2 border-t border-line pt-4">
-              <Button variant="ghost" onClick={onClose}>Cancel</Button>
-              <Button variant="signal" onClick={() => addToSwipeFiles()} disabled={busy || loading || selected.length === 0}>
-                {busy ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                {busy ? "Adding..." : "Add to Swipe File"}
-              </Button>
             </div>
-          </>
-        )}
+          ) : (
+            <button type="button" onClick={() => setCreating(true)} className="flex min-h-8 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium text-ink hover:bg-zinc-50 transition">
+              <Plus size={15} className="text-zinc-400" />
+              Create new folder
+            </button>
+          )}
+          {error && <p className="mt-2 text-[11px] text-red-500 font-medium px-1">{error}</p>}
+        </div>
       </div>
     </div>
+  );
+
+  if (!mounted) return null;
+
+  // Render differently for mobile vs desktop
+  return createPortal(
+    <>
+      <div className="sm:hidden fixed inset-0 z-[70] flex flex-col justify-end bg-black/40 p-0" role="dialog" aria-modal="true" aria-label="Add to Swipe File" onMouseDown={onClose}>
+        <div className="w-full rounded-t-2xl bg-white max-h-[85vh] flex flex-col" onMouseDown={(event) => event.stopPropagation()}>
+          <div className="mx-auto mt-2 h-1 w-12 rounded-full bg-zinc-200" />
+          {content}
+        </div>
+      </div>
+      
+      <div className="hidden sm:block absolute z-[70]" style={position ? {
+        top: position.top,
+        bottom: position.bottom,
+        left: position.left,
+        width: position.width,
+        minWidth: 260
+      } : { visibility: 'hidden' }}>
+        {content}
+      </div>
+    </>,
+    document.body
   );
 }

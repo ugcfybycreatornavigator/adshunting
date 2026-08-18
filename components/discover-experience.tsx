@@ -1,20 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Filter, History, Loader2, Plus, RefreshCw, Search, X } from "lucide-react";
+import { ChevronDown, Filter, History, Loader2, RefreshCw, Search, X } from "lucide-react";
 import { AdCard } from "@/components/ad-card";
 import { AdDetailDrawer } from "@/components/ad-detail";
-import { SwipeFilePicker, type SwipeFileResult } from "@/components/swipe-file-picker";
+import { type SwipeFileResult } from "@/components/swipe-file-picker";
+import { ShareModal } from "@/components/share-modal";
 import { Button, EmptyState, Skeleton } from "@/components/ui";
+import { AdvancedFilters } from "@/components/filters/advanced-filters";
+import { SearchAutocomplete } from "@/components/search/search-autocomplete";
+import { useUrlFilters } from "@/lib/hooks/use-url-filters";
 import type { AdSearchFilters, AdSearchResult, NormalizedAd } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { normalizeDiscoverFilters } from "@/lib/filter-utils";
 
 const countries = [["ALL","All countries"],["IN","India"],["US","United States"],["GB","United Kingdom"],["CA","Canada"],["AU","Australia"],["DE","Germany"],["FR","France"],["BR","Brazil"]];
-const ctas = ["", "Shop Now", "Learn More", "Sign Up", "Download", "Get Offer", "Book Now", "Send Message"];
 const defaults: AdSearchFilters = { query: "", status: "all", country: "ALL", platforms: [], mediaType: "all", cta: "", duration: "", startDate: "", endDate: "" };
 
 export function DiscoverExperience({ brandId }: { brandId?: string }) {
-  const [filters, setFilters] = useState<AdSearchFilters>({ ...defaults, brand: brandId });
+  const { filters, updateFilters: setFilters, clearFilters } = useUrlFilters({ ...defaults, brand: brandId });
   const [ads, setAds] = useState<NormalizedAd[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [total, setTotal] = useState<number | null>(null);
@@ -22,8 +25,8 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<{ message: string; code?: string } | null>(null);
   const [details, setDetails] = useState<NormalizedAd | null>(null);
-  const [swipeFileAd, setSwipeFileAd] = useState<NormalizedAd | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
+  const [shareAdId, setShareAdId] = useState<string | null>(null);
+  const [draftQuery, setDraftQuery] = useState(filters.query || "");
   const [sort, setSort] = useState("relevant");
   const [history, setHistory] = useState<string[]>([]);
   const [savedAdIds, setSavedAdIds] = useState<Set<string>>(new Set());
@@ -43,16 +46,17 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
 
   useEffect(() => {
     let active = true;
-    fetch("/api/saved-ads")
+    fetch("/api/swipe-files/ads")
       .then(async (response) => {
         if (!response.ok) return null;
         return response.json();
       })
       .then((data) => {
-        if (!active || !data?.savedAds) return;
+        if (!active) return;
+        const savedItems = Array.isArray(data?.items) ? data.items : [];
         const ids = new Set<string>();
         const collectionMap: Record<string, string[]> = {};
-        for (const item of data.savedAds as { ad: NormalizedAd; collectionIds?: string[] }[]) {
+        for (const item of savedItems as { ad: NormalizedAd; collectionIds?: string[] }[]) {
           ids.add(item.ad.externalAdId);
           collectionMap[item.ad.externalAdId] = item.collectionIds ?? [];
         }
@@ -107,7 +111,11 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       const errorObj = typeof err === "object" && err !== null && "message" in err ? (err as { message: string; code?: string }) : { message: "Search is temporarily unavailable." };
       setError(errorObj);
-      if (!append) setAds([]);
+      if (!append) {
+        setAds([]);
+        setCursor(null);
+        setTotal(null);
+      }
     } finally {
       if (requestController.current === controller) {
         setLoading(false);
@@ -123,6 +131,10 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
     first.current = false;
     return () => clearTimeout(timer);
   }, [filters, search]);
+
+  useEffect(() => {
+    setDraftQuery(filters.query || "");
+  }, [filters.query]);
 
   const displayedAds = useMemo(() => sortAds(ads, sort), [ads, sort]);
 
@@ -148,84 +160,117 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
 
   const activeChips = useMemo(() => {
     const chips: { key: string; label: string; value: string }[] = [];
-    if (filters.status && filters.status !== "all") {
-      chips.push({ key: "status", label: `Status: ${title(filters.status)}`, value: filters.status });
-    }
-    if (filters.country && filters.country !== "ALL") {
-      const countryName = countries.find(([code]) => code === filters.country)?.[1] || filters.country;
-      chips.push({ key: "country", label: `Country: ${countryName}`, value: filters.country });
-    }
-    if (filters.mediaType && filters.mediaType !== "all") {
-      chips.push({ key: "mediaType", label: `Media: ${title(filters.mediaType)}`, value: filters.mediaType });
-    }
-    if (filters.duration) {
-      chips.push({ key: "duration", label: `Duration: ${filters.duration}`, value: filters.duration });
-    }
-    if (filters.cta) {
-      chips.push({ key: "cta", label: `CTA: ${filters.cta}`, value: filters.cta });
-    }
-    if (filters.language) {
-      chips.push({ key: "language", label: `Language: ${filters.language.toUpperCase()}`, value: filters.language });
-    }
-    if (filters.startDate) {
-      chips.push({ key: "startDate", label: `From: ${filters.startDate}`, value: filters.startDate });
-    }
-    if (filters.endDate) {
-      chips.push({ key: "endDate", label: `To: ${filters.endDate}`, value: filters.endDate });
-    }
-    if (filters.platforms && filters.platforms.length > 0) {
-      filters.platforms.forEach(p => {
-        chips.push({ key: "platforms", label: title(p), value: p });
+    const normalized = normalizeDiscoverFilters(filters);
+    
+    normalized.formats?.forEach(f => {
+      chips.push({ key: "formats", label: `Format: ${title(f)}`, value: f });
+    });
+    normalized.statuses?.forEach(s => {
+      chips.push({ key: "statuses", label: `Status: ${title(s)}`, value: s });
+    });
+    normalized.markets?.forEach(m => {
+      const countryName = countries.find(([code]) => code === m)?.[1] || m;
+      chips.push({ key: "markets", label: `Market: ${countryName}`, value: m });
+    });
+    normalized.languages?.forEach(l => {
+      chips.push({ key: "languages", label: `Language: ${l.toUpperCase()}`, value: l });
+    });
+    normalized.niches?.forEach(n => {
+      chips.push({ key: "niches", label: `Niche: ${title(n)}`, value: n });
+    });
+    normalized.contentStyles?.forEach(cs => {
+      chips.push({ key: "contentStyles", label: `Style: ${title(cs)}`, value: cs });
+    });
+    if (normalized.runtime) {
+      chips.push({ 
+        key: "runtime", 
+        label: `Runtime: ${normalized.runtime.minDays || 0}-${normalized.runtime.maxDays || '+'} days`, 
+        value: "active" 
       });
     }
+    if (normalized.videoLength) {
+      chips.push({ 
+        key: "videoLength", 
+        label: `Length: ${normalized.videoLength.minSeconds || 0}-${normalized.videoLength.maxSeconds || '+'}s`, 
+        value: "active" 
+      });
+    }
+    normalized.platforms?.forEach(p => {
+      chips.push({ key: "platforms", label: title(p), value: p });
+    });
+    
+    // Legacy singular mapping fallback for chips if no plurals (for backward compatibility if URL has old params)
+    if (!normalized.formats?.length && normalized.mediaType && normalized.mediaType !== "all") {
+      chips.push({ key: "mediaType", label: `Media: ${title(normalized.mediaType)}`, value: normalized.mediaType });
+    }
+    if (!normalized.statuses?.length && normalized.status && normalized.status !== "all") {
+      chips.push({ key: "status", label: `Status: ${title(normalized.status)}`, value: normalized.status });
+    }
+    if (!normalized.markets?.length && normalized.country && normalized.country !== "ALL") {
+      const countryName = countries.find(([code]) => code === normalized.country)?.[1] || normalized.country;
+      chips.push({ key: "country", label: `Country: ${countryName}`, value: normalized.country });
+    }
+    
     return chips;
   }, [filters]);
 
   function removeChip(key: string, value: string) {
-    setFilters(current => {
-      if (key === "platforms") {
-        return { ...current, platforms: (current.platforms || []).filter(item => item !== value) };
-      }
-      return { ...current, [key]: defaults[key as keyof AdSearchFilters] };
-    });
+    if (key === "platforms") {
+      setFilters({ platforms: (filters.platforms || []).filter(item => item !== value) });
+    } else if (key === "formats") {
+      setFilters({ formats: (filters.formats || []).filter(item => item !== value) });
+    } else if (key === "statuses") {
+      setFilters({ statuses: (filters.statuses || []).filter(item => item !== value) });
+    } else if (key === "markets") {
+      setFilters({ markets: (filters.markets || []).filter(item => item !== value) });
+    } else if (key === "languages") {
+      setFilters({ languages: (filters.languages || []).filter(item => item !== value) });
+    } else if (key === "niches") {
+      setFilters({ niches: (filters.niches || []).filter(item => item !== value) });
+    } else if (key === "contentStyles") {
+      setFilters({ contentStyles: (filters.contentStyles || []).filter(item => item !== value) });
+    } else if (key === "runtime") {
+      setFilters({ runtime: undefined });
+    } else if (key === "videoLength") {
+      setFilters({ videoLength: undefined });
+    } else {
+      setFilters({ [key]: defaults[key as keyof AdSearchFilters] });
+    }
   }
 
   function clearAllFilters() {
-    setFilters({
-      ...defaults,
-      query: filters.query,
-      brand: brandId,
-    });
+    clearFilters();
   }
 
   function update<K extends keyof AdSearchFilters>(key: K, value: AdSearchFilters[K]) {
-    setFilters(current => ({ ...current, [key]: value }));
+    setFilters({ [key]: value });
   }
 
   async function saveAd(ad: NormalizedAd) {
     try {
-      const response = await fetch("/api/saved-ads", {
+      const response = await fetch("/api/swipe-files/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ad, collectionIds: [] }),
+        body: JSON.stringify({ adId: ad.id, externalAdId: ad.externalAdId }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       setSavedAdIds((current) => new Set([...current, ad.externalAdId]));
-      setToast({ message: "Ad saved" });
-    } catch {
-      setToast({ message: "Couldn't save this ad. Try again.", tone: "error" });
+      if (data.swipeFileId) {
+        setAdCollectionIds((current) => ({
+          ...current,
+          [ad.externalAdId]: [...new Set([...(current[ad.externalAdId] ?? []), data.swipeFileId])],
+        }));
+      }
+      setToast({ message: "Saved to Saved Ads" });
+    } catch (error) {
+      setToast({ message: "Couldn't save ad. Try again.", tone: "error" });
+      throw error;
     }
   }
 
   async function shareAd(ad: NormalizedAd) {
-    const shareUrl = `${window.location.origin}/discover?ad=${encodeURIComponent(ad.externalAdId)}`;
-    try {
-      await copyText(shareUrl);
-      setToast({ message: "Link copied" });
-    } catch {
-      setToast({ message: "Couldn't copy link. Try again.", tone: "error" });
-    }
+    setShareAdId(ad.id);
   }
 
   function handleSwipeFileAdded(ad: NormalizedAd, result: SwipeFileResult) {
@@ -239,57 +284,57 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
 
   return (
     <>
-      <div className="sticky top-16 z-20 -mx-4 mt-0 border-y border-line bg-white/95 px-3 py-3 backdrop-blur sm:mx-0 sm:rounded-[10px] sm:border lg:top-0">
-        <div className="grid gap-3 xl:grid-cols-[minmax(180px,240px)_minmax(320px,1fr)_auto] xl:items-center">
-          <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold tracking-[-.025em] text-ink">Discover Ads</h1>
-            <span className="rounded-full border border-line bg-zinc-50 px-2 py-1 text-[11px] font-semibold text-muted">
-              {loading ? "Searching" : total != null ? total.toLocaleString() : ads.length.toLocaleString()}
-            </span>
-          </div>
+      <div className="mb-6">
+        <h1 className="text-[28px] font-bold tracking-tight text-ink flex items-center justify-between">
+          Discover Ads
+          <span className="text-[14px] font-normal text-muted">
+             {loading ? "Searching..." : total != null ? `${total.toLocaleString()} ads` : `${ads.length.toLocaleString()} ads`}
+          </span>
+        </h1>
+        <p className="mt-1 text-[14px] text-muted">Search competitor ads, brands and creative patterns.</p>
+      </div>
 
+      {/* Sticky Toolbar */}
+      <div className="sticky top-0 z-30 mb-6 bg-[#F6F7F9]/95 pb-4 pt-2 backdrop-blur border-b border-line">
+        <div className="flex flex-col gap-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
-            <input
-              ref={searchInputRef}
-              value={filters.query || ""}
-              onChange={event => update("query", event.target.value)}
-              className="h-10 w-full rounded-lg border border-line bg-white pl-9 pr-9 text-sm outline-none placeholder:text-zinc-400 focus:border-signal"
-              placeholder="Search keywords, brands, categories..."
-              aria-label="Search ads"
+            <SearchAutocomplete 
+              value={draftQuery}
+              onChange={setDraftQuery}
+              onSubmit={(val) => {
+                setFilters({ query: val, brand: undefined });
+              }}
+              onSelectBrand={(id, name) => {
+                setFilters({ query: name, brand: id });
+              }}
+              onSelectCategory={(id, type) => {
+                const key = type === "Niche" ? "niches" : type === "Style" ? "contentStyles" : type === "Language" ? "languages" : "markets";
+                const currentArray = (filters[key as keyof AdSearchFilters] as string[]) || [];
+                setFilters({ 
+                  query: "", 
+                  brand: undefined,
+                  [key]: [...new Set([...currentArray, id.replace(/^cat_[^_]+_/, '')])]
+                });
+              }}
+              onClear={() => {
+                setDraftQuery("");
+                setFilters({ query: "", brand: undefined });
+              }}
             />
-            {filters.query && (
-              <button onClick={() => update("query", "")} className="absolute right-1.5 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-md hover:bg-zinc-50" aria-label="Clear search">
-                <X size={14} />
-              </button>
-            )}
           </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => update("mediaType", "all")} className={quickFilterClass((filters.mediaType || "all") === "all")}>All Ads</button>
-            <button type="button" onClick={() => searchInputRef.current?.focus()} className="min-h-9 rounded-lg border border-line bg-white px-3 text-xs font-semibold text-muted transition hover:bg-zinc-50 hover:text-ink">Brands</button>
-            <button type="button" onClick={() => update("mediaType", "video")} className={quickFilterClass(filters.mediaType === "video")}>Video</button>
-            <button type="button" onClick={() => update("mediaType", "image")} className={quickFilterClass(filters.mediaType === "image")}>Image</button>
-            <button type="button" onClick={() => update("mediaType", "carousel")} className={quickFilterClass(filters.mediaType === "carousel")}>Carousel</button>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <AdvancedFilters filters={filters} updateFilters={setFilters} clearFilters={clearAllFilters} />
+              <CompactSelect ariaLabel="Sort" value={sort} onChange={setSort} options={[["relevant","Sort: Relevant"],["newest","Sort: Newest"],["oldest","Sort: Oldest"],["longest","Sort: Longest"],["variations","Sort: Variations"]]} />
+            </div>
+            <div className="flex items-center rounded-lg border border-line bg-white p-1 shrink-0">
+              <button type="button" onClick={() => clearFilters()} className="rounded-md px-4 py-1.5 text-[13px] font-medium text-ink bg-zinc-100/50">All Ads</button>
+              <button type="button" onClick={() => searchInputRef.current?.focus()} className="rounded-md px-4 py-1.5 text-[13px] font-medium text-muted hover:text-ink">Brands</button>
+            </div>
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Button variant="secondary" className="h-9 min-h-9 px-3 text-xs" onClick={() => setShowFilters(current => !current)}>
-            <Plus size={14} />
-            <span>Add Filter</span>
-            {activeChips.length > 0 && (
-              <span className="grid size-4 place-items-center rounded-full bg-signal text-[9px] font-bold text-white">
-                {activeChips.length}
-              </span>
-            )}
-          </Button>
-          <CompactSelect ariaLabel="Country" value={filters.country || "ALL"} onChange={value => update("country", value)} options={countries} />
-          <CompactSelect ariaLabel="Status" value={filters.status || "all"} onChange={value => update("status", value as AdSearchFilters["status"])} options={[["all","Status: All"],["active","Active"],["inactive","Inactive"]]} />
-          <button type="button" onClick={() => setShowFilters(true)} className="min-h-9 rounded-lg border border-line bg-white px-3 text-xs font-semibold text-muted transition hover:bg-zinc-50 hover:text-ink">Date</button>
-          <CompactSelect ariaLabel="Sort" value={sort} onChange={setSort} options={[["relevant","Sort: Relevant"],["newest","Sort: Newest"],["oldest","Sort: Oldest"],["longest","Sort: Longest"],["variations","Sort: Variations"]]} />
-          {loading && <span className="ml-auto inline-flex items-center gap-1.5 text-xs font-medium text-muted"><Loader2 size={13} className="animate-spin text-signal" />Searching live ads...</span>}
-        </div>
+
 
         {!filters.query && history.length > 0 && (
           <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-none">
@@ -303,10 +348,6 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
               Clear
             </button>
           </div>
-        )}
-
-        {showFilters && (
-          <FilterPanel filters={filters} update={update} onClear={clearAllFilters} />
         )}
 
         {activeChips.length > 0 && (
@@ -327,7 +368,7 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
 
       <div className="mt-3">
         {loading && ads.length === 0 ? (
-          <AdGridSkeleton mediaType={filters.mediaType || "all"} />
+          <AdGridSkeleton />
         ) : error ? (
           <EmptyState
             icon={<Filter className="text-signal" />}
@@ -343,23 +384,23 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
           <EmptyState
             icon={<Search />}
             title="No ads found"
-            body={filters.query?.trim() ? `No ads found for "${filters.query.trim()}". Try another keyword or remove active filters.` : "Type a keyword above (e.g. Nike, skincare, layerstory) to search live ads."}
+            body={filters.query?.trim() ? `No ads found for "${filters.query.trim()}". Try another keyword or remove active filters.` : "Try removing active filters or typing a keyword above to search live ads."}
             action={activeChips.length > 0 ? (
               <Button variant="secondary" onClick={clearAllFilters}>Clear filters</Button>
             ) : undefined}
           />
         ) : (
-          <div className={gridClass(filters.mediaType || "all")}>
+          <div className={gridClass()}>
             {displayedAds.map(ad => (
               <AdCard
                 key={`${ad.externalAdId}-${ad.id}`}
                 ad={ad}
                 saved={savedAdIds.has(ad.externalAdId)}
-                variant="masonry"
                 swipeFileCount={adCollectionIds[ad.externalAdId]?.length ?? 0}
+                initialCollectionIds={adCollectionIds[ad.externalAdId] ?? []}
                 onOpen={() => setDetails(ad)}
                 onSave={() => saveAd(ad)}
-                onSwipeFile={() => setSwipeFileAd(ad)}
+                onSwipeFileAdded={(result) => handleSwipeFileAdded(ad, result)}
                 onShare={() => shareAd(ad)}
               />
             ))}
@@ -367,7 +408,7 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
         )}
       </div>
 
-      {cursor && !loading && (
+      {cursor && !loading && ads.length > 0 && (
         <div className="mt-7 flex justify-center">
           <Button variant="secondary" disabled={loadingMore} onClick={() => search({ ...filters, cursor }, true)}>
             {loadingMore && <Loader2 className="animate-spin" size={16} />}
@@ -376,69 +417,26 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
         </div>
       )}
 
-      {details && <AdDetailDrawer ad={details} onClose={() => setDetails(null)} onSave={() => setSwipeFileAd(details)} />}
-      {swipeFileAd && (
-        <SwipeFilePicker
-          ad={swipeFileAd}
-          initialCollectionIds={adCollectionIds[swipeFileAd.externalAdId] ?? []}
-          onClose={() => setSwipeFileAd(null)}
-          onAdded={(result) => handleSwipeFileAdded(swipeFileAd, result)}
+      {details && (
+        <AdDetailDrawer
+          ad={details}
+          saved={savedAdIds.has(details.externalAdId)}
+          onClose={() => setDetails(null)}
+          onSave={() => saveAd(details)}
+        />
+      )}
+      {shareAdId && (
+        <ShareModal 
+          isOpen={true} 
+          onClose={() => setShareAdId(null)} 
+          adIds={[shareAdId]} 
+          defaultName="Shared Ad" 
         />
       )}
       {toast && <Toast message={toast.message} tone={toast.tone} />}
     </>
   );
-}
 
-function FilterPanel({ filters, update, onClear }: { filters: AdSearchFilters; update: <K extends keyof AdSearchFilters>(key: K, value: AdSearchFilters[K]) => void; onClear: () => void }) {
-  const platforms = ["facebook","instagram","messenger","audience_network"];
-  return (
-    <div className="mt-3 border-t border-line pt-4 animate-in fade-in slide-in-from-top-1 duration-200">
-      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <Select label="Status" value={filters.status || "all"} onChange={value => update("status", value as AdSearchFilters["status"])} options={[["all","All status"],["active","Active"],["inactive","Inactive"]]} />
-        <Select label="Country" value={filters.country || "ALL"} onChange={value => update("country", value)} options={countries} />
-        <Select label="Media" value={filters.mediaType || "all"} onChange={value => update("mediaType", value as AdSearchFilters["mediaType"])} options={[["all","All media"],["video","Video"],["image","Image"],["carousel","Carousel"]]} />
-        <Select label="Running duration" value={filters.duration || ""} onChange={value => update("duration", value)} options={[["","Any duration"],["today","Today"],["1-7","1–7 days"],["7-30","7–30 days"],["30-60","30–60 days"],["60-90","60–90 days"],["90+","90+ days"]]} />
-        <Select label="CTA" value={filters.cta || ""} onChange={value => update("cta", value)} options={ctas.map(item => [item, item || "Any CTA"])} />
-        <Select label="Language" value={filters.language || ""} onChange={value => update("language", value)} options={[["","Any language"],["en","English"],["hi","Hindi"],["es","Spanish"],["fr","French"],["de","German"]]} />
-        <DateInput label="Start date" value={filters.startDate || ""} onChange={value => update("startDate", value)} />
-        <DateInput label="End date" value={filters.endDate || ""} onChange={value => update("endDate", value)} />
-      </div>
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <span className="mr-1 text-xs font-semibold text-muted">Platforms</span>
-        {platforms.map(platform => {
-          const selected = filters.platforms?.includes(platform);
-          return (
-            <button
-              key={platform}
-              type="button"
-              onClick={() => update("platforms", selected ? filters.platforms?.filter(item => item !== platform) : [...(filters.platforms || []), platform])}
-              className={`min-h-9 rounded-lg border px-3 text-xs font-semibold transition ${selected ? "border-signal bg-red-50 text-signal" : "border-line bg-white text-muted hover:text-ink"}`}
-            >
-              {title(platform)}
-            </button>
-          );
-        })}
-        <button type="button" onClick={onClear} className="ml-auto min-h-9 px-2 text-xs font-semibold text-muted hover:text-signal">
-          Reset panel
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function Select({ label, value, options, onChange }: { label: string; value?: string; options: string[][]; onChange: (value: string) => void }) {
-  return (
-    <label className="text-[11px] font-semibold text-muted">
-      <span className="mb-1.5 block">{label}</span>
-      <span className="relative block">
-        <select value={value || ""} onChange={event => onChange(event.target.value)} className="h-10 w-full appearance-none rounded-lg border border-line bg-white px-3 pr-8 text-sm font-medium text-ink outline-none focus:border-signal">
-          {options.map(([val, lbl]) => <option key={val} value={val}>{lbl}</option>)}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted" size={14} />
-      </span>
-    </label>
-  );
 }
 
 function CompactSelect({ ariaLabel, value, options, onChange }: { ariaLabel: string; value?: string; options: string[][]; onChange: (value: string) => void }) {
@@ -457,34 +455,21 @@ function CompactSelect({ ariaLabel, value, options, onChange }: { ariaLabel: str
   );
 }
 
-function DateInput({ label, value, onChange }: { label: string; value?: string; onChange: (value: string) => void }) {
+function AdGridSkeleton() {
   return (
-    <label className="text-[11px] font-semibold text-muted">
-      <span className="mb-1.5 block">{label}</span>
-      <input type="date" value={value || ""} max={new Date().toISOString().slice(0,10)} onChange={event => onChange(event.target.value)} className="h-10 w-full rounded-lg border border-line bg-white px-3 text-sm font-medium outline-none focus:border-signal" />
-    </label>
-  );
-}
-
-function AdGridSkeleton({ mediaType }: { mediaType: AdSearchFilters["mediaType"] }) {
-  return (
-    <div className={gridClass(mediaType || "all")}>
+    <div className={gridClass()}>
       {Array.from({ length: 18 }).map((_, index) => (
-        <div key={index} className="mb-3 inline-block w-full break-inside-avoid overflow-hidden rounded-[10px] border border-line">
-          <div className="flex min-h-12 items-center gap-2.5 px-2.5 py-2">
+        <div key={index} className="flex flex-col w-full overflow-hidden rounded-[12px] border border-line bg-white shadow-sm">
+          <div className="flex min-h-[52px] items-center gap-2.5 px-3 py-2">
             <Skeleton className="size-7 rounded-full" />
-            <Skeleton className="h-3 flex-1" />
-            <Skeleton className="size-7 rounded-md" />
+            <Skeleton className="h-3.5 flex-1" />
+            <Skeleton className="size-8 rounded-md" />
           </div>
-          <Skeleton className={skeletonMediaClass(mediaType || "all", index)} />
-          <div className="p-3">
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Skeleton className="h-3 w-2/3" />
-                <Skeleton className="mt-2 h-3 w-full" />
-              </div>
-            </div>
-            <Skeleton className="mt-3 h-10 w-full" />
+          <Skeleton className="aspect-[4/5] w-full rounded-none" />
+          <div className="border-t border-line px-3 py-2 flex flex-col gap-3">
+            <Skeleton className="h-10 w-full rounded-md" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
           </div>
         </div>
       ))}
@@ -492,24 +477,10 @@ function AdGridSkeleton({ mediaType }: { mediaType: AdSearchFilters["mediaType"]
   );
 }
 
-function gridClass(mediaType: AdSearchFilters["mediaType"]) {
-  if (mediaType === "video") return "columns-1 min-[520px]:columns-2 md:columns-3 xl:columns-4 2xl:columns-5 [column-gap:12px]";
-  return "columns-1 min-[520px]:columns-2 md:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 [column-gap:12px]";
+function gridClass() {
+  return "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-[1600px]:grid-cols-5 gap-4";
 }
 
-function skeletonMediaClass(mediaType: AdSearchFilters["mediaType"], index = 0) {
-  if (mediaType === "video") return "aspect-[9/16] rounded-none";
-  if (mediaType === "carousel") return "aspect-[4/5] rounded-none";
-  if (mediaType === "image") return index % 4 === 0 ? "aspect-square rounded-none" : index % 5 === 0 ? "aspect-video rounded-none" : "aspect-[4/5] rounded-none";
-  return index % 6 === 0 ? "aspect-video rounded-none" : index % 4 === 0 ? "aspect-square rounded-none" : "aspect-[4/5] rounded-none";
-}
-
-function quickFilterClass(active: boolean) {
-  return cn(
-    "min-h-9 rounded-lg border px-3 text-xs font-semibold transition",
-    active ? "border-red-100 bg-red-50 text-signal" : "border-line bg-white text-muted hover:bg-zinc-50 hover:text-ink"
-  );
-}
 
 function title(value: string) {
   return value.replaceAll("_", " ").replace(/\b\w/g, char => char.toUpperCase());
@@ -521,22 +492,6 @@ function sortAds(ads: NormalizedAd[], sort?: string) {
   if (sort === "longest") return [...ads].sort((a, b) => (b.runningDays || 0) - (a.runningDays || 0));
   if (sort === "variations") return [...ads].sort((a, b) => b.variants - a.variants);
   return ads;
-}
-
-async function copyText(value: string) {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(value);
-    return;
-  }
-  const field = document.createElement("textarea");
-  field.value = value;
-  field.style.position = "fixed";
-  field.style.opacity = "0";
-  document.body.appendChild(field);
-  field.select();
-  const copied = document.execCommand("copy");
-  document.body.removeChild(field);
-  if (!copied) throw new Error("Copy failed");
 }
 
 function Toast({ message, tone = "success" }: { message: string; tone?: "success" | "error" }) {

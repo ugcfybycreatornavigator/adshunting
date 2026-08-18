@@ -48,13 +48,23 @@ function canSatisfy(provider: AdProvider, filters: AdSearchFilters) {
   const caps = provider.capabilities;
   if (filters.query?.trim() && !caps.keywordSearch) return false;
   if (filters.brand && !caps.advertiserSearch) return false;
-  if (filters.status === "active" && !caps.activeAds) return false;
-  if (filters.status === "inactive" && !caps.inactiveAds) return false;
-  if (filters.country && filters.country !== "ALL" && !caps.countryFilter) return false;
   if (filters.cursor && !caps.pagination) return false;
-  if (filters.mediaType === "video" && !caps.videoCreative) return false;
-  if (filters.mediaType === "image" && !caps.imageCreative) return false;
-  if (filters.mediaType === "carousel" && !caps.carouselCreative) return false;
+  
+  if (filters.niches && filters.niches.length > 0 && caps.niches === "UNSUPPORTED") return false;
+  if (filters.contentStyles && filters.contentStyles.length > 0 && caps.contentStyles === "UNSUPPORTED") return false;
+  if (filters.videoLength && caps.videoLength === "UNSUPPORTED") return false;
+  if (filters.runtime && caps.runtime === "UNSUPPORTED") return false;
+  if (filters.languages && filters.languages.length > 0 && caps.languages === "UNSUPPORTED") return false;
+  
+  if (filters.markets && filters.markets.length > 0 && caps.markets === "UNSUPPORTED") return false;
+  if (filters.country && filters.country !== "ALL" && caps.markets === "UNSUPPORTED") return false;
+  
+  if (filters.formats && filters.formats.length > 0 && caps.formats === "UNSUPPORTED") return false;
+  if (filters.mediaType && filters.mediaType !== "all" && caps.formats === "UNSUPPORTED") return false;
+  
+  if (filters.statuses && filters.statuses.length > 0 && caps.statuses === "UNSUPPORTED") return false;
+  if (filters.status && filters.status !== "all" && caps.statuses === "UNSUPPORTED") return false;
+
   return true;
 }
 

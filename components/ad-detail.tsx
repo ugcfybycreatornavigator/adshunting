@@ -2,18 +2,44 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BarChart3, Bookmark, ExternalLink, ImageIcon, Info, Layers3, MousePointerClick, Repeat2, Target, Timer, Users, X } from "lucide-react";
+import { BarChart3, Bookmark, Check, ExternalLink, ImageIcon, Info, Layers3, Loader2, MousePointerClick, Repeat2, Target, Timer, Users, X } from "lucide-react";
 import { Badge, Button } from "@/components/ui";
 import { VideoPreview } from "@/components/video-preview";
 import { CarouselPreview } from "@/components/carousel-preview";
 import type { NormalizedAd } from "@/lib/types";
 import { cn, formatDate, safeExternalUrl } from "@/lib/utils";
 import { computeAdIntelligence } from "@/lib/intelligence";
+import { BRAND } from "@/lib/brand";
 
-export function AdDetailDrawer({ ad, onClose, onSave }: { ad: NormalizedAd; onClose: () => void; onSave: () => void }) {
+export function AdDetailDrawer({
+  ad,
+  saved = false,
+  onClose,
+  onSave,
+}: {
+  ad: NormalizedAd;
+  saved?: boolean;
+  onClose: () => void;
+  onSave: () => Promise<void> | void;
+}) {
+  const [optimisticSaved, setOptimisticSaved] = useState(saved);
+  const [saving, setSaving] = useState(false);
   const media = safeExternalUrl(ad.sourceMediaUrl);
   const intelligence = computeAdIntelligence({ startDate: ad.startDate, stopDate: ad.stopDate, status: ad.status, lastSeenAt: ad.lastSeenAt, variants: ad.variants, creativeRepetition: ad.creativeRepetition, platforms: ad.platforms, mediaType: ad.mediaType, headline: ad.headline, body: ad.body, cta: ad.cta, landingPageUrl: ad.landingPageUrl, sourceMediaUrl: ad.sourceMediaUrl, advertiserId: ad.advertiserId });
-  const isOwnAd = ad.source === "catalog" && false; // Future extension for connected ad accounts
+  const isSaved = saved || optimisticSaved;
+
+  async function handleSave() {
+    if (isSaved || saving) return;
+    setOptimisticSaved(true);
+    setSaving(true);
+    try {
+      await onSave();
+    } catch {
+      setOptimisticSaved(false);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-[60] bg-black/25" role="dialog" aria-modal="true" aria-label={`Ad details for ${ad.advertiserName}`} onMouseDown={onClose}>
@@ -28,9 +54,9 @@ export function AdDetailDrawer({ ad, onClose, onSave }: { ad: NormalizedAd; onCl
               <p className="text-xs text-muted">Library ID {ad.externalAdId}</p>
             </div>
           </div>
-          <Button variant="signal" onClick={onSave}>
-            <Bookmark size={16} />
-            Save
+          <Button variant="signal" onClick={handleSave} disabled={isSaved || saving} aria-label={isSaved ? "Saved" : "Save to Saved Ads"}>
+            {saving ? <Loader2 size={16} className="animate-spin" /> : isSaved ? <Check size={16} /> : <Bookmark size={16} />}
+            {saving ? "Saving..." : isSaved ? "Saved" : "Save"}
           </Button>
         </header>
 
@@ -69,25 +95,10 @@ export function AdDetailDrawer({ ad, onClose, onSave }: { ad: NormalizedAd; onCl
 
           <aside>
             <section>
-              <SectionTitle number="04" title="Intelligence & Performance" />
-              {isOwnAd ? (
-                <div className="mt-3 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Badge tone="red">AUTHORIZED ACCOUNT</Badge>
-                    <span className="text-xs font-semibold text-muted">ACTUAL PERFORMANCE</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Metric value="2.84%" label="CTR (Click-Through Rate)" badge="ACTUAL" />
-                    <Metric value="4.20x" label="ROAS (Return on Ad Spend)" badge="ACTUAL" />
-                    <Metric value="₹12,400" label="Ad Spend" badge="ACTUAL" />
-                    <Metric value="₹52,080" label="Purchase Value / Sales" badge="ACTUAL" />
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-3 space-y-3">
-                  <RunlyticsSignalsPanel ad={ad} intelligence={intelligence} />
-                </div>
-              )}
+              <SectionTitle number="04" title={`${BRAND.name} Signals`} />
+              <div className="mt-3">
+                <BucketSignalsPanel ad={ad} intelligence={intelligence} />
+              </div>
 
               {ad.intelligenceLabels.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -142,18 +153,6 @@ export function AdDetailDrawer({ ad, onClose, onSave }: { ad: NormalizedAd; onCl
 }
 function SectionTitle({ number, title }: { number: string; title: string }) { return <div className="flex items-center gap-3"><span className="text-[10px] font-bold tracking-wider text-signal">{number}</span><h2 className="text-lg font-semibold tracking-tight">{title}</h2></div>; }
 function Meta({ label, value, wide }: { label: string; value?: string | null; wide?: boolean }) { return <div className={`p-4 ${wide ? "block" : "flex items-start justify-between gap-5"}`}><p className="text-xs font-medium text-muted">{label}</p><p className={`${wide ? "mt-2 max-w-prose leading-6" : "text-right"} text-sm font-medium`}>{value || "Not available from data provider"}</p></div>; }
-function Metric({ icon, value, label, badge }: { icon?: React.ReactNode; value: string; label: string; badge?: string }) {
-  return (
-    <div className="rounded-card border border-line p-4">
-      <div className="flex items-center justify-between">
-        {icon && <span className="text-signal [&>svg]:size-4">{icon}</span>}
-        {badge && <span className="rounded bg-red-50 px-1.5 py-0.5 text-[9px] font-bold text-signal">{badge}</span>}
-      </div>
-      <p className="mt-2 text-lg font-semibold tracking-tight">{value}</p>
-      <p className="mt-0.5 text-[11px] text-muted">{label}</p>
-    </div>
-  );
-}
 function titleCase(value: string) { return value.replaceAll("_", " ").replace(/\b\w/g, char => char.toUpperCase()); }
 
 function DemographicsPanel({ demographics }: { demographics: NormalizedAd["demographics"] }) {
@@ -280,7 +279,7 @@ function DetailCreativePreview({ ad, media }: { ad: NormalizedAd; media: string 
   return <div className="mt-3 grid aspect-[4/5] place-items-center rounded-card border border-line bg-zinc-50 text-muted"><ImageIcon /></div>;
 }
 
-function RunlyticsSignalsPanel({
+function BucketSignalsPanel({
   ad,
   intelligence,
 }: {
@@ -294,15 +293,15 @@ function RunlyticsSignalsPanel({
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[11px] font-bold uppercase tracking-[.16em] text-ink">Runlytics Signals</p>
+            <p className="text-[11px] font-bold uppercase tracking-[.16em] text-ink">{BRAND.name} Signals</p>
             <span className="rounded bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase text-signal">Estimated</span>
           </div>
-          <p className="mt-1 text-xs text-muted">Observable creative and delivery intelligence</p>
+          <p className="mt-1 text-xs leading-5 text-muted">Observable creative and delivery intelligence estimated by {BRAND.name}, not official Meta performance data</p>
         </div>
         <span
           className="mt-0.5 shrink-0 text-muted"
-          title="Runlytics evaluates observable creative longevity, repetition, variants, recency, brand commitment, and creative quality. This is not actual ad-account ROAS or revenue."
-          aria-label="Winner Score explanation"
+          title={`${BRAND.name} evaluates observable creative longevity, repetition, variants, recency, brand commitment, and creative quality. This is not private ad-account performance data.`}
+          aria-label={`${BRAND.name} Winner Score explanation`}
         >
           <Info size={16} />
         </span>
@@ -313,7 +312,7 @@ function RunlyticsSignalsPanel({
           <p className="text-5xl font-semibold tracking-[-.04em] text-ink">
             {winner}<span className="ml-1 text-base text-muted">/100</span>
           </p>
-          <p className="mt-1 text-sm font-semibold text-ink">Winner Score</p>
+          <p className="mt-1 text-sm font-semibold text-ink">{BRAND.name} Winner Score</p>
           <p className="mt-0.5 text-xs text-muted">{scoreSignalLabel(winner)}</p>
         </div>
         <div className="min-w-0 flex-1 pb-3">
@@ -327,14 +326,14 @@ function RunlyticsSignalsPanel({
           label="Click Propensity"
           value={`${intelligence.clickPropensityScore} / 100`}
           score={intelligence.clickPropensityScore}
-          title="Runlytics estimate based on observable creative signals. This is not the advertisement's actual CTR."
+          title={`${BRAND.name} estimate based on observable creative signals. This is not the advertisement's actual click-through data.`}
         />
         <SignalRow
           icon={<Target />}
           label="Conversion Potential"
           value={`${intelligence.conversionPotentialScore} / 100`}
           score={intelligence.conversionPotentialScore}
-          title="Modeled from observable creative and delivery signals. Not actual ROAS, revenue, or conversions."
+          title="Modeled from observable creative and delivery signals. Not actual account conversion or sales performance."
         />
         <SignalRow
           icon={<BarChart3 />}
@@ -351,23 +350,6 @@ function RunlyticsSignalsPanel({
         <Fact icon={<Layers3 />} label="Brand Commitment" value={scoreSignalLabel(intelligence.brandCommitmentScore)} score={`${intelligence.brandCommitmentScore} / 100`} />
       </div>
 
-      <div
-        className="mt-4 rounded-lg border border-line bg-zinc-50 p-3"
-        title="Meta does not publicly disclose these performance metrics for competitor ads."
-      >
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] font-bold uppercase tracking-[.14em] text-muted">Private Performance Data</p>
-          <span className="rounded bg-zinc-200 px-2 py-0.5 text-[10px] font-bold uppercase text-zinc-700">Private</span>
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-          {["CTR", "CPC", "ROAS", "Revenue"].map(metric => (
-            <div key={metric} className="flex items-center justify-between gap-3">
-              <span className="text-muted">{metric}</span>
-              <strong className="font-semibold text-ink">Private</strong>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
