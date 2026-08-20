@@ -5,7 +5,7 @@ import { motion, useInView } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { LandingContainer } from '@/components/landing/layout/LandingContainer';
 import { workflowAds } from '@/data/landing/workflowAds';
-import { Search, SlidersHorizontal, Video, Play, ExternalLink, Bookmark, Check, Share2, Copy, BarChart3, Tags, FolderOpen, FolderPlus } from 'lucide-react';
+import { Search, SlidersHorizontal, Video, Play, ExternalLink, Bookmark, Check, Share2, Copy, BarChart3, Tags, FolderOpen, FolderPlus, Lock, Globe } from 'lucide-react';
 
 const steps = [
   {
@@ -55,17 +55,34 @@ function NavItem({ icon, label, isActive }: { icon: React.ReactNode, label: stri
 function WorkflowMockup({ activeStep }: { activeStep: number }) {
   const pumaAd = workflowAds[1];
   const [searchStep, setSearchStep] = useState(0);
+  const [shareType, setShareType] = useState<'private' | 'public'>('public');
+  const [shareGenerated, setShareGenerated] = useState(false);
 
   // Auto-typing animation for Discover step
   useEffect(() => {
+    let t1: NodeJS.Timeout, t2: NodeJS.Timeout;
     if (activeStep === 0) {
-      const t1 = setTimeout(() => setSearchStep(1), 800);
-      const t2 = setTimeout(() => setSearchStep(2), 1600);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
+      t1 = setTimeout(() => setSearchStep(1), 600);
+      t2 = setTimeout(() => setSearchStep(2), 1400);
     } else {
       setSearchStep(2);
     }
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [activeStep]);
+
+  // Auto-share demonstration for Share step
+  useEffect(() => {
+    let t1: NodeJS.Timeout;
+    if (activeStep === 4) {
+      // automatically generate link after 1.5s if not manually clicked
+      t1 = setTimeout(() => setShareGenerated(true), 1500);
+    } else {
+      setShareGenerated(false);
+    }
+    return () => clearTimeout(t1);
+  }, [activeStep]);
+
+  const filteredAds = searchStep === 2 ? workflowAds.filter(ad => ad.brand === 'Puma') : workflowAds.slice(0, 3);
 
   return (
     <div className="w-full h-full bg-[#fcfcfa] rounded-[16px] md:rounded-[24px] border border-[#e4e8e2] shadow-[0_12px_40px_rgba(0,0,0,0.08)] overflow-hidden flex relative">
@@ -116,7 +133,7 @@ function WorkflowMockup({ activeStep }: { activeStep: number }) {
 
            <div className="p-5 flex-1 overflow-y-auto">
              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-               {workflowAds.slice(0, 3).map((demo, idx) => (
+               {filteredAds.map((demo, idx) => (
                   <div key={idx} className={cn("rounded-xl border border-[#e4e8e2] overflow-hidden relative flex flex-col bg-white", searchStep < 2 && "opacity-0 translate-y-4", searchStep === 2 && "animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-forwards", idx === 1 && "delay-100", idx === 2 && "delay-200")}>
                     <div className="aspect-[4/5] relative bg-[#f4f5f3]">
                       <img src={demo.thumbnail} className="w-full h-full object-cover" alt="" />
@@ -319,26 +336,70 @@ function WorkflowMockup({ activeStep }: { activeStep: number }) {
           }}
           transition={{ duration: 0.4 }}
         >
-           <div className="w-full max-w-[340px] bg-white border border-[#e4e8e2] rounded-2xl shadow-xl overflow-hidden text-center relative z-10">
-              <div className="h-[80px] bg-gradient-to-br from-[#1a1b1e] to-[#2d2e33] flex items-center justify-center relative overflow-hidden">
-                <Share2 size={32} className="text-white/20 absolute -right-2 -bottom-2 scale-150 transform rotate-12" />
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg relative z-10">
-                  <Check size={24} className="text-brand" />
+           <div className="w-full max-w-[400px] bg-white border border-[#e4e8e2] rounded-2xl shadow-xl overflow-hidden relative z-10 flex flex-col">
+              
+              {!shareGenerated ? (
+                <div className="p-6">
+                  <h3 className="text-[18px] font-bold text-text-primary mb-1">Share Creative</h3>
+                  <p className="text-[13px] text-text-secondary mb-6">Choose how you want to share this ad.</p>
+                  
+                  <div className="space-y-3 mb-6">
+                    <button 
+                      onClick={() => setShareType('private')}
+                      className={cn("w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-colors", shareType === 'private' ? "border-brand bg-brand/5 ring-1 ring-brand/20" : "border-[#e4e8e2] hover:bg-[#fcfcfa]")}
+                    >
+                      <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0", shareType === 'private' ? "bg-brand text-white" : "bg-[#f4f5f3] text-text-secondary")}>
+                         <Lock size={14} />
+                      </div>
+                      <div>
+                        <span className="block text-[14px] font-bold text-text-primary">Private</span>
+                        <span className="block text-[12px] text-text-secondary mt-0.5">Only invited team members can view.</span>
+                      </div>
+                    </button>
+                    
+                    <button 
+                      onClick={() => setShareType('public')}
+                      className={cn("w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-colors", shareType === 'public' ? "border-brand bg-brand/5 ring-1 ring-brand/20" : "border-[#e4e8e2] hover:bg-[#fcfcfa]")}
+                    >
+                      <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0", shareType === 'public' ? "bg-brand text-white" : "bg-[#f4f5f3] text-text-secondary")}>
+                         <Globe size={14} />
+                      </div>
+                      <div>
+                        <span className="block text-[14px] font-bold text-text-primary">Public Link</span>
+                        <span className="block text-[12px] text-text-secondary mt-0.5">Anyone with the link can view.</span>
+                      </div>
+                    </button>
+                  </div>
+                  
+                  <button onClick={() => setShareGenerated(true)} className="w-full py-2.5 bg-brand text-white rounded-lg text-[13px] font-bold shadow-sm">
+                    Create {shareType === 'private' ? 'Private' : 'Public'} Link
+                  </button>
                 </div>
-              </div>
-              <div className="p-6">
-                <h3 className="text-[18px] font-bold text-text-primary mb-2">Ad Shared Successfully</h3>
-                <p className="text-[13px] text-text-secondary mb-6 leading-relaxed">
-                  Anyone with this link can view the ad creative and metadata securely.
-                </p>
-                <div className="flex items-center gap-2 p-2 bg-[#fcfcfa] border border-[#e4e8e2] rounded-lg mb-4 text-left">
-                   <div className="flex-1 overflow-hidden">
-                     <p className="text-[12px] font-mono text-text-secondary truncate px-1">adshunting.com/share/x9f2...</p>
-                   </div>
-                   <button className="px-3 py-1.5 bg-brand text-white rounded-md text-[12px] font-bold flex items-center gap-1.5 shrink-0"><Copy size={12}/> Copied</button>
+              ) : (
+                <div className="animate-in fade-in slide-in-from-bottom-4 text-center">
+                  <div className="h-[80px] bg-gradient-to-br from-[#1a1b1e] to-[#2d2e33] flex items-center justify-center relative overflow-hidden">
+                    <Share2 size={32} className="text-white/20 absolute -right-2 -bottom-2 scale-150 transform rotate-12" />
+                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg relative z-10">
+                      <Check size={24} className="text-brand" />
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-[18px] font-bold text-text-primary mb-2">
+                      {shareType === 'private' ? 'Private' : 'Public'} Link Created
+                    </h3>
+                    <p className="text-[13px] text-text-secondary mb-6 leading-relaxed">
+                      {shareType === 'private' ? 'Restricted link generated securely.' : 'Anyone with this link can view the ad creative.'}
+                    </p>
+                    <div className="flex items-center gap-2 p-2 bg-[#fcfcfa] border border-[#e4e8e2] rounded-lg mb-4 text-left">
+                       <div className="flex-1 overflow-hidden flex items-center gap-2">
+                         {shareType === 'private' ? <Lock size={12} className="text-text-muted shrink-0"/> : <Globe size={12} className="text-text-muted shrink-0"/>}
+                         <p className="text-[12px] font-mono text-text-secondary truncate pr-1">adshunting.com/share/x9f2...</p>
+                       </div>
+                       <button className="px-3 py-1.5 bg-brand text-white rounded-md text-[12px] font-bold flex items-center gap-1.5 shrink-0"><Copy size={12}/> Copied</button>
+                    </div>
+                  </div>
                 </div>
-                <button className="text-[13px] font-bold text-text-muted hover:text-text-primary transition-colors">Manage Shared Links</button>
-              </div>
+              )}
            </div>
 
            {/* Decorative background elements */}
@@ -359,6 +420,107 @@ function WorkflowMockup({ activeStep }: { activeStep: number }) {
   );
 }
 
+// --- Mobile UI Fallbacks ---
+function MobileMockup({ stepId }: { stepId: string }) {
+  const ad = workflowAds[1]; // Puma
+  
+  switch(stepId) {
+    case 'discover':
+      return (
+        <div className="w-full bg-[#fcfcfa] border border-[#e4e8e2] rounded-xl overflow-hidden shadow-sm">
+           <div className="px-4 py-3 border-b border-[#e4e8e2] bg-white flex gap-2">
+             <div className="flex-1 flex items-center gap-2 px-3 py-1.5 bg-[#fcfcfa] border border-[#e4e8e2] rounded-md">
+               <Search size={14} className="text-text-muted" />
+               <span className="text-[13px] font-medium text-text-primary">Puma</span>
+             </div>
+           </div>
+           <div className="p-4 grid grid-cols-2 gap-3">
+             {[1,2].map(i => (
+               <div key={i} className="aspect-[4/5] bg-[#f4f5f3] rounded-lg relative overflow-hidden border border-[#e4e8e2]">
+                 <img src={ad.thumbnail} className="w-full h-full object-cover" alt="" />
+                 <div className="absolute top-1 left-1 bg-white/95 rounded px-1 py-0.5 text-[9px] font-bold">PUMA</div>
+               </div>
+             ))}
+           </div>
+        </div>
+      );
+    case 'review':
+      return (
+        <div className="w-full bg-white border border-[#e4e8e2] rounded-xl overflow-hidden shadow-sm">
+           <div className="aspect-[4/5] bg-[#f4f5f3] relative">
+             <img src={ad.thumbnail} className="w-full h-full object-cover" alt="" />
+             <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
+               <div className="w-10 h-10 bg-white/95 rounded-full flex items-center justify-center"><Play size={16} className="ml-0.5"/></div>
+             </div>
+           </div>
+           <div className="p-4">
+             <div className="flex items-center gap-2 mb-3">
+               <div className="w-6 h-6 bg-[#f2f6f0] border border-[#d2dfcb] rounded text-[10px] font-bold text-brand flex items-center justify-center">P</div>
+               <span className="text-[14px] font-bold">Puma</span>
+             </div>
+             <p className="text-[12px] text-text-secondary bg-[#fcfcfa] p-2 rounded-lg border border-[#e4e8e2] leading-relaxed">
+               {ad.primaryText}
+             </p>
+           </div>
+        </div>
+      );
+    case 'research':
+      return (
+        <div className="w-full bg-[#fcfcfa] border border-[#e4e8e2] rounded-xl p-4 shadow-sm">
+           <div className="flex items-center gap-3 mb-4">
+             <div className="w-10 h-10 bg-black text-white rounded-lg flex items-center justify-center font-bold">P</div>
+             <div>
+               <h4 className="text-[14px] font-bold">Puma</h4>
+               <p className="text-[12px] text-text-secondary">45 Active Ads</p>
+             </div>
+           </div>
+           <div className="grid grid-cols-2 gap-2">
+             <div className="bg-white border border-[#e4e8e2] p-2 rounded-lg text-center">
+                <span className="block text-[10px] text-text-muted uppercase font-bold mb-1">Top Format</span>
+                <span className="text-[12px] font-bold">Video (9:16)</span>
+             </div>
+             <div className="bg-white border border-[#e4e8e2] p-2 rounded-lg text-center">
+                <span className="block text-[10px] text-text-muted uppercase font-bold mb-1">Primary Angle</span>
+                <span className="text-[12px] font-bold">Performance</span>
+             </div>
+           </div>
+        </div>
+      );
+    case 'save':
+      return (
+        <div className="w-full bg-[#fcfcfa] border border-[#e4e8e2] rounded-xl overflow-hidden shadow-sm">
+           <div className="p-3 border-b border-[#e4e8e2] bg-white flex items-center justify-between">
+             <span className="text-[14px] font-bold">Saved Ads</span>
+             <span className="text-[11px] bg-[#f4f5f3] px-2 py-0.5 rounded">12</span>
+           </div>
+           <div className="p-4 grid grid-cols-2 gap-3">
+             <div className="aspect-[4/5] bg-[#eef4ec] rounded-lg border border-[#d2dfcb] flex items-center justify-center flex-col gap-2">
+               <div className="w-8 h-8 rounded-full bg-brand/10 text-brand flex items-center justify-center"><Check size={16}/></div>
+               <span className="text-[11px] font-bold text-brand">Saved</span>
+             </div>
+             <div className="aspect-[4/5] bg-white rounded-lg border border-[#e4e8e2]">
+                <img src={workflowAds[2].thumbnail} className="w-full h-full object-cover opacity-60 rounded-lg" alt="" />
+             </div>
+           </div>
+        </div>
+      );
+    case 'share':
+      return (
+        <div className="w-full bg-white border border-[#e4e8e2] rounded-xl p-5 shadow-sm text-center">
+           <div className="w-10 h-10 bg-brand text-white rounded-full flex items-center justify-center mx-auto mb-3">
+             <Check size={16} />
+           </div>
+           <h4 className="text-[15px] font-bold mb-1">Public Link Created</h4>
+           <p className="text-[12px] text-text-secondary mb-4">Anyone with the link can view.</p>
+           <div className="flex items-center justify-center gap-2 p-2 bg-[#fcfcfa] border border-[#e4e8e2] rounded-lg">
+              <span className="text-[11px] font-mono text-text-muted truncate">adshunting.com/share/x9f2...</span>
+           </div>
+        </div>
+      );
+    default: return null;
+  }
+}
+
 function StepItem({ index, step, isActive, onActivate }: { index: number, step: typeof steps[0], isActive: boolean, onActivate: (index: number) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { margin: "-45% 0px -45% 0px" });
@@ -373,7 +535,8 @@ function StepItem({ index, step, isActive, onActivate }: { index: number, step: 
     <div 
       ref={ref}
       className={cn(
-        "flex flex-col py-8 md:py-24 transition-opacity duration-300 cursor-pointer",
+        "flex flex-col py-12 md:py-20 transition-opacity duration-300 cursor-pointer",
+        index === 0 && "pt-0 md:pt-4",
         isActive ? "opacity-100" : "opacity-30 hover:opacity-50"
       )}
       onClick={() => onActivate(index)}
@@ -381,12 +544,17 @@ function StepItem({ index, step, isActive, onActivate }: { index: number, step: 
       <span className="text-brand font-bold text-[12px] tracking-widest uppercase mb-4 block">
         {step.label}
       </span>
-      <h3 className="text-[28px] md:text-[36px] font-bold text-text-primary leading-[1.15] mb-4 text-balance">
+      <h3 className="text-[28px] md:text-[34px] font-bold text-text-primary leading-[1.15] mb-4 text-balance">
         {step.title}
       </h3>
-      <p className="text-[16px] md:text-[18px] text-text-secondary leading-relaxed">
+      <p className="text-[16px] md:text-[17px] text-text-secondary leading-relaxed">
         {step.description}
       </p>
+
+      {/* Lightweight Mobile Mockup */}
+      <div className="block lg:hidden mt-8 w-full transition-all">
+        {isActive && <MobileMockup stepId={step.id} />}
+      </div>
     </div>
   );
 }
@@ -403,23 +571,23 @@ export function WorkflowSection() {
   }, []);
 
   return (
-    <section id="workflow" className="py-24 md:py-32 bg-[#ffffff] border-t border-[#e4e8e2] relative">
+    <section id="workflow" className="py-16 md:py-24 bg-[#ffffff] border-t border-[#e4e8e2] relative">
       <LandingContainer>
         
         {/* Section Header */}
-        <div className="max-w-[700px] mb-16 md:mb-24 text-center md:text-left">
-          <h2 className="text-[34px] md:text-[44px] lg:text-[52px] leading-[1.1] font-bold tracking-tight text-text-primary text-balance">
+        <div className="max-w-[700px] mb-12 md:mb-16 text-center md:text-left">
+          <h2 className="text-[34px] md:text-[44px] lg:text-[50px] leading-[1.1] font-bold tracking-tight text-text-primary text-balance">
             How AdsHunting turns ad chaos into creative intelligence.
           </h2>
-          <p className="text-[16px] md:text-[20px] text-text-secondary mt-6 max-w-[600px] leading-relaxed">
+          <p className="text-[16px] md:text-[20px] text-text-secondary mt-5 max-w-[600px] leading-relaxed">
             A faster workflow for finding, reviewing, saving, and sharing winning ads with your team.
           </p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-12 lg:gap-20 relative" ref={containerRef}>
+        <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 relative" ref={containerRef}>
           
           {/* Left Column: Steps (Scrollable) */}
-          <div className="w-full lg:w-5/12 flex flex-col relative z-10 pb-[30vh]">
+          <div className="w-full lg:w-[45%] xl:w-5/12 flex flex-col relative z-10 lg:pb-[30vh]">
             <div className="hidden lg:block absolute left-[-20px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-transparent via-[#e4e8e2] to-transparent">
               <motion.div 
                 className="w-full bg-brand rounded-full"
@@ -445,15 +613,10 @@ export function WorkflowSection() {
           </div>
 
           {/* Right Column: Sticky Mockup */}
-          <div className="hidden lg:block lg:w-7/12 relative">
-             <div className="sticky top-32 h-[560px] w-full">
+          <div className="hidden lg:block lg:w-[55%] xl:w-7/12 relative">
+             <div className="sticky top-28 h-[500px] xl:h-[600px] w-full">
                 <WorkflowMockup activeStep={activeStep} />
              </div>
-          </div>
-
-          {/* Mobile Fallback Mockup (shows below active step) */}
-          <div className="block lg:hidden w-full h-[400px] sticky bottom-10 mt-[-20vh] z-0 px-4 pointer-events-none opacity-40">
-             <WorkflowMockup activeStep={activeStep} />
           </div>
 
         </div>
