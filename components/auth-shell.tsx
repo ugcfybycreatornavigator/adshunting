@@ -22,7 +22,7 @@ export function AuthShell({ children, mode }: { children: ReactNode; mode: "sign
         {/* Animated Visual Asset */}
         <div className="absolute inset-0 flex items-center justify-center p-12 overflow-hidden pointer-events-none">
           <img 
-            src="/brand/bucket-auth-visual.svg" 
+            src="/brand/adshunting-auth-visual.svg" 
             alt="Ads Hunting Creative Intelligence" 
             className="w-full h-full object-cover object-center mix-blend-lighten motion-safe:animate-[auth-float_12s_ease-in-out_infinite]"
           />
@@ -37,11 +37,11 @@ export function AuthShell({ children, mode }: { children: ReactNode; mode: "sign
           </p>
           <div className="mt-8 flex items-center gap-3 text-[11px] font-bold uppercase tracking-[.15em] text-[#6F7380]">
             <span>Discover</span>
-            <span className="text-[#FF3347] opacity-60">→</span>
+            <span className="text-brand opacity-60">→</span>
             <span>Analyze</span>
-            <span className="text-[#FF3347] opacity-60">→</span>
+            <span className="text-brand opacity-60">→</span>
             <span>Save</span>
-            <span className="text-[#FF3347] opacity-60">→</span>
+            <span className="text-brand opacity-60">→</span>
             <span>Organize</span>
           </div>
         </div>

@@ -37,6 +37,7 @@ export function CTAButton({
 
   if (href) {
     return (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       <Link href={href} className={classes} {...(props as any)}>
         {children}
       </Link>

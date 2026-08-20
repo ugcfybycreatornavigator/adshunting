@@ -117,15 +117,15 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
                     className={cn(
                       "group relative flex h-[42px] items-center gap-[11px] rounded-[10px] px-3 transition-all duration-150 ease-out outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-1 focus-visible:ring-offset-[#0B0D12]",
                       active
-                        ? "text-[#FFFFFF] border border-[#FF3347]/15"
+                        ? "text-[#FFFFFF] border border-[#68B32F]/15"
                         : "text-[#A0A4AE] hover:bg-white/[0.045] hover:text-[#F4F4F5] border border-transparent"
                     )}
                     style={active ? {
-                      background: "linear-gradient(90deg, rgba(255, 51, 71, 0.16) 0%, rgba(255, 51, 71, 0.07) 35%, rgba(255,255,255,0.055) 100%)"
+                      background: "linear-gradient(90deg, rgba(104, 179, 47, 0.16) 0%, rgba(104, 179, 47, 0.07) 35%, rgba(255,255,255,0.055) 100%)"
                     } : undefined}
                   >
-                    {active && <div className="absolute left-0 top-0 bottom-0 w-[2px] rounded-r-full bg-[#FF3347]" />}
-                    <Icon size={18} strokeWidth={1.8} className={cn("shrink-0 transition-colors duration-150", active ? "text-[#FF3347]" : "text-[#767C89] group-hover:text-[#C5C8CF]")} />
+                    {active && <div className="absolute left-0 top-0 bottom-0 w-[2px] rounded-r-full bg-[#68B32F]" />}
+                    <Icon size={18} strokeWidth={1.8} className={cn("shrink-0 transition-colors duration-150", active ? "text-[#68B32F]" : "text-[#767C89] group-hover:text-[#C5C8CF]")} />
                     <span className={cn("truncate", active ? "font-semibold text-[14px]" : "font-medium text-[14px]")}>{label}</span>
                   </Link>
                 </li>

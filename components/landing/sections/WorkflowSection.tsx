@@ -277,15 +277,15 @@ function WorkflowMockup({ activeStep }: { activeStep: number }) {
   );
 }
 
-function StepItem({ step, isActive, onActivate }: { step: typeof steps[0], isActive: boolean, onActivate: () => void }) {
+function StepItem({ index, step, isActive, onActivate }: { index: number, step: typeof steps[0], isActive: boolean, onActivate: (index: number) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { margin: "-45% 0px -45% 0px" });
 
   useEffect(() => {
     if (isInView && !isActive) {
-      onActivate();
+      onActivate(index);
     }
-  }, [isInView, isActive, onActivate]);
+  }, [isInView, isActive, index, onActivate]);
 
   return (
     <div 
@@ -294,7 +294,7 @@ function StepItem({ step, isActive, onActivate }: { step: typeof steps[0], isAct
         "flex flex-col py-8 md:py-24 transition-opacity duration-300 cursor-pointer",
         isActive ? "opacity-100" : "opacity-30 hover:opacity-50"
       )}
-      onClick={onActivate}
+      onClick={() => onActivate(index)}
     >
       <span className="text-brand font-bold text-[12px] tracking-widest uppercase mb-4 block">
         {step.label}
@@ -312,6 +312,13 @@ function StepItem({ step, isActive, onActivate }: { step: typeof steps[0], isAct
 export function WorkflowSection() {
   const [activeStep, setActiveStep] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleStepActivate = React.useCallback((index: number) => {
+    setActiveStep((current) => {
+      if (current === index) return current;
+      return index;
+    });
+  }, []);
 
   return (
     <section id="workflow" className="py-24 md:py-32 bg-[#ffffff] border-t border-[#e4e8e2] relative">
@@ -346,10 +353,11 @@ export function WorkflowSection() {
             
             {steps.map((step, index) => (
               <StepItem 
-                key={step.id} 
+                key={step.id}
+                index={index}
                 step={step} 
                 isActive={activeStep === index} 
-                onActivate={() => setActiveStep(index)} 
+                onActivate={handleStepActivate} 
               />
             ))}
           </div>
