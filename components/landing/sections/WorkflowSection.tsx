@@ -4,8 +4,8 @@ import React, { useRef, useEffect, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { LandingContainer } from '@/components/landing/layout/LandingContainer';
-import { Search, SlidersHorizontal, Video, Play, ExternalLink, Bookmark, Check, Share2, Eye, Copy } from 'lucide-react';
-import { demoAds } from '@/data/landing/demoAds';
+import { workflowAds } from '@/data/landing/workflowAds';
+import { Search, SlidersHorizontal, Video, Play, ExternalLink, Bookmark, Check, Share2, Copy, BarChart3, Tags, FolderOpen, FolderPlus } from 'lucide-react';
 
 const steps = [
   {
@@ -40,8 +40,20 @@ const steps = [
   }
 ];
 
+function NavItem({ icon, label, isActive }: { icon: React.ReactNode, label: string, isActive: boolean }) {
+  return (
+    <div className={cn(
+      "flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors",
+      isActive ? "bg-brand/10 text-brand" : "text-white/60 hover:text-white hover:bg-white/5"
+    )}>
+      {icon}
+      <span>{label}</span>
+    </div>
+  );
+}
+
 function WorkflowMockup({ activeStep }: { activeStep: number }) {
-  const ad = demoAds[0];
+  const pumaAd = workflowAds[1];
   const [searchStep, setSearchStep] = useState(0);
 
   // Auto-typing animation for Discover step
@@ -49,227 +61,297 @@ function WorkflowMockup({ activeStep }: { activeStep: number }) {
     if (activeStep === 0) {
       const t1 = setTimeout(() => setSearchStep(1), 800);
       const t2 = setTimeout(() => setSearchStep(2), 1600);
-      const t3 = setTimeout(() => setSearchStep(3), 2200);
-      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+      return () => { clearTimeout(t1); clearTimeout(t2); };
     } else {
-      setSearchStep(3);
+      setSearchStep(2);
     }
   }, [activeStep]);
 
   return (
-    <div className="w-full h-full bg-[#fcfcfa] rounded-[24px] border border-[#e4e8e2] shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col relative">
+    <div className="w-full h-full bg-[#fcfcfa] rounded-[16px] md:rounded-[24px] border border-[#e4e8e2] shadow-[0_12px_40px_rgba(0,0,0,0.08)] overflow-hidden flex relative">
       
-      {/* Top Navigation / Search Area (Discover & Share) */}
-      <motion.div 
-        className="px-5 py-4 border-b border-[#e4e8e2] bg-white flex items-center justify-between shrink-0 relative z-20"
-        initial={false}
-        animate={{
-           height: activeStep === 0 ? 'auto' : (activeStep === 4 ? 'auto' : '64px'),
-           paddingBottom: activeStep === 0 ? '20px' : '16px'
-        }}
-      >
-         <div className="flex items-center gap-4 w-full">
-            <div className="flex gap-1.5 shrink-0 hidden sm:flex">
-              <div className="w-3 h-3 rounded-full bg-[#e4e8e2]"></div>
-              <div className="w-3 h-3 rounded-full bg-[#e4e8e2]"></div>
-              <div className="w-3 h-3 rounded-full bg-[#e4e8e2]"></div>
-            </div>
-            
-            {/* Search Bar */}
-            <div className={cn(
-              "flex-1 flex items-center gap-3 px-3 py-2 rounded-lg border transition-all max-w-[340px]",
-              activeStep === 0 && searchStep > 0 ? "border-brand ring-2 ring-brand/10 bg-white" : "border-[#e4e8e2] bg-[#fcfcfa]"
-            )}>
-              <Search size={16} className="text-text-muted" />
-              <div className="text-[14px]">
-                 {searchStep === 0 && <span className="text-text-muted">Search ads...</span>}
-                 {searchStep > 0 && <span className="text-text-primary font-medium">Frido<span className={cn("inline-block w-[2px] h-3.5 bg-brand ml-0.5 align-middle", searchStep > 1 && searchStep < 3 && "animate-pulse", searchStep >= 3 && "hidden")}></span></span>}
-              </div>
-            </div>
+      {/* Dark Sidebar */}
+      <div className="hidden sm:flex w-[200px] lg:w-[220px] bg-[#1a1b1e] border-r border-[#2d2e33] flex-col shrink-0 z-30">
+        <div className="p-5 flex items-center gap-2.5 text-white font-bold text-[16px] mb-2">
+           <div className="w-6 h-6 bg-brand rounded-md flex items-center justify-center"><Search size={14} className="text-white" /></div>
+           AdsHunting
+        </div>
+        <div className="px-3 flex-1 flex flex-col gap-1">
+          <NavItem icon={<Search size={16}/>} label="Discover Ads" isActive={activeStep === 0 || activeStep === 1} />
+          <NavItem icon={<BarChart3 size={16}/>} label="Competitors" isActive={activeStep === 2} />
+          <NavItem icon={<Tags size={16}/>} label="Brands" isActive={false} />
+          <div className="h-[1px] bg-[#2d2e33] my-2 mx-2"></div>
+          <NavItem icon={<Bookmark size={16}/>} label="Swipe Files" isActive={activeStep === 3} />
+          <NavItem icon={<Share2 size={16}/>} label="Shared Ads" isActive={activeStep === 4} />
+        </div>
+      </div>
 
-            {/* Share Button (Step 4) */}
-            {activeStep === 4 && (
-              <motion.button 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="ml-auto flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-lg text-[13px] font-bold shadow-sm"
-              >
-                <Share2 size={16} /> Share Ad
-              </motion.button>
-            )}
-         </div>
-
-         {/* Suggestions Dropdown */}
-         {activeStep === 0 && searchStep === 2 && (
-            <div className="absolute top-[60px] left-[70px] w-[300px] bg-white border border-[#e4e8e2] rounded-xl shadow-lg z-50 animate-in fade-in slide-in-from-top-2">
-              <div className="p-1.5">
-                <div className="px-3 py-2 hover:bg-[#f9faf8] rounded-md text-[13px] font-medium cursor-pointer">Frido</div>
-                <div className="px-3 py-2 hover:bg-[#f9faf8] rounded-md text-[13px] text-text-secondary cursor-pointer">Frido India</div>
-              </div>
-            </div>
-         )}
-      </motion.div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 relative bg-[#fcfcfa] overflow-hidden">
+      {/* Main Workspace Area */}
+      <div className="flex-1 flex flex-col relative overflow-hidden bg-[#fcfcfa]">
         
         {/* State 0: Discover Grid */}
         <motion.div 
-          className="absolute inset-0 p-5 flex flex-col"
+          className="absolute inset-0 flex flex-col"
           initial={{ opacity: 0 }}
           animate={{ 
             opacity: activeStep === 0 ? 1 : 0, 
             pointerEvents: activeStep === 0 ? 'auto' : 'none',
-            y: activeStep === 0 ? 0 : -20 
+            zIndex: activeStep === 0 ? 20 : 0
           }}
           transition={{ duration: 0.4 }}
         >
-           <div className="flex items-center gap-2 mb-5">
-             <button className="flex items-center gap-2 px-3 py-1.5 bg-white border border-[#e4e8e2] rounded-lg text-[13px] font-medium"><SlidersHorizontal size={14} /> Filters</button>
-             <span className="px-3 py-1.5 bg-[#eef4ec] border border-[#d2dfcb] text-brand rounded-lg text-[13px] font-bold">Active</span>
-             <span className="px-3 py-1.5 bg-white border border-[#e4e8e2] text-text-secondary rounded-lg text-[13px] font-medium">Video</span>
+           {/* Topbar */}
+           <div className="px-5 py-4 border-b border-[#e4e8e2] bg-white flex items-center justify-between shrink-0">
+             <div className="flex items-center gap-3">
+               <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all w-[240px]", searchStep > 0 ? "border-brand ring-1 ring-brand/20 bg-white" : "border-[#e4e8e2] bg-[#fcfcfa]")}>
+                 <Search size={14} className="text-text-muted" />
+                 <div className="text-[13px]">
+                   {searchStep === 0 && <span className="text-text-muted">Search keywords, brands...</span>}
+                   {searchStep > 0 && <span className="text-text-primary font-medium">Puma<span className={cn("inline-block w-[1.5px] h-3.5 bg-brand ml-0.5 align-middle", searchStep === 1 && "animate-pulse", searchStep >= 2 && "hidden")}></span></span>}
+                 </div>
+               </div>
+               <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#e4e8e2] rounded-lg text-[13px] font-medium text-text-secondary"><SlidersHorizontal size={14} /> Filters</button>
+             </div>
            </div>
-           
-           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-             {demoAds.slice(0, 3).map((demo, idx) => (
-                <div key={idx} className={cn("rounded-xl border border-[#e4e8e2] overflow-hidden relative aspect-[4/5] bg-white", searchStep < 3 && "opacity-0 translate-y-4", searchStep === 3 && "animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-forwards", idx === 1 && "delay-100", idx === 2 && "delay-200")}>
-                  <img src={demo.thumbnail} className="w-full h-full object-cover" alt="" />
-                  <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-sm rounded p-1.5"><Video size={12} className="text-white" /></div>
-                  <div className="absolute bottom-2 left-2 flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></div><span className="text-[10px] font-bold text-white uppercase drop-shadow-md">{demo.brand}</span></div>
-                </div>
-             ))}
+
+           <div className="p-5 flex-1 overflow-y-auto">
+             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+               {workflowAds.slice(0, 3).map((demo, idx) => (
+                  <div key={idx} className={cn("rounded-xl border border-[#e4e8e2] overflow-hidden relative flex flex-col bg-white", searchStep < 2 && "opacity-0 translate-y-4", searchStep === 2 && "animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-forwards", idx === 1 && "delay-100", idx === 2 && "delay-200")}>
+                    <div className="aspect-[4/5] relative bg-[#f4f5f3]">
+                      <img src={demo.thumbnail} className="w-full h-full object-cover" alt="" />
+                      <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-md rounded-md p-1.5"><Video size={12} className="text-white" /></div>
+                      <div className="absolute top-2 left-2 bg-white/95 rounded-md px-1.5 py-0.5 text-[10px] font-bold text-text-primary uppercase tracking-wider">{demo.brand}</div>
+                    </div>
+                    <div className="p-3 border-t border-[#e4e8e2]">
+                       <p className="text-[12px] text-text-secondary line-clamp-2 leading-snug">{demo.primaryText}</p>
+                       <div className="mt-2 flex items-center gap-1.5">
+                         <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span>
+                         <span className="text-[10px] font-medium text-text-muted uppercase">Active</span>
+                       </div>
+                    </div>
+                  </div>
+               ))}
+             </div>
            </div>
         </motion.div>
 
-        {/* State 1, 3, 4: Review Panel, Save, Share */}
+        {/* State 1: Review Panel (Ad Detail) */}
         <motion.div 
-          className="absolute inset-0 bg-white flex"
+          className="absolute inset-0 bg-white flex flex-col"
           initial={{ opacity: 0, x: 20 }}
           animate={{ 
-            opacity: (activeStep === 1 || activeStep === 3 || activeStep === 4) ? 1 : 0, 
-            pointerEvents: (activeStep === 1 || activeStep === 3 || activeStep === 4) ? 'auto' : 'none',
-            x: (activeStep === 1 || activeStep === 3 || activeStep === 4) ? 0 : 20 
+            opacity: activeStep === 1 ? 1 : 0, 
+            pointerEvents: activeStep === 1 ? 'auto' : 'none',
+            x: activeStep === 1 ? 0 : 20,
+            zIndex: activeStep === 1 ? 20 : 0
           }}
           transition={{ duration: 0.4 }}
         >
-          {/* Ad Media */}
-          <div className="w-1/2 bg-[#fcfcfa] border-r border-[#e4e8e2] relative flex items-center justify-center p-6">
-            <div className="w-full aspect-[4/5] rounded-xl overflow-hidden border border-[#e4e8e2] shadow-sm relative group cursor-pointer">
-               <img src={ad.thumbnail} className="w-full h-full object-cover" alt="" />
-               <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
-                 <div className="w-14 h-14 rounded-full bg-white/95 flex items-center justify-center shadow-lg transform group-hover:scale-105 transition-transform"><Play size={24} className="text-text-primary ml-1" /></div>
-               </div>
+          <div className="px-5 py-3 border-b border-[#e4e8e2] bg-[#fcfcfa] shrink-0 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-bold text-text-muted uppercase tracking-widest">Ad Details</span>
             </div>
-            
-            {/* Save interaction overlay (Step 3) */}
-            {activeStep === 3 && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="absolute top-8 right-8 z-20"
-              >
-                <div className="bg-white border border-[#e4e8e2] shadow-lg rounded-xl p-4 flex items-center gap-4">
-                  <div className="w-10 h-10 bg-[#eef4ec] text-brand rounded-full flex items-center justify-center">
-                    <Check size={20} />
-                  </div>
-                  <div>
-                    <p className="text-[14px] font-bold text-text-primary">Saved successfully</p>
-                    <p className="text-[12px] text-text-secondary">Added to <span className="font-medium text-text-primary">Competitor Ads</span></p>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Share interaction overlay (Step 4) */}
-            {activeStep === 4 && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="absolute inset-x-8 bottom-8 z-20"
-              >
-                <div className="bg-[#111217] shadow-xl rounded-xl p-4 flex flex-col gap-3">
-                  <div className="flex items-center justify-between text-white">
-                    <span className="text-[13px] font-semibold">Share link generated</span>
-                    <span className="text-[11px] text-white/60">Expires in 7 days</span>
-                  </div>
-                  <div className="flex items-center gap-2 bg-white/10 rounded-lg p-2 border border-white/10">
-                    <span className="flex-1 text-[12px] text-white/80 font-mono truncate">adshunting.com/share/f8a92...</span>
-                    <button className="px-3 py-1.5 bg-white text-black text-[12px] font-bold rounded-md flex items-center gap-1.5"><Copy size={12} /> Copied</button>
-                  </div>
-                </div>
-              </motion.div>
-            )}
+            <button className="flex items-center gap-1.5 text-[13px] font-bold text-text-secondary hover:text-brand"><ExternalLink size={14} /> Open Live</button>
           </div>
 
-          {/* Ad Details */}
-          <div className="w-1/2 p-6 flex flex-col bg-white overflow-y-auto">
-            <h4 className="text-[12px] font-bold text-text-muted uppercase tracking-widest mb-6">Creative Review</h4>
-            <div className="space-y-6">
-               <div>
-                 <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Advertiser</p>
-                 <div className="flex items-center gap-2"><div className="w-6 h-6 rounded bg-[#f2f6f0] border border-[#d2dfcb] flex items-center justify-center text-[10px] font-bold text-brand">F</div><span className="text-[15px] font-bold text-text-primary">{ad.brand}</span></div>
-               </div>
-               <div className="grid grid-cols-2 gap-4">
-                 <div>
-                   <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Status</p>
-                   <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-[#eef4ec] border border-[#d2dfcb] text-brand text-[12px] font-bold"><div className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></div> Active</span>
+          <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+            {/* Left: Media */}
+            <div className="w-full lg:w-[45%] bg-[#f4f5f3] border-b lg:border-b-0 lg:border-r border-[#e4e8e2] p-6 flex items-center justify-center relative">
+              <div className="w-full max-w-[280px] aspect-[4/5] rounded-xl overflow-hidden shadow-md relative group">
+                 <img src={pumaAd.thumbnail} className="w-full h-full object-cover" alt="" />
+                 <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
+                   <div className="w-12 h-12 rounded-full bg-white/95 flex items-center justify-center shadow-lg"><Play size={20} className="text-text-primary ml-1" /></div>
                  </div>
+              </div>
+            </div>
+
+            {/* Right: Metadata */}
+            <div className="w-full lg:w-[55%] p-6 overflow-y-auto bg-white space-y-6">
+               <div className="flex items-center gap-3">
+                 <div className="w-8 h-8 rounded-lg bg-[#fcfcfa] border border-[#e4e8e2] flex items-center justify-center text-[14px] font-bold text-brand">P</div>
                  <div>
-                   <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Format</p>
-                   <span className="inline-flex px-2 py-1 rounded border border-[#e4e8e2] text-text-secondary text-[12px] font-medium capitalize">{ad.format}</span>
+                   <h3 className="text-[15px] font-bold text-text-primary">{pumaAd.brand}</h3>
+                   <span className="text-[12px] text-text-muted flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span> Active since Aug 12</span>
                  </div>
                </div>
+
                <div>
-                 <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Primary Text</p>
-                 <p className="text-[13px] text-text-secondary leading-relaxed bg-[#f9faf8] p-3 rounded-lg border border-[#e4e8e2]">{ad.primaryText}</p>
+                 <h4 className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Primary Copy</h4>
+                 <div className="p-3 bg-[#fcfcfa] border border-[#e4e8e2] rounded-lg text-[13px] text-text-secondary leading-relaxed">
+                   {pumaAd.primaryText}
+                 </div>
                </div>
-               <div className="pt-4 flex gap-3">
-                 <button className={cn("flex-1 py-2 rounded-lg text-[13px] font-bold flex items-center justify-center gap-2 transition-colors", activeStep === 3 ? "bg-brand text-white" : "bg-[#fcfcfa] border border-[#e4e8e2] text-text-primary")}><Bookmark size={16} /> {activeStep === 3 ? 'Saved' : 'Save'}</button>
-                 <button className="flex-1 py-2 bg-[#fcfcfa] border border-[#e4e8e2] rounded-lg text-[13px] font-bold text-text-primary flex items-center justify-center gap-2"><ExternalLink size={16} /> Original</button>
+
+               <div className="bg-[#eef4ec] border border-[#d2dfcb] rounded-lg p-4 relative overflow-hidden">
+                 <h4 className="text-[11px] font-bold text-brand uppercase tracking-wider mb-3">AdsHunting Signals</h4>
+                 <div className="grid grid-cols-2 gap-4 relative z-10">
+                   <div>
+                     <span className="block text-[11px] text-brand/70 mb-1">Creative Fatigue</span>
+                     <span className="text-[14px] font-bold text-brand">{pumaAd.signals?.creativeFatigue}</span>
+                   </div>
+                   <div>
+                     <span className="block text-[11px] text-brand/70 mb-1">Scaling Trend</span>
+                     <span className="text-[14px] font-bold text-brand">{pumaAd.signals?.scaling}</span>
+                   </div>
+                 </div>
                </div>
             </div>
           </div>
         </motion.div>
 
-        {/* State 2: Research Brand Library */}
+        {/* State 2: Research (Competitors & Brands) */}
         <motion.div 
           className="absolute inset-0 bg-[#fcfcfa] flex flex-col"
           initial={{ opacity: 0, y: 20 }}
           animate={{ 
             opacity: activeStep === 2 ? 1 : 0, 
             pointerEvents: activeStep === 2 ? 'auto' : 'none',
-            y: activeStep === 2 ? 0 : 20 
+            y: activeStep === 2 ? 0 : 20,
+            zIndex: activeStep === 2 ? 20 : 0
           }}
           transition={{ duration: 0.4 }}
         >
-          <div className="p-5 border-b border-[#e4e8e2] bg-white shrink-0">
-             <div className="flex items-center gap-4 mb-4">
-               <div className="w-10 h-10 rounded-lg bg-[#f2f6f0] border border-[#d2dfcb] flex items-center justify-center text-[18px] font-bold text-brand">F</div>
-               <div>
-                 <h3 className="text-[16px] font-bold text-text-primary">Frido Library</h3>
-                 <span className="text-[12px] text-text-secondary">14 Active Creatives</span>
-               </div>
-             </div>
-             <div className="flex items-center gap-2 text-[12px] font-medium text-text-muted bg-[#f9faf8] border border-[#e4e8e2] rounded-lg px-3 py-2">
-               <Eye size={14} className="text-brand shrink-0" />
-               <span>Researching format distribution and messaging angles</span>
-             </div>
+          <div className="px-5 py-4 border-b border-[#e4e8e2] bg-white shrink-0">
+             <h2 className="text-[18px] font-bold text-text-primary">Competitor Intelligence</h2>
+             <p className="text-[13px] text-text-secondary mt-1">Analyzing structural creative patterns for Puma.</p>
           </div>
-          <div className="flex-1 p-5 overflow-hidden flex flex-col">
-            <div className="flex gap-2 mb-4 shrink-0">
-              <span className="px-3 py-1.5 bg-[#eef4ec] text-brand border border-[#d2dfcb] rounded-full text-[12px] font-bold">All Creatives</span>
-              <span className="px-3 py-1.5 bg-white border border-[#e4e8e2] text-text-secondary rounded-full text-[12px] font-medium">Video</span>
+          <div className="p-5 flex-1 overflow-y-auto">
+            
+            {/* Intelligence Card */}
+            <div className="bg-white border border-[#e4e8e2] rounded-xl p-5 mb-5 shadow-sm">
+              <div className="flex items-center gap-4 mb-5">
+                <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center text-white text-[20px] font-black">P</div>
+                <div>
+                  <h3 className="text-[16px] font-bold text-text-primary">Puma</h3>
+                  <div className="flex items-center gap-3 text-[12px] text-text-secondary mt-1">
+                    <span className="flex items-center gap-1"><Video size={12}/> 72% Video</span>
+                    <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-[#10b981] rounded-full"></span> 45 Active</span>
+                  </div>
+                </div>
+              </div>
+              <div className="h-[1px] bg-[#e4e8e2] mb-5"></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-[#fcfcfa] rounded-lg border border-[#e4e8e2]">
+                  <span className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">Top Format</span>
+                  <span className="text-[14px] font-bold text-text-primary">Short-form Video (9:16)</span>
+                </div>
+                <div className="p-3 bg-[#fcfcfa] rounded-lg border border-[#e4e8e2]">
+                  <span className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">Primary Angle</span>
+                  <span className="text-[14px] font-bold text-text-primary">Performance & Speed</span>
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-3 overflow-y-auto pr-1">
-               {demoAds.slice(0, 6).map((demo, idx) => (
-                  <div key={idx} className="rounded-xl border border-[#e4e8e2] overflow-hidden relative aspect-square bg-white">
-                    <img src={demo.thumbnail} className="w-full h-full object-cover opacity-90" alt="" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                    <div className="absolute top-2 right-2 bg-black/40 rounded-full p-1"><Video size={10} className="text-white" /></div>
+
+            {/* Related Creatives */}
+            <h4 className="text-[13px] font-bold text-text-primary mb-3">Recent Winning Creatives</h4>
+            <div className="grid grid-cols-3 gap-3">
+               {workflowAds.slice(1, 4).map((demo, idx) => (
+                  <div key={idx} className="rounded-lg border border-[#e4e8e2] overflow-hidden aspect-square bg-[#f4f5f3] relative group">
+                    <img src={demo.thumbnail} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" alt="" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
                   </div>
                ))}
             </div>
+
           </div>
+        </motion.div>
+
+        {/* State 3: Save (Swipe Files) */}
+        <motion.div 
+          className="absolute inset-0 bg-[#fcfcfa] flex flex-col"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ 
+            opacity: activeStep === 3 ? 1 : 0, 
+            pointerEvents: activeStep === 3 ? 'auto' : 'none',
+            scale: activeStep === 3 ? 1 : 0.98,
+            zIndex: activeStep === 3 ? 20 : 0
+          }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="px-5 py-4 border-b border-[#e4e8e2] bg-white flex items-center justify-between shrink-0">
+             <h2 className="text-[18px] font-bold text-text-primary">Swipe Files</h2>
+             <button className="px-3 py-1.5 bg-brand text-white rounded-lg text-[13px] font-bold flex items-center gap-1.5 shadow-sm"><FolderPlus size={14} /> New Folder</button>
+          </div>
+          <div className="flex flex-1 overflow-hidden">
+            
+            {/* Folder List */}
+            <div className="w-[180px] border-r border-[#e4e8e2] bg-white p-3 flex flex-col gap-1 hidden sm:flex">
+              <div className="px-3 py-2 bg-[#f4f5f3] text-text-primary rounded-lg text-[13px] font-bold flex items-center justify-between group cursor-pointer">
+                <div className="flex items-center gap-2"><FolderOpen size={14} className="text-text-muted" /> Saved Ads</div>
+                <span className="text-[11px] text-text-muted font-medium bg-white px-1.5 py-0.5 rounded shadow-sm border border-[#e4e8e2]">12</span>
+              </div>
+              <div className="px-3 py-2 text-text-secondary hover:bg-[#fcfcfa] rounded-lg text-[13px] font-medium flex items-center justify-between group cursor-pointer transition-colors">
+                <div className="flex items-center gap-2"><FolderOpen size={14} className="text-text-muted opacity-60" /> Competitors</div>
+                <span className="text-[11px] text-text-muted font-medium bg-white px-1.5 py-0.5 rounded shadow-sm border border-[#e4e8e2] opacity-0 group-hover:opacity-100 transition-opacity">5</span>
+              </div>
+            </div>
+
+            {/* Folder Content */}
+            <div className="flex-1 p-5 overflow-y-auto">
+              <h3 className="text-[15px] font-bold text-text-primary mb-4">Saved Ads</h3>
+              <div className="grid grid-cols-2 gap-4">
+                 {workflowAds.map((demo, idx) => (
+                    <div key={idx} className="rounded-xl border border-[#e4e8e2] bg-white p-2 shadow-sm">
+                      <div className="aspect-video bg-[#f4f5f3] rounded-lg overflow-hidden relative mb-2">
+                        <img src={demo.thumbnail} className="w-full h-full object-cover object-top opacity-90" alt="" />
+                      </div>
+                      <div className="px-1 pb-1 flex items-center justify-between">
+                         <span className="text-[12px] font-bold text-text-primary">{demo.brand}</span>
+                         <span className="text-[10px] text-text-muted uppercase font-medium">{demo.format}</span>
+                      </div>
+                    </div>
+                 ))}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* State 4: Share */}
+        <motion.div 
+          className="absolute inset-0 bg-[#fcfcfa] flex flex-col items-center justify-center p-6"
+          initial={{ opacity: 0, filter: "blur(4px)" }}
+          animate={{ 
+            opacity: activeStep === 4 ? 1 : 0, 
+            filter: activeStep === 4 ? "blur(0px)" : "blur(4px)",
+            pointerEvents: activeStep === 4 ? 'auto' : 'none',
+            zIndex: activeStep === 4 ? 20 : 0
+          }}
+          transition={{ duration: 0.4 }}
+        >
+           <div className="w-full max-w-[340px] bg-white border border-[#e4e8e2] rounded-2xl shadow-xl overflow-hidden text-center relative z-10">
+              <div className="h-[80px] bg-gradient-to-br from-[#1a1b1e] to-[#2d2e33] flex items-center justify-center relative overflow-hidden">
+                <Share2 size={32} className="text-white/20 absolute -right-2 -bottom-2 scale-150 transform rotate-12" />
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg relative z-10">
+                  <Check size={24} className="text-brand" />
+                </div>
+              </div>
+              <div className="p-6">
+                <h3 className="text-[18px] font-bold text-text-primary mb-2">Ad Shared Successfully</h3>
+                <p className="text-[13px] text-text-secondary mb-6 leading-relaxed">
+                  Anyone with this link can view the ad creative and metadata securely.
+                </p>
+                <div className="flex items-center gap-2 p-2 bg-[#fcfcfa] border border-[#e4e8e2] rounded-lg mb-4 text-left">
+                   <div className="flex-1 overflow-hidden">
+                     <p className="text-[12px] font-mono text-text-secondary truncate px-1">adshunting.com/share/x9f2...</p>
+                   </div>
+                   <button className="px-3 py-1.5 bg-brand text-white rounded-md text-[12px] font-bold flex items-center gap-1.5 shrink-0"><Copy size={12}/> Copied</button>
+                </div>
+                <button className="text-[13px] font-bold text-text-muted hover:text-text-primary transition-colors">Manage Shared Links</button>
+              </div>
+           </div>
+
+           {/* Decorative background elements */}
+           <div className="absolute inset-0 z-0 opacity-30 pointer-events-none flex flex-col overflow-hidden p-4">
+             <div className="grid grid-cols-2 gap-4 blur-sm opacity-50 scale-105">
+                {workflowAds.map((demo, idx) => (
+                    <div key={idx} className="rounded-xl border border-[#e4e8e2] bg-white p-2">
+                      <div className="aspect-video bg-[#e4e8e2] rounded-lg relative mb-2"></div>
+                      <div className="h-4 bg-[#e4e8e2] rounded w-1/2"></div>
+                    </div>
+                 ))}
+             </div>
+           </div>
         </motion.div>
 
       </div>

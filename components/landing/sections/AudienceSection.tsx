@@ -56,7 +56,7 @@ export function AudienceSection() {
             Built for your workflow
           </span>
           <h2 className="text-[30px] md:text-[40px] lg:text-[48px] leading-[1.15] font-bold tracking-tight text-text-primary text-balance max-w-[720px]">
-            Built around how creative research actually gets done.
+            Built around how ads creative research actually gets done.
           </h2>
           <p className="text-[15px] md:text-[17px] leading-relaxed text-text-secondary max-w-[620px] text-balance mt-4 font-normal">
             From competitor research to organizing creative references, AdsHunting keeps the essential workflow in one place.
@@ -67,8 +67,8 @@ export function AudienceSection() {
         <div className="relative max-w-[800px] mx-auto mb-[24px] md:mb-[28px]">
           {/* Subtle horizontal scroll container on mobile, flex row on desktop */}
           <div className="overflow-x-auto no-scrollbar pb-1 md:pb-0">
-            <div 
-              role="tablist" 
+            <div
+              role="tablist"
               aria-label="Audience Workflows"
               className="flex items-center min-w-max md:min-w-0 md:justify-center bg-white/75 backdrop-blur-sm border border-[#e4e8e2] rounded-[16px] shadow-[0_6px_24px_rgba(25,40,20,0.035)] p-1 md:p-1.5 gap-1"
             >
@@ -84,8 +84,8 @@ export function AudienceSection() {
                     onClick={() => setActiveTab(role.id)}
                     className={cn(
                       "relative px-4 py-2 text-[14px] md:text-[15px] whitespace-nowrap rounded-[12px] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2",
-                      isActive 
-                        ? "text-text-primary font-medium bg-[#f3f7ef] shadow-sm" 
+                      isActive
+                        ? "text-text-primary font-medium bg-[#f3f7ef] shadow-sm"
                         : "text-text-secondary hover:text-text-primary hover:bg-surface-subtle font-normal"
                     )}
                   >
@@ -120,7 +120,7 @@ export function AudienceSection() {
               <p className="text-[15px] md:text-[17px] text-text-secondary leading-relaxed max-w-[620px] mb-6 font-normal">
                 {role.description}
               </p>
-              
+
               {/* Compact Workflow Visual */}
               <div className="flex flex-wrap justify-center items-center gap-1.5 md:gap-3">
                 {role.workflow.map((step, index) => (
@@ -139,7 +139,7 @@ export function AudienceSection() {
           ))}
         </div>
       </LandingContainer>
-      
+
       {/* Subtle transition divider */}
       <div className="max-w-[150px] mx-auto mt-[36px] md:mt-[44px] h-[1px] bg-gradient-to-r from-transparent via-[#e4e8e2] to-transparent"></div>
     </section>
