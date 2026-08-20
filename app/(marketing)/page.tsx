@@ -1,12 +1,7 @@
 import React from 'react';
 import { HeroSection } from '@/components/landing/sections/HeroSection';
 import { AudienceSection } from '@/components/landing/sections/AudienceSection';
-import { ProductFeatureSection } from '@/components/landing/product/ProductFeatureSection';
-import { DiscoverDemo } from '@/components/landing/product/DiscoverDemo';
-import { ReviewDemo } from '@/components/landing/product/ReviewDemo';
-import { ResearchDemo } from '@/components/landing/product/ResearchDemo';
-import { SaveDemo } from '@/components/landing/product/SaveDemo';
-import { ShareDemo } from '@/components/landing/sections/ShareDemo';
+import { WorkflowSection } from '@/components/landing/sections/WorkflowSection';
 import { ProblemSection } from '@/components/landing/sections/ProblemSection';
 import { FAQSection } from '@/components/landing/sections/FAQSection';
 import { FinalCTASection } from '@/components/landing/sections/FinalCTASection';
@@ -17,31 +12,7 @@ import { pricingPlans, authLinks } from '@/data/landing/config';
 
 
 
-function ShareSection() {
-  return (
-    <section id="shared-ads" className="py-[56px] md:py-[72px] lg:py-[96px] bg-[#fcfcfa] border-t border-[#e4e8e2] overflow-hidden">
-      <LandingContainer>
-        <div className="flex flex-col lg:flex-row items-center lg:items-center gap-12 lg:gap-16 xl:gap-24">
-          
-          <div className="flex-1 text-center lg:text-left w-full max-w-[600px] mx-auto lg:mx-0 flex flex-col justify-center order-1 lg:order-1">
-            <span className="text-brand font-bold text-[12px] md:text-[13px] tracking-widest uppercase mb-4 block">05 — SHARE</span>
-            <h2 className="text-[30px] md:text-[36px] lg:text-[44px] xl:text-[48px] font-bold text-text-primary leading-[1.15] mb-6 text-balance">
-              Share an ad without losing control of access.
-            </h2>
-            <p className="text-[17px] md:text-[19px] text-text-secondary leading-relaxed max-w-[540px] mx-auto lg:mx-0">
-              Use public sharing for open access or private sharing when the ad should remain protected. Manage all shared links in one place.
-            </p>
-          </div>
-
-          <div className="flex-1 w-full relative order-2 lg:order-2">
-             <ShareDemo />
-          </div>
-
-        </div>
-      </LandingContainer>
-    </section>
-  );
-}
+// ShareSection removed as it is now part of WorkflowSection
 
 function PricingSection() {
   const scoutPlan = pricingPlans.find(p => p.id === 'scout');
@@ -210,45 +181,7 @@ export default function Home() {
       <HeroSection />
       <AudienceSection />
       <ProblemSection />
-      <ProductFeatureSection
-        id="discover"
-        step="01 — DISCOVER"
-        title="Find relevant ads without digging through noise."
-        description="Search brands and keywords, then narrow the results using the filters available inside AdsHunting."
-        visual={<DiscoverDemo />}
-        visualSide="right"
-        className="bg-[#fcfcfa]"
-      />
-      
-      <ProductFeatureSection
-        step="02 — REVIEW"
-        title="Review the ad with the context that matters."
-        description="Open a creative and inspect the advertising information available through AdsHunting before deciding whether it is useful for your research."
-        visual={<ReviewDemo />}
-        visualSide="left"
-        className="bg-[#ffffff]"
-      />
-      
-      <ProductFeatureSection
-        step="03 — RESEARCH"
-        title="See how a brand is advertising."
-        description="Review a brand's available creatives and compare observable patterns across its advertising activity."
-        visual={<ResearchDemo />}
-        visualSide="right"
-        className="bg-[#f9faf8]"
-      />
-      
-      <ProductFeatureSection
-        id="swipe-files"
-        step="04 — SAVE"
-        title="Keep useful creatives easy to find again."
-        description="Save ads into Swipe Files so useful references do not disappear into screenshots, bookmarks, or browser tabs."
-        visual={<SaveDemo />}
-        visualSide="left"
-        className="bg-[#ffffff]"
-      />
-
-      <ShareSection />
+      <WorkflowSection />
       <PricingSection />
       <FAQSection />
       <FinalCTASection />
