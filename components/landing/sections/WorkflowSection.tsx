@@ -526,10 +526,10 @@ function StepItem({ index, step, isActive, onActivate }: { index: number, step: 
   const isInView = useInView(ref, { margin: "-45% 0px -45% 0px" });
 
   useEffect(() => {
-    if (isInView && !isActive) {
+    if (isInView) {
       onActivate(index);
     }
-  }, [isInView, isActive, index, onActivate]);
+  }, [isInView, index, onActivate]);
 
   return (
     <div 
