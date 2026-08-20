@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 export function Button({ className, variant = "primary", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "signal" | "secondary" | "ghost" }) {
   return <button className={cn("inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition disabled:pointer-events-none disabled:opacity-50", {
-    "bg-black text-white hover:bg-zinc-800": variant === "primary",
+    "bg-brand text-white hover:bg-brand-strong": variant === "primary",
     "bg-signal text-white hover:bg-signal-dark": variant === "signal",
     "border border-line bg-white text-ink hover:bg-surface": variant === "secondary",
     "text-muted hover:bg-surface hover:text-ink": variant === "ghost",
