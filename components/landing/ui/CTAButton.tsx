@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 interface CTAButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   href?: string;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'inverted';
   size?: 'sm' | 'md' | 'lg';
   children: React.ReactNode;
 }
@@ -24,6 +24,7 @@ export function CTAButton({
     secondary: 'bg-surface-green text-brand-strong hover:bg-brand-soft',
     outline: 'border border-border-strong text-text-primary hover:bg-surface-subtle',
     ghost: 'text-text-secondary hover:text-text-primary hover:bg-surface-subtle',
+    inverted: 'bg-white text-brand-strong hover:bg-surface-subtle',
   };
   
   const sizes = {
@@ -36,7 +37,7 @@ export function CTAButton({
 
   if (href) {
     return (
-      <Link href={href} className={classes}>
+      <Link href={href} className={classes} {...(props as any)}>
         {children}
       </Link>
     );

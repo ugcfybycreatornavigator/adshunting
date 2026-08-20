@@ -14,7 +14,7 @@ export function FinalCTASection() {
           description={<span className="text-brand-soft">Search, review, save and share ads from one organized workspace.</span>}
           className="mb-10"
         />
-        <CTAButton href={authLinks.signUp} size="lg" className="bg-white text-brand-strong hover:bg-surface-subtle">
+        <CTAButton href={authLinks.signUp} size="lg" variant="inverted">
           Start 7-Day Free Trial
         </CTAButton>
       </LandingContainer>
