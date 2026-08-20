@@ -5,6 +5,18 @@ export default {
   theme: {
     extend: {
       colors: {
+        background: "var(--background)",
+        "surface-marketing": "var(--surface)",
+        "surface-subtle": "var(--surface-subtle)",
+        "surface-green": "var(--surface-green)",
+        "text-primary": "var(--text-primary)",
+        "text-secondary": "var(--text-secondary)",
+        "text-muted": "var(--text-muted)",
+        border: "var(--border)",
+        "border-strong": "var(--border-strong)",
+        brand: "var(--brand)",
+        "brand-strong": "var(--brand-strong)",
+        "brand-soft": "var(--brand-soft)",
         ink: "#090909",
         muted: "#666666",
         line: "#E7E7E7",

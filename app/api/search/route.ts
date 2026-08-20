@@ -5,6 +5,7 @@ import { isAnyAdsProviderConfigured } from "@/lib/env/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { dbAdToNormalized } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
+import { requirePaidWorkspaceAccess } from "@/lib/billing/entitlement";
 import { getAdProviders, setProviderHealth, clearProviderCircuit } from "@/lib/providers";
 import { ProviderError } from "@/lib/providers/errors";
 import { adsForClient, persistNormalizedAds, archiveAdsInBackground } from "@/lib/ads-persistence";
@@ -55,6 +56,9 @@ const cache = new Map<string, CacheEntry>();
 const inFlight = new Map<string, Promise<AdSearchResult>>();
 
 export async function POST(request: NextRequest) {
+  const accessError = await requirePaidWorkspaceAccess();
+  if (accessError) return accessError;
+
   let catalogClient: Awaited<ReturnType<typeof requireUser>>["supabase"] = null;
   if (isSupabaseConfigured && !isPreviewMode) {
     const auth = await requireUser();

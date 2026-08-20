@@ -119,9 +119,9 @@ export function DashboardView({ data }: { data: DashboardData }) {
         )}
       </section>
 
-      {/* Learn Bucket */}
+      {/* Learn Ads Hunting */}
       <section>
-        <h2 className="text-lg font-semibold text-ink">Learn Bucket</h2>
+        <h2 className="text-lg font-semibold text-ink">Learn Ads Hunting</h2>
         <p className="mb-6 mt-1 text-sm text-muted">Get more from your creative intelligence workflow</p>
         
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

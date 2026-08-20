@@ -5,7 +5,7 @@ import { BrandMark } from "@/components/brand-mark";
 import { BRAND } from "@/lib/brand";
 
 export function AuthShell({ children, mode }: { children: ReactNode; mode: "sign-in" | "sign-up" }) {
-  const title = mode === "sign-in" ? "Welcome back" : "Create your Bucket account";
+  const title = mode === "sign-in" ? "Welcome back" : "Create your Ads Hunting account";
   const body =
     mode === "sign-in"
       ? `Sign in to continue to ${BRAND.name}.`
@@ -23,7 +23,7 @@ export function AuthShell({ children, mode }: { children: ReactNode; mode: "sign
         <div className="absolute inset-0 flex items-center justify-center p-12 overflow-hidden pointer-events-none">
           <img 
             src="/brand/bucket-auth-visual.svg" 
-            alt="Bucket Creative Intelligence" 
+            alt="Ads Hunting Creative Intelligence" 
             className="w-full h-full object-cover object-center mix-blend-lighten motion-safe:animate-[auth-float_12s_ease-in-out_infinite]"
           />
         </div>

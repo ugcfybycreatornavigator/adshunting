@@ -97,7 +97,7 @@ export function AdDetailDrawer({
             <section>
               <SectionTitle number="04" title={`${BRAND.name} Signals`} />
               <div className="mt-3">
-                <BucketSignalsPanel ad={ad} intelligence={intelligence} />
+                <AdsHuntingSignalsPanel ad={ad} intelligence={intelligence} />
               </div>
 
               {ad.intelligenceLabels.length > 0 && (
@@ -279,7 +279,7 @@ function DetailCreativePreview({ ad, media }: { ad: NormalizedAd; media: string 
   return <div className="mt-3 grid aspect-[4/5] place-items-center rounded-card border border-line bg-zinc-50 text-muted"><ImageIcon /></div>;
 }
 
-function BucketSignalsPanel({
+function AdsHuntingSignalsPanel({
   ad,
   intelligence,
 }: {

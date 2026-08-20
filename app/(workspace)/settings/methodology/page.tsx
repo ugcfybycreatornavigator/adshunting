@@ -7,14 +7,14 @@ export default function MethodologySettingsPage() {
     <div className="max-w-3xl space-y-6">
       <div className="mb-8">
         <h2 className="text-xl font-semibold">Intelligence Methodology</h2>
-        <p className="mt-1 text-sm text-muted">How Bucket derives scores from observable ad data.</p>
+        <p className="mt-1 text-sm text-muted">How Ads Hunting derives scores from observable ad data.</p>
       </div>
 
       <div className="space-y-6">
         <Card className="p-6 shadow-sm">
           <h3 className="text-base font-semibold text-ink">Observable Signals</h3>
           <p className="mt-3 text-sm leading-6 text-muted">
-            Bucket intelligence is derived strictly from public, observable data points such as:
+            Ads Hunting intelligence is derived strictly from public, observable data points such as:
           </p>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2 text-sm text-muted">
             <li className="flex items-center gap-2">• Ad longevity</li>
@@ -41,7 +41,7 @@ export default function MethodologySettingsPage() {
         </Card>
 
         <div className="mt-8 rounded-lg bg-surface p-5 text-sm leading-6 text-muted">
-          <span className="font-semibold text-ink">Data Limitations:</span> Bucket does not infer or claim private performance metrics. We cannot report on actual CTR, ROAS, conversion rates, spend, or revenue data of any advertiser.
+          <span className="font-semibold text-ink">Data Limitations:</span> Ads Hunting does not infer or claim private performance metrics. We cannot report on actual CTR, ROAS, conversion rates, spend, or revenue data of any advertiser.
         </div>
       </div>
     </div>

@@ -21,13 +21,13 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
   if (!link) return { title: "Shared Creative" };
   if (link.visibility === "private" || !link.visibility) {
     return {
-      title: "Private creative shared via Bucket",
+      title: "Private creative shared via Ads Hunting",
       description: "Sign in to view.",
     };
   }
   return {
-    title: `${link.name || "Creative"} shared via Bucket`,
-    description: "Research creative patterns with Bucket.",
+    title: `${link.name || "Creative"} shared via Ads Hunting`,
+    description: "Research creative patterns with Ads Hunting.",
   };
 }
 
@@ -75,7 +75,7 @@ export default async function SharedAdPage({ params }: { params: Promise<{ token
                 <Lock size={20} />
               </div>
               <h2 className="text-xl font-semibold text-ink">Private creative</h2>
-              <p className="mt-2 text-sm text-muted">This creative was shared privately.<br/>Sign in to Bucket to view it.</p>
+              <p className="mt-2 text-sm text-muted">This creative was shared privately.<br/>Sign in to Ads Hunting to view it.</p>
               <div className="mt-8 space-y-3">
                  <Link href={`/sign-in?redirect_url=/share/${token}`} className="flex h-11 w-full items-center justify-center rounded-lg bg-signal text-sm font-semibold text-white shadow-sm transition hover:bg-signal-dark">
                    Sign in
@@ -150,10 +150,10 @@ export default async function SharedAdPage({ params }: { params: Promise<{ token
 
           {!isPrivate && (
             <div className="mt-12 mb-8 flex flex-col items-center justify-center p-8 bg-white border border-line rounded-[16px] text-center shadow-sm">
-              <h3 className="text-lg font-semibold text-ink">Research creative patterns with Bucket.</h3>
+              <h3 className="text-lg font-semibold text-ink">Research creative patterns with Ads Hunting.</h3>
               <p className="mt-2 text-sm text-muted max-w-md mx-auto">Discover winning ads, save Swipe Files, and uncover what works in your industry.</p>
               <Link href="/" className="mt-6 flex h-11 items-center justify-center rounded-lg bg-signal px-6 font-semibold text-white transition hover:bg-signal-dark">
-                Explore Bucket
+                Explore Ads Hunting
               </Link>
             </div>
           )}
