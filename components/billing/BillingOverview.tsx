@@ -4,8 +4,9 @@ import { PlanCard } from "./PlanCard";
 import { BillingStatusCard } from "./BillingStatusCard";
 import { PaymentMethodCard } from "./PaymentMethodCard";
 import { BillingHistory } from "./BillingHistory";
-import { BILLING_CONFIG } from "@/lib/billing/billing-config";
+import { BILLING_CONFIG, resolvePlanKey } from "@/lib/billing/billing-config";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ExplorePlans } from "./ExplorePlans";
 
 export async function BillingOverview() {
   const { userId } = await auth();
@@ -25,22 +26,32 @@ export async function BillingOverview() {
     .eq("workspace_id", userId)
     .maybeSingle();
 
+  // Resolve the actual plan key (defaults to scout, maps legacy "pro" to "scout", etc.)
+  const currentPlanKey = resolvePlanKey(sub?.plan_key);
+  const currentPlanConfig = BILLING_CONFIG[currentPlanKey];
+
   return (
-    <div className="space-y-8">
-      <PlanCard entitlement={entitlement} config={BILLING_CONFIG.pro} />
-      
-      {entitlement.billingStatus !== "not_started" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <BillingStatusCard entitlement={entitlement} />
-          <PaymentMethodCard subscription={sub} />
-        </div>
-      )}
+    <div className="space-y-12 max-w-4xl">
+      <section>
+        <PlanCard entitlement={entitlement} config={currentPlanConfig} />
+      </section>
 
       {entitlement.billingStatus !== "not_started" && (
-        <div className="space-y-4">
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <BillingStatusCard entitlement={entitlement} />
+          <PaymentMethodCard subscription={sub} />
+        </section>
+      )}
+
+      <section>
+        <ExplorePlans currentPlanKey={currentPlanKey} />
+      </section>
+
+      {entitlement.billingStatus !== "not_started" && (
+        <section className="space-y-4">
           <h3 className="text-lg font-medium text-foreground">Billing history</h3>
           <BillingHistory payments={payments || []} />
-        </div>
+        </section>
       )}
     </div>
   );

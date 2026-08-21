@@ -6,14 +6,7 @@ import { LogOut, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { WorkspaceEntitlement } from "@/lib/billing/subscription-state";
-import { BILLING_CONFIG, PlanKey } from "@/lib/billing/billing-config";
-
-// A centralized display mapping as requested (using BILLING_CONFIG as source of truth where possible)
-const PLAN_DISPLAY: Record<string, { name: string; initial: string }> = {
-  pro: { name: "Scout", initial: "S" }, // Prompt uses Scout as example, mapped to pro
-  standard: { name: "Standard", initial: "S" },
-  basic: { name: "Basic", initial: "B" },
-};
+import { BILLING_CONFIG, PlanKey, resolvePlanKey } from "@/lib/billing/billing-config";
 
 export function SettingsAccount({ 
   entitlement, 
@@ -41,12 +34,11 @@ export function SettingsAccount({
   };
 
   // Determine Plan Details
-  const planKey = subscription?.plan_key as string;
-  const planInfo = planKey ? PLAN_DISPLAY[planKey] || { name: planKey, initial: planKey[0]?.toUpperCase() } : null;
-  const fallbackPlanName = planKey && BILLING_CONFIG[planKey as PlanKey] ? BILLING_CONFIG[planKey as PlanKey].name : null;
+  const planKey = resolvePlanKey(subscription?.plan_key as string);
+  const planInfo = BILLING_CONFIG[planKey];
   
-  const displayPlanName = planInfo?.name || fallbackPlanName || "No active plan";
-  const displayInitial = planInfo?.initial || displayPlanName[0]?.toUpperCase() || "P";
+  const displayPlanName = planInfo?.name || "No active plan";
+  const displayInitial = displayPlanName[0]?.toUpperCase() || "S";
   
   // Status Resolution
   const status = entitlement?.billingStatus;
