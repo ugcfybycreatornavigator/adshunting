@@ -87,34 +87,39 @@ export function AdvancedFilters({ filters, updateFilters }: AdvancedFiltersProps
 
   const Header = (
     <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <h2 className="text-lg font-semibold tracking-tight text-ink">Filters</h2>
+      <div className="flex flex-col">
+        <h2 className="text-xl font-bold tracking-tight text-ink">Filters</h2>
         {draftCount > 0 && (
-          <span className="grid min-w-[20px] place-items-center rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-signal">
-            {draftCount}
-          </span>
+          <p className="text-[13px] font-medium text-brand mt-0.5">
+            {draftCount} filter{draftCount === 1 ? "" : "s"} applied
+          </p>
         )}
       </div>
-      <div className="flex items-center gap-1">
-        {draftCount > 0 && (
-          <Button variant="ghost" className="h-8 text-xs hover:text-signal" onClick={() => setDraftFilters({})}>
-            Clear all
-          </Button>
-        )}
-        <button onClick={() => setOpen(false)} className="rounded-full p-1.5 text-muted hover:bg-surface hover:text-ink">
-          <X size={20} />
-        </button>
-      </div>
+      <button 
+        onClick={() => setOpen(false)} 
+        className="grid size-9 place-items-center rounded-full text-muted transition hover:bg-surface hover:text-ink"
+      >
+        <X size={20} />
+      </button>
     </div>
   );
 
   const Footer = (
-    <div className="flex items-center justify-end gap-3">
-      <Button variant="secondary" className="flex-1 sm:flex-none" onClick={() => setOpen(false)}>
-        Cancel
+    <div className="flex items-center justify-between gap-3">
+      <Button 
+        variant="ghost" 
+        className="text-[13px] font-semibold text-muted hover:text-ink hover:bg-surface flex-1 sm:flex-none justify-center" 
+        onClick={() => setDraftFilters({})}
+      >
+        Clear all
       </Button>
-      <Button variant="signal" className="flex-1 sm:flex-none" onClick={handleApply} disabled={applying}>
-        {applying && <Loader2 size={16} className="mr-2 animate-spin" />}
+      <Button 
+        variant="primary" 
+        className="flex-1 sm:flex-none bg-brand hover:bg-brand-hover text-white px-8 font-semibold text-sm h-11" 
+        onClick={handleApply} 
+        disabled={applying}
+      >
+        {applying ? <Loader2 size={16} className="mr-2 animate-spin" /> : null}
         Apply filters
       </Button>
     </div>
@@ -169,7 +174,7 @@ export function AdvancedFilters({ filters, updateFilters }: AdvancedFiltersProps
               placeholder="Min days"
               value={draftFilters.runtime?.minDays ?? ""}
               onChange={(e) => setDraftFilters({ ...draftFilters, runtime: { ...draftFilters.runtime, minDays: e.target.value ? Math.max(0, parseInt(e.target.value)) : undefined } })}
-              className="h-9 w-full rounded-lg border border-line bg-white px-3 text-sm outline-none transition focus:border-signal focus:ring-1 focus:ring-signal"
+              className="h-9 w-full rounded-lg border border-line bg-white px-3 text-sm outline-none transition focus:border-brand focus:ring-1 focus:ring-brand"
             />
             <span className="text-muted">to</span>
             <input
@@ -178,7 +183,7 @@ export function AdvancedFilters({ filters, updateFilters }: AdvancedFiltersProps
               placeholder="Max days"
               value={draftFilters.runtime?.maxDays ?? ""}
               onChange={(e) => setDraftFilters({ ...draftFilters, runtime: { ...draftFilters.runtime, maxDays: e.target.value ? Math.max(0, parseInt(e.target.value)) : undefined } })}
-              className="h-9 w-full rounded-lg border border-line bg-white px-3 text-sm outline-none transition focus:border-signal focus:ring-1 focus:ring-signal"
+              className="h-9 w-full rounded-lg border border-line bg-white px-3 text-sm outline-none transition focus:border-brand focus:ring-1 focus:ring-brand"
             />
           </div>
         </div>
@@ -218,6 +223,7 @@ export function AdvancedFilters({ filters, updateFilters }: AdvancedFiltersProps
       <CollapsibleSection 
         title="Niches" 
         selectedCount={draftFilters.niches?.length || 0}
+        summary={draftFilters.niches?.length ? `${draftFilters.niches.slice(0, 2).map(id => NICHES.find(n => n.id === id)?.label || id).join(', ')}${draftFilters.niches.length > 2 ? ` + ${draftFilters.niches.length - 2}` : ''}` : "Any niche"}
       >
         <SearchInput value={nicheSearch} onChange={setNicheSearch} placeholder="Search niches..." />
         <div className="max-h-56 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-300">
@@ -238,6 +244,7 @@ export function AdvancedFilters({ filters, updateFilters }: AdvancedFiltersProps
       <CollapsibleSection 
         title="Languages"
         selectedCount={draftFilters.languages?.length || 0}
+        summary={draftFilters.languages?.length ? `${draftFilters.languages.slice(0, 2).map(id => LANGUAGES.find(n => n.code === id)?.label || id).join(', ')}${draftFilters.languages.length > 2 ? ` + ${draftFilters.languages.length - 2}` : ''}` : "Any language"}
       >
         <SearchInput value={langSearch} onChange={setLangSearch} placeholder="Search languages..." />
         <div className="max-h-56 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-300">
@@ -258,6 +265,7 @@ export function AdvancedFilters({ filters, updateFilters }: AdvancedFiltersProps
       <CollapsibleSection 
         title="Content Style"
         selectedCount={draftFilters.contentStyles?.length || 0}
+        summary={draftFilters.contentStyles?.length ? `${draftFilters.contentStyles.slice(0, 2).map(id => CONTENT_STYLES.find(n => n.id === id)?.label || id).join(', ')}${draftFilters.contentStyles.length > 2 ? ` + ${draftFilters.contentStyles.length - 2}` : ''}` : "Any style"}
       >
         <SearchInput value={styleSearch} onChange={setStyleSearch} placeholder="Search styles..." />
         <div className="max-h-56 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-300">
@@ -278,6 +286,7 @@ export function AdvancedFilters({ filters, updateFilters }: AdvancedFiltersProps
       <CollapsibleSection 
         title="Observed Markets"
         selectedCount={draftFilters.markets?.length || 0}
+        summary={draftFilters.markets?.length ? `${draftFilters.markets.slice(0, 2).map(id => MARKETS.find(n => n.code === id)?.label || id).join(', ')}${draftFilters.markets.length > 2 ? ` + ${draftFilters.markets.length - 2}` : ''}` : "Any market"}
       >
         <SearchInput value={marketSearch} onChange={setMarketSearch} placeholder="Search markets..." />
         <div className="max-h-56 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-300">
@@ -334,7 +343,7 @@ export function AdvancedFilters({ filters, updateFilters }: AdvancedFiltersProps
               placeholder="Min sec"
               value={draftFilters.videoLength?.minSeconds ?? ""}
               onChange={(e) => setDraftFilters({ ...draftFilters, videoLength: { ...draftFilters.videoLength, minSeconds: e.target.value ? Math.max(0, parseInt(e.target.value)) : undefined } })}
-              className="h-9 w-full rounded-lg border border-line bg-white px-3 text-sm outline-none transition focus:border-signal focus:ring-1 focus:ring-signal"
+              className="h-9 w-full rounded-lg border border-line bg-white px-3 text-sm outline-none transition focus:border-brand focus:ring-1 focus:ring-brand"
             />
             <span className="text-muted">to</span>
             <input
@@ -343,7 +352,7 @@ export function AdvancedFilters({ filters, updateFilters }: AdvancedFiltersProps
               placeholder="Max sec"
               value={draftFilters.videoLength?.maxSeconds ?? ""}
               onChange={(e) => setDraftFilters({ ...draftFilters, videoLength: { ...draftFilters.videoLength, maxSeconds: e.target.value ? Math.max(0, parseInt(e.target.value)) : undefined } })}
-              className="h-9 w-full rounded-lg border border-line bg-white px-3 text-sm outline-none transition focus:border-signal focus:ring-1 focus:ring-signal"
+              className="h-9 w-full rounded-lg border border-line bg-white px-3 text-sm outline-none transition focus:border-brand focus:ring-1 focus:ring-brand"
             />
           </div>
         </div>
@@ -361,9 +370,14 @@ export function AdvancedFilters({ filters, updateFilters }: AdvancedFiltersProps
           header={Header}
           footer={Footer}
           trigger={
-            <Button variant={activeFilterCount > 0 ? "signal" : "secondary"}>
+            <Button variant={activeFilterCount > 0 ? "primary" : "secondary"} className={activeFilterCount > 0 ? "bg-brand hover:bg-brand-hover text-white" : ""}>
               <Filter size={16} />
-              Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="ml-1 grid min-w-[20px] place-items-center rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                  {activeFilterCount}
+                </span>
+              )}
               <ChevronDown size={14} className="ml-1 opacity-50" />
             </Button>
           }
@@ -373,9 +387,14 @@ export function AdvancedFilters({ filters, updateFilters }: AdvancedFiltersProps
       </div>
 
       <div className="block sm:hidden">
-        <Button variant={activeFilterCount > 0 ? "signal" : "secondary"} onClick={() => setOpen(true)}>
+        <Button variant={activeFilterCount > 0 ? "primary" : "secondary"} className={activeFilterCount > 0 ? "bg-brand hover:bg-brand-hover text-white" : ""} onClick={() => setOpen(true)}>
           <Filter size={16} />
-          {activeFilterCount > 0 && `(${activeFilterCount})`}
+          Filters
+          {activeFilterCount > 0 && (
+            <span className="ml-1 grid min-w-[20px] place-items-center rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-bold text-white">
+              {activeFilterCount}
+            </span>
+          )}
         </Button>
         <Sheet 
           open={open} 

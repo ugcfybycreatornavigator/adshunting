@@ -23,6 +23,17 @@ export async function DELETE(request: NextRequest) {
   const auth = await requireUser(); if (auth.error) return auth.error;
   const accessError = await requirePaidWorkspaceAccess(); if (accessError) return accessError;
   const id = new URL(request.url).searchParams.get("id");
-  const { error } = await auth.supabase!.from("competitors").delete().eq("id", id).eq("user_id", auth.user!.id);
+  const advertiserId = new URL(request.url).searchParams.get("advertiser_id");
+  
+  let query = auth.supabase!.from("competitors").delete().eq("user_id", auth.user!.id);
+  if (advertiserId) {
+    query = query.eq("advertiser_id", advertiserId);
+  } else if (id) {
+    query = query.eq("id", id);
+  } else {
+    return NextResponse.json({ error: "Missing id or advertiser_id" }, { status: 400 });
+  }
+  
+  const { error } = await query;
   return error ? NextResponse.json({ error: error.message }, { status: 400 }) : NextResponse.json({ ok: true });
 }

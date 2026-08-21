@@ -23,6 +23,7 @@ export function useUrlFilters(defaultFilters: AdSearchFilters) {
     const parsed: Partial<AdSearchFilters> = {};
     searchParams.forEach((value, key) => {
       if (key === "q" || key === "query") parsed.query = value;
+      else if (key === "view") parsed.view = value as "ads" | "brands";
       else if (key === "brand") parsed.brand = value;
       else if (key === "sort") parsed.sort = value;
       else if (key === "platforms") parsed.platforms = value.split(",");
@@ -56,6 +57,7 @@ export function useUrlFilters(defaultFilters: AdSearchFilters) {
     const normalized = normalizeDiscoverFilters(newFilters);
     
     // We only put non-default/non-empty values in the URL
+    if (newFilters.view && newFilters.view !== "ads") params.set("view", newFilters.view);
     if (normalized.query) params.set("q", normalized.query);
     if (normalized.brand) params.set("brand", normalized.brand);
     if (normalized.sort && normalized.sort !== defaultFilters.sort) params.set("sort", normalized.sort);
@@ -98,6 +100,7 @@ export function useUrlFilters(defaultFilters: AdSearchFilters) {
       
       params.forEach((value, key) => {
         if (key === "q" || key === "query") parsed.query = value;
+        else if (key === "view") parsed.view = value as "ads" | "brands";
         else if (key === "brand") parsed.brand = value;
         else if (key === "sort") parsed.sort = value;
         else if (key === "platforms") parsed.platforms = value.split(",");

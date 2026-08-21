@@ -77,7 +77,7 @@ export default async function SharedAdPage({ params }: { params: Promise<{ token
               <h2 className="text-xl font-semibold text-ink">Private creative</h2>
               <p className="mt-2 text-sm text-muted">This creative was shared privately.<br/>Sign in to Ads Hunting to view it.</p>
               <div className="mt-8 space-y-3">
-                 <Link href={`/sign-in?redirect_url=/share/${token}`} className="flex h-11 w-full items-center justify-center rounded-lg bg-signal text-sm font-semibold text-white shadow-sm transition hover:bg-signal-dark">
+                 <Link href={`/sign-in?redirect_url=/share/${token}`} className="flex h-11 w-full items-center justify-center rounded-lg bg-brand text-sm font-semibold text-white shadow-sm transition hover:bg-brand-strong">
                    Sign in
                  </Link>
               </div>
@@ -123,7 +123,7 @@ export default async function SharedAdPage({ params }: { params: Promise<{ token
         </div>
         <div className="flex items-center gap-3">
           <CopyLinkButton token={token} />
-          <Badge tone={isPrivate ? "dark" : "red"}>{isPrivate ? "Private" : "Public"}</Badge>
+          <Badge tone={isPrivate ? "dark" : "brand"}>{isPrivate ? "Private" : "Public"}</Badge>
         </div>
       </header>
       
@@ -152,7 +152,7 @@ export default async function SharedAdPage({ params }: { params: Promise<{ token
             <div className="mt-12 mb-8 flex flex-col items-center justify-center p-8 bg-white border border-line rounded-[16px] text-center shadow-sm">
               <h3 className="text-lg font-semibold text-ink">Research creative patterns with Ads Hunting.</h3>
               <p className="mt-2 text-sm text-muted max-w-md mx-auto">Discover winning ads, save Swipe Files, and uncover what works in your industry.</p>
-              <Link href="/" className="mt-6 flex h-11 items-center justify-center rounded-lg bg-signal px-6 font-semibold text-white transition hover:bg-signal-dark">
+              <Link href="/" className="mt-6 flex h-11 items-center justify-center rounded-lg bg-brand px-6 font-semibold text-white transition hover:bg-brand-strong">
                 Explore Ads Hunting
               </Link>
             </div>

@@ -105,7 +105,7 @@ export function ShareModal({ isOpen, onClose, adIds, swipeFileId, defaultName }:
                 type="text" 
                 value={name} 
                 onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-lg border border-line px-3 py-2 text-sm text-ink focus:border-signal outline-none" 
+                className="w-full rounded-lg border border-line px-3 py-2 text-sm text-ink focus:border-brand outline-none" 
               />
             </div>
             <div>
@@ -114,7 +114,7 @@ export function ShareModal({ isOpen, onClose, adIds, swipeFileId, defaultName }:
                 value={message} 
                 onChange={(e) => setMessage(e.target.value)}
                 rows={2}
-                className="w-full rounded-lg border border-line px-3 py-2 text-sm text-ink focus:border-signal outline-none resize-none" 
+                className="w-full rounded-lg border border-line px-3 py-2 text-sm text-ink focus:border-brand outline-none resize-none" 
               />
             </div>
             <div>
@@ -152,11 +152,11 @@ export function ShareModal({ isOpen, onClose, adIds, swipeFileId, defaultName }:
 
             <div className="pt-2 border-t border-line space-y-3">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={allowSave} onChange={(e) => setAllowSave(e.target.checked)} className="rounded text-signal focus:ring-signal" />
+                <input type="checkbox" checked={allowSave} onChange={(e) => setAllowSave(e.target.checked)} className="rounded text-signal focus:ring-brand" />
                 <span className="text-sm text-ink font-medium">Allow saving to swipe file</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={allowDownload} onChange={(e) => setAllowDownload(e.target.checked)} className="rounded text-signal focus:ring-signal" />
+                <input type="checkbox" checked={allowDownload} onChange={(e) => setAllowDownload(e.target.checked)} className="rounded text-signal focus:ring-brand" />
                 <span className="text-sm text-ink font-medium">Allow media download</span>
               </label>
             </div>

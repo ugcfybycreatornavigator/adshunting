@@ -7,6 +7,7 @@ import type {
   ProviderCapabilities,
 } from "@/lib/types";
 import { computeAdIntelligence } from "@/lib/intelligence";
+import { computeAdFingerprints } from "@/lib/fingerprint";
 import { daysBetween, safeExternalUrl, sanitizeAdCopy } from "@/lib/utils";
 import { ProviderError, providerErrorFromStatus } from "@/lib/providers/errors";
 
@@ -76,7 +77,7 @@ export function normalizeForeplayAd(input: UnknownRecord): NormalizedAd {
   });
   const externalAdId = text(input.ad_id) || text(input.id) || crypto.randomUUID();
 
-  return {
+  const baseAd = {
     id: text(input.id) || externalAdId,
     externalAdId,
     advertiserId,
@@ -113,6 +114,17 @@ export function normalizeForeplayAd(input: UnknownRecord): NormalizedAd {
     winnerScore: intelligence.adjustedWinnerScore,
     intelligenceLabels: [intelligence.badgeCategory, intelligence.longevityLabel.split(" ")[0]],
     rawData: input,
+  };
+
+  const fps = computeAdFingerprints(baseAd as NormalizedAd);
+
+  return {
+    ...(baseAd as NormalizedAd),
+    canonicalAdId: fps.canonicalAdId,
+    creativeFingerprint: fps.creativeFingerprint,
+    creativeGroupId: fps.creativeGroupId,
+    observationCount: 1,
+    providerAdIds: [baseAd.externalAdId],
   };
 }
 

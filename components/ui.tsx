@@ -10,8 +10,8 @@ export function Button({ className, variant = "primary", ...props }: ButtonHTMLA
   }, className)} {...props} />;
 }
 
-export function Badge({ children, tone = "neutral", className }: { children: ReactNode; tone?: "neutral" | "red" | "dark"; className?: string }) {
-  return <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none", tone === "red" && "bg-red-50 text-signal", tone === "dark" && "bg-black text-white", tone === "neutral" && "bg-surface text-muted", className)}>{children}</span>;
+export function Badge({ children, tone = "neutral", className }: { children: ReactNode; tone?: "neutral" | "red" | "dark" | "brand"; className?: string }) {
+  return <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none", tone === "red" && "bg-red-50 text-signal", tone === "brand" && "bg-brand/10 text-brand border border-brand/20", tone === "dark" && "bg-black text-white", tone === "neutral" && "bg-surface text-muted", className)}>{children}</span>;
 }
 
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) { return <div className={cn("rounded-card border border-line bg-white shadow-card", className)} {...props} />; }
@@ -27,6 +27,6 @@ export function Skeleton({ className }: { className?: string }) { return <div cl
 
 export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?: string; title: string; description: string; actions?: ReactNode }) {
   return <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-    <div>{eyebrow && <p className="mb-2 text-xs font-bold uppercase tracking-[.16em] text-signal">{eyebrow}</p>}<h1 className="text-3xl font-semibold tracking-[-.04em] sm:text-4xl">{title}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted sm:text-base">{description}</p></div>{actions && <div className="shrink-0">{actions}</div>}
+    <div>{eyebrow && <p className="mb-2 text-xs font-bold uppercase tracking-[.16em] text-brand">{eyebrow}</p>}<h1 className="text-3xl font-semibold tracking-[-.04em] sm:text-4xl">{title}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted sm:text-base">{description}</p></div>{actions && <div className="shrink-0">{actions}</div>}
   </div>;
 }

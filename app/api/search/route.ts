@@ -161,8 +161,6 @@ export async function POST(request: NextRequest) {
             (Array.isArray(filters[k as keyof typeof filters]) ? (filters[k as keyof typeof filters] as unknown[]).length > 0 : true)
           );
           
-          // Re-sort the fetched dataset according to requested sort order, because 
-          // Supabase only sorted by last_seen_at (or newest/oldest) up to 1000 rows.
           if (!filters.sort || filters.sort === "relevant") {
             ranked = rankDiscoveryFeed(ads, !hasActiveFilters && !filters.query);
           } else if (filters.sort === "newest") {
@@ -175,18 +173,33 @@ export async function POST(request: NextRequest) {
             ranked.sort((a, b) => b.variants - a.variants);
           }
           
+          // Deduplicate into variant groups (pick representative)
+          const variantGroups = new Map<string, NormalizedAd>();
+          for (const ad of ranked) {
+            const groupId = ad.creativeGroupId || ad.id;
+            if (!variantGroups.has(groupId)) {
+              variantGroups.set(groupId, ad);
+            } else {
+              // Track variants count on the representative (for UI display)
+              const rep = variantGroups.get(groupId)!;
+              rep.variants = (rep.variants || 1) + 1; 
+            }
+          }
+          
+          const deduplicatedRanked = Array.from(variantGroups.values());
+          
           // Now apply pagination
           const limit = 25;
           const offset = filters.cursor ? parseInt(filters.cursor, 10) : 0;
-          const paged = ranked.slice(offset, offset + limit);
+          const paged = deduplicatedRanked.slice(offset, offset + limit);
           
           const nextOffset = offset + limit;
-          const nextCursor = nextOffset < ranked.length ? nextOffset.toString() : null;
+          const nextCursor = nextOffset < deduplicatedRanked.length ? nextOffset.toString() : null;
           
           payload = { 
             ads: adsForClient(paged), 
             nextCursor, 
-            total: ranked.length, 
+            total: deduplicatedRanked.length, 
             source: "catalog" 
           };
         }

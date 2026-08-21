@@ -2,6 +2,7 @@ import type { AdProvider, AdSearchFilters, AdSearchResult, NormalizedAd, Provide
 import { daysBetween, safeExternalUrl, sanitizeAdCopy } from "@/lib/utils";
 import { ProviderError, providerErrorFromStatus } from "@/lib/providers/errors";
 import { computeAdIntelligence } from "@/lib/intelligence";
+import { computeAdFingerprints } from "@/lib/fingerprint";
 
 type MetaRawAd = {
   id: string;
@@ -203,7 +204,7 @@ function normalizeMetaAd(raw: MetaRawAd, country: string): NormalizedAd {
     advertiserId: raw.page_id,
   });
 
-  return {
+  const baseAd = {
     id: raw.id,
     externalAdId: raw.id,
     advertiserId: raw.page_id || "unknown",
@@ -240,6 +241,17 @@ function normalizeMetaAd(raw: MetaRawAd, country: string): NormalizedAd {
     winnerScore: intel.adjustedWinnerScore,
     intelligenceLabels: [intel.badgeCategory, intel.longevityLabel.split(" ")[0]],
     rawData: sanitizedRaw,
+  };
+
+  const fps = computeAdFingerprints(baseAd as unknown as NormalizedAd);
+
+  return {
+    ...(baseAd as unknown as NormalizedAd),
+    canonicalAdId: fps.canonicalAdId,
+    creativeFingerprint: fps.creativeFingerprint,
+    creativeGroupId: fps.creativeGroupId,
+    observationCount: 1,
+    providerAdIds: [baseAd.externalAdId],
   };
 }
 

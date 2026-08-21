@@ -177,65 +177,74 @@ export function AdCard({
         <div className="absolute inset-0 cursor-pointer" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen()} aria-label={`Open ad by ${advertiserName}`}>
           <CreativePreview ad={ad} media={media} thumb={thumb} advertiserName={advertiserName} />
         </div>
-        <div className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex items-center gap-1.5">
-          <Badge tone={ad.status === "active" ? "red" : "dark"} className="px-2 py-1 text-[10px] shadow-sm uppercase">
+        <div className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex flex-col gap-1.5 items-start">
+          <Badge tone={ad.status === "active" ? "brand" : "dark"} className="px-2 py-1 text-[10px] shadow-sm uppercase font-bold tracking-wider">
             {ad.status}
           </Badge>
           {ad.intelligenceLabels[0] && (
-            <Badge className="bg-white/95 px-2 py-1 text-[10px] text-ink shadow-sm backdrop-blur">{signalLabel(ad.intelligenceLabels[0], ad)}</Badge>
+            <Badge className="bg-brand/95 text-white px-2 py-1 text-[10px] shadow-sm font-semibold">{signalLabel(ad.intelligenceLabels[0], ad)}</Badge>
           )}
         </div>
       </div>
 
       {/* Primary Action Row */}
-      <div className="flex w-full min-h-[44px] border-b border-line relative" ref={saveBtnRef}>
-        <div className="flex flex-1">
-          <button 
+      <div className="flex w-full flex-wrap items-center justify-between gap-y-2 gap-x-1 border-b border-line px-2 py-1.5 relative" ref={saveBtnRef}>
+        {(ad.variants && ad.variants > 1) ? (
+          <button
             type="button"
-            disabled={isSaved || saving}
-            onClick={async () => {
-               if (saving || isSaved) return;
-               setOptimisticSaved(true);
-               setSaving(true);
-               try { await onSave(); } catch { setOptimisticSaved(false); } finally { setSaving(false); }
-            }}
-            className={cn("flex min-h-[44px] flex-1 items-center gap-2.5 px-3 text-sm font-semibold transition hover:bg-zinc-50 disabled:opacity-100", (isSaved || swipeFileCount > 0) ? "text-signal" : "text-ink")}
-            aria-label={isSaved ? "Saved" : "Save to Saved Ads"}
+            onClick={onOpen}
+            className="flex min-h-[32px] shrink-0 items-center justify-center rounded-md bg-brand-soft px-2.5 text-[12px] font-[650] text-brand transition hover:bg-brand/10 hover:text-brand-active"
+            aria-label={`View ${ad.variants} variants`}
           >
-            {saving ? <Loader2 size={16} className="shrink-0 animate-spin" /> : (isSaved || swipeFileCount > 0) ? <Check size={16} className="shrink-0" /> : <FolderPlus size={16} className="shrink-0" />}
-            <span className="truncate">
-              {saving ? "Saving..." : (isSaved || swipeFileCount > 0) ? "Saved" : "Save"}
-            </span>
+            {ad.variants} Variants
           </button>
-          {!(isSaved || swipeFileCount > 0) && (
-            <>
-              <div className="w-px bg-line my-2" />
+        ) : <div className="hidden sm:block flex-1" />}
+        
+        <div className="flex items-center gap-1 shrink-0 ml-auto">
+          <div className="flex items-center">
+            <button 
+              type="button"
+              disabled={isSaved || saving}
+              onClick={async () => {
+                 if (saving || isSaved) return;
+                 setOptimisticSaved(true);
+                 setSaving(true);
+                 try { await onSave(); } catch { setOptimisticSaved(false); } finally { setSaving(false); }
+              }}
+              className={cn("flex min-h-[32px] shrink-0 items-center gap-1.5 rounded-l-md px-2.5 text-xs font-semibold transition disabled:opacity-100", (isSaved || swipeFileCount > 0) ? "bg-brand/10 text-brand-active" : "text-muted hover:bg-zinc-50 hover:text-ink")}
+              aria-label={isSaved ? "Saved" : "Save to Saved Ads"}
+            >
+              {saving ? <Loader2 size={14} className="shrink-0 animate-spin" /> : (isSaved || swipeFileCount > 0) ? <Check size={14} className="shrink-0" /> : <FolderPlus size={14} className="shrink-0" />}
+              <span className="hidden sm:inline">
+                {saving ? "Saving..." : (isSaved || swipeFileCount > 0) ? "Saved" : "Save"}
+              </span>
+            </button>
+            {!(isSaved || swipeFileCount > 0) && (
               <button
                 type="button"
                 onClick={() => setShowPicker(true)}
-                className="flex min-h-[44px] w-12 shrink-0 items-center justify-center text-muted hover:bg-zinc-50 hover:text-ink transition"
+                className="flex min-h-[32px] w-7 shrink-0 items-center justify-center rounded-r-md border-l border-line/50 bg-transparent text-muted hover:bg-zinc-50 hover:text-ink transition"
                 aria-label="Choose Swipe File"
                 aria-expanded={showPicker}
               >
-                <ChevronDown size={16} />
+                <ChevronDown size={14} />
               </button>
-            </>
-          )}
+            )}
+          </div>
+          
+          <button
+            type="button"
+            onClick={async (e) => {
+               e.preventDefault();
+               await onShare();
+            }}
+            className="flex min-h-[32px] px-2 shrink-0 items-center gap-1.5 rounded-md text-xs font-semibold text-muted hover:bg-zinc-50 hover:text-ink transition"
+            aria-label="Share creative"
+          >
+            <Share2 size={14} className="opacity-80" />
+            <span className="hidden sm:inline">Share</span>
+          </button>
         </div>
-        
-        <div className="w-px bg-line my-2" />
-        
-        <button
-          type="button"
-          onClick={async (e) => {
-             e.preventDefault();
-             await onShare();
-          }}
-          className="flex min-h-[44px] px-3 shrink-0 items-center gap-2 text-sm font-semibold text-muted hover:bg-zinc-50 hover:text-ink transition"
-          aria-label="Share creative"
-        >
-          Share <Share2 size={14} className="opacity-75 text-ink" />
-        </button>
       </div>
 
       {/* Metadata */}
@@ -342,11 +351,12 @@ function CreativePreview({
 
   // Fallback
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-zinc-50/80 text-muted">
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-zinc-50 text-muted">
       <div className="grid size-12 place-items-center rounded-full bg-white shadow-sm border border-line">
         <ImageIcon size={20} className="text-zinc-400" />
       </div>
-      <p className="text-xs font-medium">Preview unavailable</p>
+      <p className="text-[13px] font-semibold text-ink">Creative unavailable</p>
+      <p className="text-[11px] font-medium text-center px-6 max-w-[200px]">The source did not provide preview media for this ad.</p>
     </div>
   );
 }

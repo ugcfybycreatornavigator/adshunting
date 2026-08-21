@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Filter, History, Loader2, RefreshCw, Search, X } from "lucide-react";
 import { AdCard } from "@/components/ad-card";
+import { BrandCard } from "@/components/brand-card";
 import { AdDetailDrawer } from "@/components/ad-detail";
 import { type SwipeFileResult } from "@/components/swipe-file-picker";
 import { ShareModal } from "@/components/share-modal";
@@ -11,7 +12,9 @@ import { AdvancedFilters } from "@/components/filters/advanced-filters";
 import { SearchAutocomplete } from "@/components/search/search-autocomplete";
 import { useUrlFilters } from "@/lib/hooks/use-url-filters";
 import type { AdSearchFilters, AdSearchResult, NormalizedAd } from "@/lib/types";
+import type { BrandSummary } from "@/lib/brand-data";
 import { normalizeDiscoverFilters } from "@/lib/filter-utils";
+import { cn } from "@/lib/utils";
 
 const countries = [["ALL","All countries"],["IN","India"],["US","United States"],["GB","United Kingdom"],["CA","Canada"],["AU","Australia"],["DE","Germany"],["FR","France"],["BR","Brazil"]];
 const defaults: AdSearchFilters = { query: "", status: "all", country: "ALL", platforms: [], mediaType: "all", cta: "", duration: "", startDate: "", endDate: "" };
@@ -24,6 +27,11 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<{ message: string; code?: string } | null>(null);
+  
+  const [brands, setBrands] = useState<BrandSummary[]>([]);
+  const [brandsLoading, setBrandsLoading] = useState(false);
+  const [brandsError, setBrandsError] = useState<{ message: string } | null>(null);
+
   const [details, setDetails] = useState<NormalizedAd | null>(null);
   const [shareAdId, setShareAdId] = useState<string | null>(null);
   const [draftQuery, setDraftQuery] = useState(filters.query || "");
@@ -34,7 +42,6 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
   const [toast, setToast] = useState<{ message: string; tone?: "success" | "error" } | null>(null);
   const [deepLinkedAdId, setDeepLinkedAdId] = useState<string | null>(null);
   const first = useRef(true);
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const requestController = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -124,13 +131,38 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
     }
   }, []);
 
+  const searchBrands = useCallback(async (query?: string) => {
+    setBrandsLoading(true);
+    setBrandsError(null);
+    try {
+      const response = await fetch("/api/brands/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw { message: data.error || "Failed to search brands" };
+      setBrands(data.brands || []);
+    } catch (err: unknown) {
+      const errorObj = typeof err === "object" && err !== null && "message" in err ? (err as { message: string }) : { message: "Failed to search brands" };
+      setBrandsError(errorObj);
+      setBrands([]);
+    } finally {
+      setBrandsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      search({ ...filters, cursor: undefined });
+      if (filters.view === "brands") {
+        searchBrands(filters.query);
+      } else {
+        search({ ...filters, cursor: undefined });
+      }
     }, first.current ? 0 : 400);
     first.current = false;
     return () => clearTimeout(timer);
-  }, [filters, search]);
+  }, [filters, search, searchBrands]);
 
   useEffect(() => {
     setDraftQuery(filters.query || "");
@@ -282,16 +314,18 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
     setToast({ message: result.collectionNames.length > 1 ? `Added to ${result.collectionNames.length} Swipe Files` : `Added to ${result.collectionNames[0] || "Swipe File"}` });
   }
 
+  const isBrandsView = filters.view === "brands";
+
   return (
     <>
       <div className="mb-6">
         <h1 className="text-[28px] font-bold tracking-tight text-ink flex items-center justify-between">
-          Discover Ads
+          Discover {isBrandsView ? "Brands" : "Ads"}
           <span className="text-[14px] font-normal text-muted">
-             {loading ? "Searching..." : total != null ? `${total.toLocaleString()} ads` : `${ads.length.toLocaleString()} ads`}
+             {loading || brandsLoading ? "Searching..." : isBrandsView ? `${brands.length} brands` : total != null ? `${total.toLocaleString()} unique ads` : `${ads.length.toLocaleString()} unique ads`}
           </span>
         </h1>
-        <p className="mt-1 text-[14px] text-muted">Search competitor ads, brands and creative patterns.</p>
+        <p className="mt-1 text-[14px] text-muted">{isBrandsView ? "Discover the top brands and advertisers." : "Search competitor ads, brands and creative patterns."}</p>
       </div>
 
       {/* Sticky Toolbar */}
@@ -299,6 +333,7 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
         <div className="flex flex-col gap-4">
           <div className="relative">
             <SearchAutocomplete 
+              placeholder={isBrandsView ? "Search brands..." : "Search ads, keywords, brands..."}
               value={draftQuery}
               onChange={setDraftQuery}
               onSubmit={(val) => {
@@ -327,9 +362,21 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
               <AdvancedFilters filters={filters} updateFilters={setFilters} clearFilters={clearAllFilters} />
               <CompactSelect ariaLabel="Sort" value={sort} onChange={setSort} options={[["relevant","Sort: Relevant"],["newest","Sort: Newest"],["oldest","Sort: Oldest"],["longest","Sort: Longest"],["variations","Sort: Variations"]]} />
             </div>
-            <div className="flex items-center rounded-lg border border-line bg-white p-1 shrink-0">
-              <button type="button" onClick={() => clearFilters()} className="rounded-md px-4 py-1.5 text-[13px] font-medium text-ink bg-zinc-100/50">All Ads</button>
-              <button type="button" onClick={() => searchInputRef.current?.focus()} className="rounded-md px-4 py-1.5 text-[13px] font-medium text-muted hover:text-ink">Brands</button>
+            <div className="flex items-center rounded-[10px] border border-line bg-zinc-50 p-1 shrink-0 h-[40px]">
+              <button 
+                type="button" 
+                onClick={() => setFilters({ view: "ads" })} 
+                className={cn("rounded-md px-4 py-1.5 text-[13px] font-semibold transition-all h-full", !isBrandsView ? "bg-white text-ink shadow-sm border border-line/50" : "text-muted hover:text-ink")}
+              >
+                All Ads
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setFilters({ view: "brands" })} 
+                className={cn("rounded-md px-4 py-1.5 text-[13px] font-semibold transition-all h-full", isBrandsView ? "bg-white text-ink shadow-sm border border-line/50" : "text-muted hover:text-ink")}
+              >
+                Brands
+              </button>
             </div>
           </div>
         </div>
@@ -354,12 +401,12 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Active</span>
             {activeChips.map(chip => (
-              <button key={`${chip.key}-${chip.value}`} onClick={() => removeChip(chip.key, chip.value)} className="flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1.5 text-xs font-medium text-signal hover:bg-red-100 transition">
+              <button key={`${chip.key}-${chip.value}`} onClick={() => removeChip(chip.key, chip.value)} className="flex items-center gap-1.5 rounded-full bg-brand-soft px-2.5 py-1.5 text-xs font-medium text-brand-active hover:bg-brand-soft/80 transition">
                 {chip.label}
                 <X size={12} />
               </button>
             ))}
-            <button onClick={clearAllFilters} className="text-xs font-semibold text-muted hover:text-signal ml-1">
+            <button onClick={clearAllFilters} className="text-xs font-semibold text-muted hover:text-ink ml-1">
               Clear all
             </button>
           </div>
@@ -367,48 +414,62 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
       </div>
 
       <div className="mt-3">
-        {loading && ads.length === 0 ? (
-          <AdGridSkeleton />
-        ) : error ? (
-          <EmptyState
-            icon={<Filter className="text-signal" />}
-            title={error.code === "NOT_CONFIGURED" ? "No Ads Provider Configured" : "Search Temporarily Unavailable"}
-            body={error.message}
-            action={
-              <Button variant="secondary" onClick={() => search(filters)}>
-                <RefreshCw size={15} /> Retry search
-              </Button>
-            }
-          />
-        ) : ads.length === 0 ? (
-          <EmptyState
-            icon={<Search />}
-            title="No ads found"
-            body={filters.query?.trim() ? `No ads found for "${filters.query.trim()}". Try another keyword or remove active filters.` : "Try removing active filters or typing a keyword above to search live ads."}
-            action={activeChips.length > 0 ? (
-              <Button variant="secondary" onClick={clearAllFilters}>Clear filters</Button>
-            ) : undefined}
-          />
+        {isBrandsView ? (
+          brandsLoading ? (
+            <BrandGridSkeleton />
+          ) : brandsError ? (
+            <EmptyState title="Search Error" body={brandsError.message} />
+          ) : brands.length === 0 ? (
+            <EmptyState title="No brands found" body="Try searching for another brand name." />
+          ) : (
+            <div className={brandGridClass()}>
+              {brands.map(brand => <BrandCard key={brand.id} brand={brand} />)}
+            </div>
+          )
         ) : (
-          <div className={gridClass()}>
-            {displayedAds.map(ad => (
-              <AdCard
-                key={`${ad.externalAdId}-${ad.id}`}
-                ad={ad}
-                saved={savedAdIds.has(ad.externalAdId)}
-                swipeFileCount={adCollectionIds[ad.externalAdId]?.length ?? 0}
-                initialCollectionIds={adCollectionIds[ad.externalAdId] ?? []}
-                onOpen={() => setDetails(ad)}
-                onSave={() => saveAd(ad)}
-                onSwipeFileAdded={(result) => handleSwipeFileAdded(ad, result)}
-                onShare={() => shareAd(ad)}
-              />
-            ))}
-          </div>
+          loading && ads.length === 0 ? (
+            <AdGridSkeleton />
+          ) : error ? (
+            <EmptyState
+              icon={<Filter className="text-signal" />}
+              title={error.code === "NOT_CONFIGURED" ? "No Ads Provider Configured" : "Search Temporarily Unavailable"}
+              body={error.message}
+              action={
+                <Button variant="secondary" onClick={() => search(filters)}>
+                  <RefreshCw size={15} /> Retry search
+                </Button>
+              }
+            />
+          ) : ads.length === 0 ? (
+            <EmptyState
+              icon={<Search />}
+              title="No ads found"
+              body={filters.query?.trim() ? `No ads found for "${filters.query.trim()}". Try another keyword or remove active filters.` : "Try removing active filters or typing a keyword above to search live ads."}
+              action={activeChips.length > 0 ? (
+                <Button variant="secondary" onClick={clearAllFilters}>Clear filters</Button>
+              ) : undefined}
+            />
+          ) : (
+            <div className={gridClass()}>
+              {displayedAds.map(ad => (
+                <AdCard
+                  key={`${ad.externalAdId}-${ad.id}`}
+                  ad={ad}
+                  saved={savedAdIds.has(ad.externalAdId)}
+                  swipeFileCount={adCollectionIds[ad.externalAdId]?.length ?? 0}
+                  initialCollectionIds={adCollectionIds[ad.externalAdId] ?? []}
+                  onOpen={() => setDetails(ad)}
+                  onSave={() => saveAd(ad)}
+                  onSwipeFileAdded={(result) => handleSwipeFileAdded(ad, result)}
+                  onShare={() => shareAd(ad)}
+                />
+              ))}
+            </div>
+          )
         )}
       </div>
 
-      {cursor && !loading && ads.length > 0 && (
+      {!isBrandsView && cursor && !loading && ads.length > 0 && (
         <div className="mt-7 flex justify-center">
           <Button variant="secondary" disabled={loadingMore} onClick={() => search({ ...filters, cursor }, true)}>
             {loadingMore && <Loader2 className="animate-spin" size={16} />}
@@ -446,7 +507,7 @@ function CompactSelect({ ariaLabel, value, options, onChange }: { ariaLabel: str
         aria-label={ariaLabel}
         value={value || ""}
         onChange={event => onChange(event.target.value)}
-        className="h-9 appearance-none rounded-lg border border-line bg-white px-3 pr-8 text-xs font-semibold text-muted outline-none transition hover:bg-zinc-50 hover:text-ink focus:border-signal"
+        className="h-9 appearance-none rounded-lg border border-line bg-white px-3 pr-8 text-xs font-semibold text-muted outline-none transition hover:bg-zinc-50 hover:text-ink focus:border-brand"
       >
         {options.map(([val, lbl]) => <option key={val} value={val}>{lbl}</option>)}
       </select>
@@ -478,7 +539,30 @@ function AdGridSkeleton() {
 }
 
 function gridClass() {
-  return "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-[1600px]:grid-cols-5 gap-4";
+  return "grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4";
+}
+
+function brandGridClass() {
+  return "grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-5";
+}
+
+function BrandGridSkeleton() {
+  return (
+    <div className={brandGridClass()}>
+      {Array.from({ length: 12 }).map((_, index) => (
+        <div key={index} className="flex flex-col w-full overflow-hidden rounded-[14px] border border-line bg-white shadow-sm h-[240px]">
+          <div className="flex p-4 items-center gap-3 border-b border-line">
+             <Skeleton className="size-10 rounded-full shrink-0" />
+             <div className="flex flex-col gap-1.5 flex-1">
+               <Skeleton className="h-4 w-3/4" />
+               <Skeleton className="h-3 w-1/2" />
+             </div>
+          </div>
+          <div className="flex-1" />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 

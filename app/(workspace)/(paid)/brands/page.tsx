@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Search, Store } from "lucide-react";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
+import { BrandCard } from "@/components/brand-card";
 import { getBrands } from "@/lib/brand-data";
 
 export const metadata = { title: "Brands" };
@@ -30,37 +31,16 @@ export default async function BrandsPage({
             name="q"
             defaultValue={query}
             placeholder="Search brands or advertisers..."
-            className="h-11 w-full rounded-lg border border-line pl-10 pr-4 text-sm outline-none focus:border-signal"
+            className="h-11 w-full rounded-lg border border-line pl-10 pr-4 text-sm outline-none focus:border-brand"
           />
         </form>
       </div>
 
       <div className="mt-8">
         {brands.length ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5">
             {brands.map((brand) => (
-              <Link href={`/brands/${encodeURIComponent(brand.id)}`} key={brand.id}>
-                <Card className="flex items-center gap-4 p-5 shadow-none transition hover:-translate-y-0.5 hover:shadow-card">
-                  {brand.avatar ? (
-                    <img
-                      src={brand.avatar}
-                      alt=""
-                      className="size-12 rounded-full border border-line object-cover"
-                    />
-                  ) : (
-                    <span className="grid size-12 place-items-center rounded-full bg-black font-bold text-white">
-                      {brand.name[0]}
-                    </span>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">{brand.name}</p>
-                    <p className="mt-1 text-xs text-muted">
-                      {brand.active} active · {brand.total} tracked
-                    </p>
-                  </div>
-                  <ArrowRight size={16} />
-                </Card>
-              </Link>
+              <BrandCard key={brand.id} brand={brand} />
             ))}
           </div>
         ) : (

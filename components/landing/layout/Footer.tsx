@@ -5,7 +5,7 @@ import { navigationConfig } from '@/data/landing/config';
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-surface-subtle py-12 md:py-16">
+    <footer className="border-t border-border bg-surface-subtle pt-12 md:pt-16 pb-0 md:pb-0 overflow-hidden flex flex-col">
       <LandingContainer>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
           <div className="col-span-1 md:col-span-1">
@@ -34,6 +34,11 @@ export function Footer() {
             <h3 className="font-semibold text-sm text-text-primary mb-4 uppercase tracking-wider">Company</h3>
             <ul className="space-y-3">
               <li>
+                <Link href="/about" className="text-sm text-text-secondary hover:text-text-primary transition-colors">
+                  About
+                </Link>
+              </li>
+              <li>
                 <Link href="/contact" className="text-sm text-text-secondary hover:text-text-primary transition-colors">
                   Contact
                 </Link>
@@ -61,6 +66,25 @@ export function Footer() {
           </p>
         </div>
       </LandingContainer>
+
+      {/* Oversized Brand Wordmark */}
+      <div 
+        className="w-full flex justify-center px-3 md:px-5 lg:px-6 pt-6 md:pt-10 pb-0 md:pb-2 overflow-hidden select-none pointer-events-none mt-auto"
+        aria-hidden="true"
+      >
+        <div 
+          className="font-extrabold text-center tracking-[-0.055em] leading-[0.78]"
+          style={{
+            fontSize: 'clamp(4.5rem, 19.5vw, 22rem)',
+            background: 'linear-gradient(180deg, #68B32F 0%, rgba(104, 179, 47, 0.72) 45%, rgba(104, 179, 47, 0.12) 88%, transparent 100%)',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            color: 'transparent',
+          }}
+        >
+          AdsHunting
+        </div>
+      </div>
     </footer>
   );
 }

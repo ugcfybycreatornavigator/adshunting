@@ -230,7 +230,7 @@ export function SearchAutocomplete({
         }}
         onFocus={() => setOpen(true)}
         onKeyDown={handleKeyDown}
-        className="h-10 w-full rounded-lg border border-line bg-white pl-9 pr-14 text-sm outline-none placeholder:text-zinc-400 focus:border-signal"
+        className="h-10 w-full rounded-lg border border-line bg-white pl-9 pr-14 text-sm outline-none placeholder:text-zinc-400 focus:border-brand"
         placeholder={placeholder}
       />
       <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">

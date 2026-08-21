@@ -1,174 +1,149 @@
 import React from 'react';
 import { HeroSection } from '@/components/landing/sections/HeroSection';
-import { AudienceSection } from '@/components/landing/sections/AudienceSection';
+import { TrustProofSection } from '@/components/landing/sections/TrustProofSection';
+import { CoreValueSection } from '@/components/landing/sections/CoreValueSection';
 import { WorkflowSection } from '@/components/landing/sections/WorkflowSection';
-import { ProblemSection } from '@/components/landing/sections/ProblemSection';
+import { DiscoverAdsSection } from '@/components/landing/sections/DiscoverAdsSection';
+import { ReviewResearchSection } from '@/components/landing/sections/ReviewResearchSection';
+import { SaveShareSection } from '@/components/landing/sections/SaveShareSection';
+import { CapabilityGridSection } from '@/components/landing/sections/CapabilityGridSection';
+import { IntelligenceSharingSection } from '@/components/landing/sections/IntelligenceSharingSection';
 import { FAQSection } from '@/components/landing/sections/FAQSection';
 import { FinalCTASection } from '@/components/landing/sections/FinalCTASection';
 import { LandingContainer } from '@/components/landing/layout/LandingContainer';
 import { CTAButton } from '@/components/landing/ui/CTAButton';
-import { pricingPlans, authLinks } from '@/data/landing/config';
-// Replaced by ProductFeatureSection components
-
-
-
-// ShareSection removed as it is now part of WorkflowSection
+import { authLinks } from '@/data/landing/config';
+import { User, FolderOpen, Share2, Search, Target } from 'lucide-react';
 
 function PricingSection() {
-  const scoutPlan = pricingPlans.find(p => p.id === 'scout');
-  const hunterPlan = pricingPlans.find(p => p.id === 'hunter');
-  const agencyPlan = pricingPlans.find(p => p.id === 'agency');
+  const scoutFeatures = [
+    { text: "1 User", icon: User },
+    { text: "5 Swipe Files", icon: FolderOpen },
+    { text: "1 Shared Ads allowance", icon: Share2 },
+    { text: "1 Brand Search", icon: Search },
+    { text: "1 Active Competitor", icon: Target },
+  ];
 
   return (
-    <section id="pricing" className="py-24 md:py-32 bg-[#f7f9f4] border-t border-border">
-      <LandingContainer>
-        <div className="flex flex-col items-center text-center mb-16 md:mb-20">
-          <span className="text-brand font-semibold text-sm tracking-wide uppercase mb-4">
-            Pricing
-          </span>
-          <h2 className="text-[34px] md:text-[44px] lg:text-[52px] leading-[1.1] font-bold tracking-tight text-text-primary text-balance max-w-[700px]">
-            Choose the plan that fits your research workflow.
+    <section 
+      id="pricing" 
+      className="py-[72px] md:py-[100px] lg:py-[120px] bg-[#FCFDFB] border-t border-border relative overflow-hidden"
+    >
+      <div 
+        className="absolute inset-0 pointer-events-none" 
+        style={{
+          background: 'radial-gradient(circle at 50% 35%, rgba(104,179,47,.045), transparent 38%)'
+        }}
+      />
+      
+      <LandingContainer className="relative z-10">
+        <div className="flex flex-col items-center text-center mb-12 md:mb-16">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="w-2 h-2 rounded-full bg-brand"></span>
+            <span className="text-[14px] font-bold tracking-widest uppercase text-text-primary">
+              SIMPLE PRICING
+            </span>
+          </div>
+          <h2 className="text-[34px] md:text-[44px] lg:text-[48px] leading-[1.05] font-bold tracking-tight text-text-primary text-balance max-w-[700px]">
+            Start small. Hunt smarter.
           </h2>
           <p className="text-[16px] md:text-[18px] leading-relaxed text-text-secondary max-w-[650px] text-balance mt-6">
-            Start with Scout today. Hunter and Agency are being prepared for growing teams and larger research workflows.
+            Get started with AdsHunting at our launch price. Upgrade options for growing teams are coming soon.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-w-[1200px] mx-auto items-stretch">
-          {/* Scout Plan */}
-          <div className="flex flex-col bg-surface rounded-[24px] p-7 md:p-8 border border-brand/45 shadow-[0_1px_2px_rgba(20,30,20,0.03),0_14px_40px_rgba(30,50,20,0.05)] relative hover:-translate-y-[3px] hover:shadow-[0_4px_6px_rgba(20,30,20,0.05),0_20px_50px_rgba(30,50,20,0.08)] transition-all duration-200">
-            <div className="absolute top-0 inset-x-0 h-[80px] bg-brand/[0.03] rounded-t-[24px] pointer-events-none"></div>
+        {/* Desktop: 3-column, Tablet: 1 top + 2 bottom, Mobile: Stacked with Scout first */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-[1200px] mx-auto items-start relative">
+          
+          {/* Scout Plan - Rendered First in DOM for mobile accessibility */}
+          <div className="flex flex-col rounded-[24px] p-7 md:p-9 border-[1.5px] border-brand shadow-[0_18px_50px_rgba(45,80,20,0.06),0_4px_14px_rgba(0,0,0,0.03)] order-first md:order-none lg:order-2 relative z-10 transition-transform duration-300 hover:-translate-y-1 bg-white"
+               style={{ background: 'linear-gradient(180deg, rgba(104,179,47,.06), #FFFFFF 28%)' }}>
             
-            <div className="relative z-10">
-              <span className="inline-flex items-center rounded-full bg-surface-green px-3 py-1 text-[11px] font-bold tracking-wide text-brand-strong border border-brand/20 mb-6 uppercase">
-                {scoutPlan?.badge}
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-[24px] font-bold text-text-primary">SCOUT</h3>
+              <span className="inline-flex items-center rounded-full bg-[#E8F3E1] px-3 py-1.5 text-[11px] font-bold tracking-wider text-[#356515] uppercase">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#529124] mr-2"></span>
+                LAUNCH OFFER
               </span>
-              
-              <div className="flex items-center gap-4 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-surface-green text-brand flex items-center justify-center">
-                  {scoutPlan?.icon && React.createElement(scoutPlan.icon, { size: 20 })}
+            </div>
+            
+            <div className="mb-8">
+              <div className="flex flex-col">
+                <span className="text-[16px] font-semibold text-text-muted line-through mb-1">₹2,499</span>
+                <div className="flex items-end gap-1.5">
+                  <span className="text-[52px] font-extrabold text-text-primary leading-[0.85] tracking-tight">₹499</span>
+                  <span className="text-[16px] font-medium text-text-muted mb-1">/ month</span>
                 </div>
-                <h3 className="text-[28px] font-bold text-text-primary leading-none">{scoutPlan?.name}</h3>
               </div>
-              <p className="text-[15px] text-text-secondary min-h-[44px]">{scoutPlan?.audience}</p>
-              
-              <div className="my-8 flex items-end gap-1.5">
-                <span className="text-[44px] md:text-[54px] font-extrabold text-text-primary leading-[0.85] tracking-tight">{scoutPlan?.currency}{scoutPlan?.price}</span>
-                <span className="text-[16px] font-medium text-text-muted mb-1">/ {scoutPlan?.period}</span>
-              </div>
-              
-              <div className="mb-8">
-                <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-text-primary bg-surface-subtle px-3 py-1.5 rounded-lg border border-border">
-                  <span className="w-2 h-2 rounded-full bg-brand"></span>
-                  {scoutPlan?.trialDays}-Day Free Trial
-                </span>
-                <p className="text-[14px] text-text-secondary mt-3">Get access to the core AdsHunting research workflow.</p>
-              </div>
+              <p className="text-[15px] text-text-secondary mt-5 min-h-[44px]">
+                Everything you need to start researching, saving and sharing winning creative.
+              </p>
             </div>
 
-            <div className="flex-grow border-t border-border pt-8 relative z-10">
-              <p className="text-[13px] font-bold tracking-wider text-text-primary uppercase mb-5">Included</p>
-              <ul className="space-y-3.5 text-[15px] text-text-primary font-medium">
-                {scoutPlan?.features?.map((feature, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <span className="text-brand mt-0.5">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+            <div className="flex-grow border-t border-border/80 pt-8">
+              <ul className="space-y-4 text-[15px] text-text-primary">
+                {scoutFeatures.map((feature, i) => (
+                  <li key={i} className="flex items-center gap-3">
+                    <feature.icon size={18} className="text-brand shrink-0" strokeWidth={2.5} />
+                    <span className="font-medium text-text-primary">
+                      {/* Emphasize the number visually */}
+                      {feature.text.replace(/^[0-9]+/, '') !== feature.text ? (
+                        <>
+                          <strong className="font-bold text-[16px]">{feature.text.match(/^[0-9]+/)?.[0]}</strong>
+                          {feature.text.replace(/^[0-9]+/, '')}
+                        </>
+                      ) : (
+                        feature.text
+                      )}
                     </span>
-                    {feature}
                   </li>
                 ))}
               </ul>
             </div>
             
-            <div className="mt-10 relative z-10">
-              <CTAButton href={authLinks.signUp} className="w-full h-12 md:h-[52px] rounded-[14px] text-[16px]">
-                Start {scoutPlan?.trialDays}-Day Free Trial
+            <div className="mt-10">
+              <CTAButton href={authLinks.signUp} className="w-full h-[52px] rounded-[14px] text-[16px] shadow-sm hover:shadow-md justify-center">
+                Start 7-Day Free Trial
               </CTAButton>
             </div>
           </div>
 
           {/* Hunter Plan */}
-          <div className="flex flex-col bg-surface rounded-[24px] p-7 md:p-8 border border-border shadow-[0_1px_2px_rgba(20,30,20,0.02)] hover:-translate-y-[2px] transition-transform duration-200">
-            <span className="inline-flex items-center rounded-full bg-surface-subtle px-3 py-1 text-[11px] font-bold tracking-wide text-text-secondary border border-border mb-6 uppercase w-fit">
-              {hunterPlan?.badge}
-            </span>
+          <div className="flex flex-col bg-white rounded-[24px] p-7 md:p-8 border border-border order-2 md:order-1 lg:order-1 lg:mt-6 transition-all duration-300">
+            <h3 className="text-[20px] font-bold text-text-primary mb-5 uppercase tracking-wide">HUNTER</h3>
             
-            <div className="flex items-center gap-4 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-surface-subtle text-text-secondary flex items-center justify-center border border-border">
-                {hunterPlan?.icon && React.createElement(hunterPlan.icon, { size: 20 })}
-              </div>
-              <h3 className="text-[28px] font-bold text-text-primary leading-none">{hunterPlan?.name}</h3>
-            </div>
-            <p className="text-[15px] text-text-secondary min-h-[44px]">{hunterPlan?.audience}</p>
-            
-            <div className="my-8 flex items-end h-[46px] md:h-[46px]">
-              <span className="text-[22px] font-bold text-text-primary">{hunterPlan?.pricingLabel}</span>
-            </div>
-            
-            <div className="mb-8">
-              <p className="text-[14px] text-text-secondary mt-3">Designed for teams that need a broader AdsHunting workflow.</p>
-            </div>
+            <p className="text-[15px] text-text-secondary mb-8">
+              More capacity for growing creative research workflows.
+            </p>
 
-            <div className="flex-grow border-t border-border pt-8">
-              <p className="text-[15px] font-medium text-text-primary mb-2">Everything in Scout <span className="font-bold">+</span ></p>
-              <p className="text-[15px] text-text-secondary">Additional plan details will be announced soon.</p>
-            </div>
-            
-            <div className="mt-10">
-              <button disabled className="w-full h-12 md:h-[52px] rounded-[14px] text-[16px] font-medium border border-border bg-surface-subtle text-text-muted cursor-not-allowed">
-                Coming Soon
-              </button>
+            <div className="flex-grow border-t border-border pt-8 flex items-center justify-center min-h-[220px]">
+               <span className="inline-flex items-center rounded-full bg-surface-subtle px-4 py-2 text-[12px] font-bold tracking-widest text-text-muted border border-border uppercase">
+                 Coming Soon
+               </span>
             </div>
           </div>
 
           {/* Agency Plan */}
-          <div className="flex flex-col bg-surface rounded-[24px] p-7 md:p-8 border border-border shadow-[0_1px_2px_rgba(20,30,20,0.02)] hover:-translate-y-[2px] transition-transform duration-200 md:col-span-2 xl:col-span-1">
-            <span className="inline-flex items-center rounded-full bg-surface-subtle px-3 py-1 text-[11px] font-bold tracking-wide text-text-secondary border border-border mb-6 uppercase w-fit">
-              {agencyPlan?.badge}
-            </span>
+          <div className="flex flex-col bg-white rounded-[24px] p-7 md:p-8 border border-border order-3 md:order-3 lg:order-3 md:col-span-2 lg:col-span-1 lg:mt-6 transition-all duration-300">
+            <h3 className="text-[20px] font-bold text-text-primary mb-5 uppercase tracking-wide">AGENCY</h3>
             
-            <div className="flex items-center gap-4 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-surface-subtle text-text-secondary flex items-center justify-center border border-border">
-                {agencyPlan?.icon && React.createElement(agencyPlan.icon, { size: 20 })}
-              </div>
-              <h3 className="text-[28px] font-bold text-text-primary leading-none">{agencyPlan?.name}</h3>
-            </div>
-            <p className="text-[15px] text-text-secondary min-h-[44px]">{agencyPlan?.audience}</p>
-            
-            <div className="my-8 flex items-end h-[46px] md:h-[46px]">
-              <span className="text-[22px] font-bold text-text-primary">{agencyPlan?.pricingLabel}</span>
-            </div>
-            
-            <div className="mb-8">
-              <p className="text-[14px] text-text-secondary mt-3">Designed for larger research workflows and agency use cases.</p>
-            </div>
+            <p className="text-[15px] text-text-secondary mb-8">
+              Built for larger teams and agency workflows.
+            </p>
 
-            <div className="flex-grow border-t border-border pt-8">
-              <p className="text-[15px] font-medium text-text-primary mb-2">Scout foundation <span className="font-bold">+</span ></p>
-              <p className="text-[15px] text-text-secondary">Agency-level plan details coming soon.</p>
-            </div>
-            
-            <div className="mt-10">
-              <button disabled className="w-full h-12 md:h-[52px] rounded-[14px] text-[16px] font-medium border border-border bg-surface-subtle text-text-muted cursor-not-allowed">
-                Coming Soon
-              </button>
+            <div className="flex-grow border-t border-border pt-8 flex items-center justify-center min-h-[220px]">
+               <span className="inline-flex items-center rounded-full bg-surface-subtle px-4 py-2 text-[12px] font-bold tracking-widest text-text-muted border border-border uppercase">
+                 Coming Soon
+               </span>
             </div>
           </div>
+
         </div>
 
-        <div className="mt-16 text-center flex justify-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface border border-border shadow-sm">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-text-muted">
-              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M12 16V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M12 8H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <p className="text-[13px] font-medium text-text-muted">
-              AdsHunting does not provide private advertiser metrics such as ROAS, CTR, CPC, sales, or revenue.
-            </p>
-          </div>
+        <div className="mt-16 md:mt-24 text-center">
+           <p className="text-[15px] text-text-muted">
+             Have questions about AdsHunting or billing? <br className="md:hidden" /> Scroll down for our FAQ.
+           </p>
         </div>
       </LandingContainer>
     </section>
@@ -179,12 +154,18 @@ export default function Home() {
   return (
     <>
       <HeroSection />
-      <AudienceSection />
-      <ProblemSection />
+      <TrustProofSection />
+      <CoreValueSection />
       <WorkflowSection />
+      <DiscoverAdsSection />
+      <ReviewResearchSection />
+      <SaveShareSection />
+      <CapabilityGridSection />
+      <IntelligenceSharingSection />
       <PricingSection />
       <FAQSection />
       <FinalCTASection />
     </>
   );
 }
+

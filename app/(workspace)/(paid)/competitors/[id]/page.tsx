@@ -1,5 +1,26 @@
+import { getBrandData } from "@/lib/brand-data";
+import { BrandIntelligenceProfile } from "@/components/brand-intelligence-profile";
+import { requireUser } from "@/lib/auth";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { DiscoverExperience } from "@/components/discover-experience";
-import { PageHeader } from "@/components/ui";
-export default async function CompetitorPage({params}:{params:Promise<{id:string}>}){const{id}=await params;return <><Link href="/competitors" className="mb-5 inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-ink"><ArrowLeft size={14}/>All competitors</Link><PageHeader eyebrow="Competitor intelligence" title="Advertiser activity" description={`Live ads and observable creative patterns for Meta page ${id}. Metrics populate from the provider and stored catalogue.`}/><div className="mt-1"><DiscoverExperience brandId={id}/></div></>}
+
+export default async function CompetitorPage({params}:{params:Promise<{id:string}>}){
+  const { id } = await params;
+  const data = await getBrandData(id);
+  const auth = await requireUser();
+  let tracking = false;
+  
+  if (auth.user && auth.supabase) {
+    const { count } = await auth.supabase.from("competitors").select("*", { count: "exact", head: true }).eq("user_id", auth.user.id).eq("advertiser_id", id);
+    tracking = (count ?? 0) > 0;
+  }
+
+  return (
+    <>
+      <Link href="/competitors" className="mb-5 inline-flex items-center gap-2 text-[13px] font-semibold text-muted transition hover:text-ink">
+        <ArrowLeft size={14}/> All competitors
+      </Link>
+      <BrandIntelligenceProfile data={data} initialTracking={tracking} />
+    </>
+  );
+}

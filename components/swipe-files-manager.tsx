@@ -63,12 +63,12 @@ export function SwipeFilesManager() {
       {/* Create Card */}
       <button 
         onClick={() => setModal("new")} 
-        className="group relative flex h-full flex-col overflow-hidden rounded-[14px] border border-dashed border-zinc-300 bg-white/80 text-left transition-all duration-150 ease-out hover:-translate-y-[1px] hover:border-signal/30 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+        className="group relative flex h-full flex-col overflow-hidden rounded-[14px] border border-dashed border-zinc-300 bg-white/80 text-left transition-all duration-150 ease-out hover:-translate-y-[1px] hover:border-brand/30 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         <div className="h-[72px] shrink-0 w-full bg-[#F7F7F8] relative overflow-hidden flex items-center justify-center transition-colors group-hover:bg-[#FFF7F8]">
-          <div className="relative flex items-center justify-center text-zinc-300 group-hover:text-signal/40 transition-colors">
+          <div className="relative flex items-center justify-center text-zinc-300 group-hover:text-brand/40 transition-colors">
             <Folder size={32} />
-            <div className="absolute -top-1 -right-3 w-[26px] h-[34px] bg-white border border-zinc-200 group-hover:border-signal/20 rounded-[4px] shadow-sm rotate-[12deg] flex items-center justify-center text-zinc-400 group-hover:text-signal transition-colors">
+            <div className="absolute -top-1 -right-3 w-[26px] h-[34px] bg-white border border-zinc-200 group-hover:border-brand/20 rounded-[4px] shadow-sm rotate-[12deg] flex items-center justify-center text-zinc-400 group-hover:text-brand transition-colors">
               <FolderPlus size={14} />
             </div>
           </div>
@@ -77,7 +77,7 @@ export function SwipeFilesManager() {
           <h3 className="text-[15px] font-[650] text-ink">Create new Swipe File</h3>
           <p className="mt-[3px] text-[12px] text-muted line-clamp-1">Organize a creative angle</p>
           <div className="mt-auto pt-[12px] flex items-center justify-end">
-             <span className="flex items-center gap-1 text-[12px] font-[600] text-ink transition-colors group-hover:text-signal">
+             <span className="flex items-center gap-1 text-[12px] font-[600] text-ink transition-colors group-hover:text-brand">
               Create <FolderPlus size={14} className="ml-0.5" />
             </span>
           </div>
@@ -99,7 +99,7 @@ export function SwipeFilesManager() {
             <div className="flex items-start justify-between gap-2">
               <h3 className="truncate text-[15px] font-[650] text-ink" title={file.name}>{file.name}</h3>
               {file.isSystem ? (
-                <span className="shrink-0 rounded bg-[#FFECEF] px-1.5 py-0.5 text-[9px] font-[600] text-signal uppercase tracking-wide">
+                <span className="shrink-0 rounded bg-brand/10 px-1.5 py-0.5 text-[9px] font-[600] text-brand uppercase tracking-wide">
                   Default
                 </span>
               ) : (
@@ -121,7 +121,7 @@ export function SwipeFilesManager() {
               <span className="text-[11px] font-medium text-muted">
                 {file.adCount || 0} creatives
               </span>
-              <span className="flex items-center gap-1 text-[12px] font-[600] text-ink transition-colors group-hover:text-signal">
+              <span className="flex items-center gap-1 text-[12px] font-[600] text-ink transition-colors group-hover:text-brand">
                 Open <ArrowRight size={13} className="transition-transform group-hover:translate-x-[2px]" />
               </span>
             </div>
@@ -151,11 +151,11 @@ function FolderPreviewGraphic({ file }: { file: SwipeFile }) {
   return (
     <div className="h-[72px] w-full bg-[#F7F7F8] relative overflow-hidden flex items-center justify-center border-b border-line group-hover:border-zinc-300 transition-colors">
       {file.isSystem ? (
-         <div className="relative flex items-center justify-center text-signal/20 group-hover:text-signal/30 transition-colors">
+         <div className="relative flex items-center justify-center text-brand/20 group-hover:text-brand/30 transition-colors">
            <Bookmark size={32} />
-           <div className="absolute top-1 right-0 w-[22px] h-[30px] bg-white border border-zinc-200 rounded-[3px] shadow-sm rotate-[15deg] group-hover:border-signal/20 transition-colors opacity-80"></div>
-           <div className="absolute top-1 left-0 w-[22px] h-[30px] bg-white border border-zinc-200 rounded-[3px] shadow-sm -rotate-[15deg] group-hover:border-signal/20 transition-colors opacity-80"></div>
-           <Bookmark size={32} className="absolute inset-0 text-signal/40 group-hover:text-signal/60 transition-colors" />
+           <div className="absolute top-1 right-0 w-[22px] h-[30px] bg-white border border-zinc-200 rounded-[3px] shadow-sm rotate-[15deg] group-hover:border-brand/20 transition-colors opacity-80"></div>
+           <div className="absolute top-1 left-0 w-[22px] h-[30px] bg-white border border-zinc-200 rounded-[3px] shadow-sm -rotate-[15deg] group-hover:border-brand/20 transition-colors opacity-80"></div>
+           <Bookmark size={32} className="absolute inset-0 text-brand/40 group-hover:text-brand/60 transition-colors" />
          </div>
       ) : (
          <div className="relative flex items-center justify-center text-zinc-300 group-hover:text-zinc-400 transition-colors mt-2">
@@ -193,7 +193,7 @@ function PreviewTile({ src, index, total }: { src: string; index: number; total:
       {!failed ? (
         <img src={src} alt="" onError={() => setFailed(true)} className="w-full h-full object-cover text-transparent" />
       ) : (
-        <div className="w-full h-full bg-zinc-50 flex items-center justify-center text-signal/40">
+        <div className="w-full h-full bg-zinc-50 flex items-center justify-center text-brand/40">
            <ImageIcon size={14} />
         </div>
       )}
@@ -229,12 +229,12 @@ function SwipeFileModal({ file, onClose, onSaved }: { file: SwipeFile | null; on
           <button type="button" onClick={onClose} className="grid size-10 place-items-center"><X size={18} /></button>
         </div>
         <label className="mt-5 block text-xs font-semibold text-muted">Swipe File name
-          <input autoFocus value={name} onChange={(event) => setName(event.target.value)} maxLength={80} className="mt-2 h-11 w-full rounded-lg border border-line px-3 text-sm outline-none focus:border-signal" placeholder="Winning Hooks" />
+          <input autoFocus value={name} onChange={(event) => setName(event.target.value)} maxLength={80} className="mt-2 h-11 w-full rounded-lg border border-line px-3 text-sm outline-none focus:border-brand focus:ring-4 focus:ring-brand-soft" placeholder="Winning Hooks" />
         </label>
         {error && <p className="mt-3 rounded-lg bg-red-50 p-3 text-xs text-signal">{error}</p>}
         <div className="mt-5 flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="signal" disabled={!name.trim() || busy}>
+          <Button type="submit" variant="primary" disabled={!name.trim() || busy}>
             {busy && <Loader2 size={15} className="animate-spin" />}Create
           </Button>
         </div>

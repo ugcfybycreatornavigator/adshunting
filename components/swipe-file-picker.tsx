@@ -217,7 +217,7 @@ export function SwipeFilePicker({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search folders..."
-              className="h-8 w-full rounded-md border border-transparent bg-zinc-50 pl-8 pr-3 text-xs outline-none transition focus:border-line focus:bg-white focus:ring-1 focus:ring-signal"
+              className="h-8 w-full rounded-md border border-transparent bg-zinc-50 pl-8 pr-3 text-xs outline-none transition focus:border-line focus:bg-white focus:ring-1 focus:ring-brand"
             />
           </div>
         </div>
@@ -279,7 +279,7 @@ export function SwipeFilePicker({
                 onChange={(event) => setName(event.target.value)}
                 onKeyDown={(event) => event.key === "Enter" && createAndAdd()}
                 placeholder="Folder name"
-                className="h-8 w-full rounded-md border border-line px-2.5 text-xs outline-none focus:border-signal"
+                className="h-8 w-full rounded-md border border-line px-2.5 text-xs outline-none focus:border-brand"
               />
               <div className="flex justify-end gap-1.5">
                 <Button variant="ghost" className="h-7 px-2.5 py-0 text-xs" onClick={() => setCreating(false)}>Cancel</Button>

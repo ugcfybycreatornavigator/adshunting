@@ -2,6 +2,7 @@ import type { AdProvider, AdSearchFilters, AdSearchResult, Advertiser, MediaType
 import { daysBetween, safeExternalUrl, sanitizeAdCopy } from "@/lib/utils";
 import { ProviderError, providerErrorFromStatus } from "@/lib/providers/errors";
 import { computeAdIntelligence } from "@/lib/intelligence";
+import { computeAdFingerprints } from "@/lib/fingerprint";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -27,6 +28,50 @@ function text(value: unknown): string | null {
   const nestedText = value && typeof value === "object" ? (value as UnknownRecord).text : null;
   if (typeof nestedText === "string") return nestedText.trim() || null;
   return null;
+}
+
+function firstNonEmpty(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim() && value.trim() !== "[object Object]") {
+      return value.trim();
+    }
+    if (value && typeof value === "object") {
+      const rec = value as Record<string, unknown>;
+      if (typeof rec.text === "string" && rec.text.trim()) {
+        return rec.text.trim();
+      }
+    }
+  }
+  return null;
+}
+
+function normalizeCta(value: string | null): string | null {
+  if (!value) return null;
+  const normalized = value.trim();
+  const map: Record<string, string> = {
+    SHOP_NOW: "Shop now",
+    LEARN_MORE: "Learn more",
+    SIGN_UP: "Sign up",
+    GET_OFFER: "Get offer",
+    SUBSCRIBE: "Subscribe",
+    WATCH_MORE: "Watch more",
+    APPLY_NOW: "Apply now",
+    BOOK_TRAVEL: "Book travel",
+    CONTACT_US: "Contact us",
+    DOWNLOAD: "Download",
+    GET_QUOTE: "Get quote",
+    INSTALL_APP: "Install app",
+    LISTEN_NOW: "Listen now",
+    PLAY_GAME: "Play game",
+    SEE_MORE: "See more",
+    SEND_MESSAGE: "Send message",
+    USE_APP: "Use app",
+  };
+  if (map[normalized]) return map[normalized];
+  if (normalized === normalized.toUpperCase() && normalized.includes("_")) {
+    return normalized.replace(/_/g, " ").toLowerCase().replace(/^\\w/, c => c.toUpperCase());
+  }
+  return normalized;
 }
 
 function creativeFromSnapshot(snapshot: UnknownRecord) {
@@ -93,21 +138,54 @@ function creativeFromSnapshot(snapshot: UnknownRecord) {
 export function normalizeSearchApiAd(input: UnknownRecord, country?: string): NormalizedAd {
   const snapshot = record(input.snapshot);
   const creative = creativeFromSnapshot(snapshot);
-  const active = Boolean(input.is_active);
-  const startDate = text(input.start_date);
-  const stopDate = active ? null : text(input.end_date);
+  
+  const rawActive = input.active_status ? String(input.active_status).toLowerCase() : null;
+  const active = rawActive === "active" || rawActive === "all" || Boolean(input.is_active) || (!text(input.end_date) && !text(input.stop_date));
+  
+  const startDate = firstNonEmpty(input.start_date, input.started_running, input.ad_delivery_start_time, input.first_delivery_date);
+  const stopDate = active ? null : firstNonEmpty(input.stop_date, input.end_date, input.ad_delivery_stop_time);
+  
   const runningDays = daysBetween(startDate, stopDate);
   const variants = Math.max(1, Number(input.collation_count) || 1);
   const repetition = Math.max(0, variants - 1);
-  const bodyText = sanitizeAdCopy(text(snapshot.body)) || sanitizeAdCopy(text(creative.firstCard.body)) || sanitizeAdCopy(text(input.ad_creative_body));
-  const captionText = sanitizeAdCopy(text(snapshot.caption)) || bodyText;
-  const headlineText = sanitizeAdCopy(text(snapshot.title)) || sanitizeAdCopy(text(creative.firstCard.title)) || sanitizeAdCopy(text(input.ad_creative_link_title));
-  const ctaText = text(snapshot.cta_text) || text(creative.firstCard.cta_text);
-  const landingUrl = safeExternalUrl(text(snapshot.link_url) || text(creative.firstCard.link_url));
-  const descText = sanitizeAdCopy(text(snapshot.link_description)) || sanitizeAdCopy(text(creative.firstCard.link_description)) || sanitizeAdCopy(text(input.ad_creative_link_description));
-  const platformsList = Array.isArray(input.publisher_platform)
-    ? input.publisher_platform.map((p: unknown) => String(p).toLowerCase())
-    : [];
+  
+  const bodyText = sanitizeAdCopy(firstNonEmpty(
+    input.body, input.ad_creative_body, snapshot.body, creative.firstCard.body, input.text, input.caption, snapshot.caption
+  ));
+  const captionText = sanitizeAdCopy(firstNonEmpty(input.caption, snapshot.caption)) || bodyText;
+  
+  const headlineText = sanitizeAdCopy(firstNonEmpty(
+    input.headline, input.title, input.link_title, snapshot.headline, snapshot.title, snapshot.link_title, creative.firstCard.headline, creative.firstCard.title, creative.firstCard.link_title, input.ad_creative_link_title
+  ));
+  
+  const ctaText = normalizeCta(firstNonEmpty(
+    input.cta, input.cta_text, input.cta_type, snapshot.cta, snapshot.cta_text, snapshot.cta_type, creative.firstCard.cta_text, creative.firstCard.cta_type, creative.firstCard.cta
+  ));
+  
+  const landingUrl = safeExternalUrl(firstNonEmpty(input.link_url, snapshot.link_url, creative.firstCard.link_url, input.destination_url));
+  
+  const descText = sanitizeAdCopy(firstNonEmpty(
+    input.description, input.link_description, snapshot.description, snapshot.link_description, creative.firstCard.description, creative.firstCard.link_description, input.ad_creative_link_description
+  ));
+  
+  const rawPlatforms = Array.isArray(input.publisher_platform) ? input.publisher_platform
+    : Array.isArray(input.platforms) ? input.platforms
+    : Array.isArray(input.placements) ? input.placements : [];
+    
+  const platformsList = [...new Set(rawPlatforms.map((p: unknown) => String(p).toLowerCase()))];
+
+  const rawCards = Array.isArray(input.cards) ? input.cards.map(record) 
+                 : Array.isArray(snapshot.cards) ? snapshot.cards.map(record) : [];
+                 
+  const carouselCards = rawCards.map(c => ({
+    headline: firstNonEmpty(c.title, c.headline, c.link_title),
+    description: firstNonEmpty(c.description, c.link_description),
+    body: firstNonEmpty(c.body, c.caption),
+    callToAction: normalizeCta(firstNonEmpty(c.cta_text, c.cta_type, c.cta)),
+    imageUrl: safeExternalUrl(firstNonEmpty(c.original_image_url, c.resized_image_url, c.image_url)),
+    videoUrl: safeExternalUrl(firstNonEmpty(c.video_hd_url, c.video_sd_url, c.video_url)),
+    destinationUrl: safeExternalUrl(firstNonEmpty(c.link_url, c.destination_url)),
+  }));
 
   const intel = computeAdIntelligence({
     startDate,
@@ -126,7 +204,7 @@ export function normalizeSearchApiAd(input: UnknownRecord, country?: string): No
     advertiserId: text(input.page_id) || text(snapshot.page_id) || undefined,
   });
 
-  return {
+  const baseAd: any = {
     id: String(input.ad_archive_id),
     externalAdId: String(input.ad_archive_id),
     advertiserId: text(input.page_id) || text(snapshot.page_id) || "unknown",
@@ -144,6 +222,7 @@ export function normalizeSearchApiAd(input: UnknownRecord, country?: string): No
     sourceMediaUrl: creative.sourceMediaUrl,
     thumbnailUrl: creative.thumbnailUrl,
     carouselAssets: creative.carouselAssets,
+    carouselCards: carouselCards.length > 0 ? carouselCards : undefined,
     storedMediaPath: null,
     archiveStatus: "not_requested",
     mediaType: creative.mediaType,
@@ -164,6 +243,17 @@ export function normalizeSearchApiAd(input: UnknownRecord, country?: string): No
     winnerScore: intel.adjustedWinnerScore,
     intelligenceLabels: [intel.badgeCategory, intel.longevityLabel.split(" ")[0]],
     rawData: input,
+  };
+  
+  const fps = computeAdFingerprints(baseAd as NormalizedAd);
+  
+  return {
+    ...baseAd,
+    canonicalAdId: fps.canonicalAdId,
+    creativeFingerprint: fps.creativeFingerprint,
+    creativeGroupId: fps.creativeGroupId,
+    observationCount: 1,
+    providerAdIds: [baseAd.externalAdId],
   };
 }
 

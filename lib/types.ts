@@ -28,9 +28,25 @@ export interface NormalizedDemographics {
   reach?: Record<string, number>;
 }
 
+export interface NormalizedCarouselCard {
+  headline: string | null;
+  description: string | null;
+  body: string | null;
+  callToAction: string | null;
+  imageUrl: string | null;
+  videoUrl: string | null;
+  destinationUrl: string | null;
+}
+
+
 export interface NormalizedAd {
   id: string;
-  externalAdId: string;
+  externalAdId: string; // The primary raw ID from the provider
+  canonicalAdId: string;
+  creativeFingerprint: string;
+  creativeGroupId: string;
+  observationCount: number;
+  providerAdIds: string[];
   advertiserId: string;
   advertiserName: string;
   advertiserAvatarUrl: string | null;
@@ -45,6 +61,7 @@ export interface NormalizedAd {
   sourceMediaUrl: string | null;
   thumbnailUrl: string | null;
   carouselAssets: string[];
+  carouselCards?: NormalizedCarouselCard[];
   storedMediaPath: string | null;
   archiveStatus: "not_requested" | "archived" | "failed" | "unavailable";
   mediaType: MediaType;
@@ -74,6 +91,8 @@ export interface AdSearchFilters {
   sort?: string;
   cursor?: string;
   cta?: string;
+  view?: "ads" | "brands";
+  
   
   // Legacy singular properties (preserved for backward compatibility)
   status?: "all" | AdStatus;

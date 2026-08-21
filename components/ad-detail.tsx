@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BarChart3, Bookmark, Check, ExternalLink, ImageIcon, Info, Layers3, Loader2, MousePointerClick, Repeat2, Target, Timer, Users, X } from "lucide-react";
-import { Badge, Button } from "@/components/ui";
+import { BarChart3, Bookmark, Check, ExternalLink, ImageIcon, Info, Loader2, MousePointerClick, Target, Users, X } from "lucide-react";
 import { VideoPreview } from "@/components/video-preview";
 import { CarouselPreview } from "@/components/carousel-preview";
 import type { NormalizedAd } from "@/lib/types";
@@ -42,192 +41,210 @@ export function AdDetailDrawer({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/25" role="dialog" aria-modal="true" aria-label={`Ad details for ${ad.advertiserName}`} onMouseDown={onClose}>
-      <div className="absolute inset-0 overflow-y-auto bg-white md:left-auto md:w-[min(92vw,920px)] md:border-l md:border-line md:shadow-2xl" onMouseDown={event => event.stopPropagation()}>
-        <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-line bg-white/95 px-4 backdrop-blur sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <button onClick={onClose} className="grid size-10 shrink-0 place-items-center rounded-lg border border-line" aria-label="Close details">
+    <div className="fixed inset-0 z-[60] bg-black/25 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-label={`Ad details for ${ad.advertiserName}`} onMouseDown={onClose}>
+      <div className="absolute inset-0 overflow-y-auto bg-white md:left-auto md:w-[min(94vw,1100px)] md:border-l md:border-line md:shadow-2xl" onMouseDown={event => event.stopPropagation()}>
+        
+        {/* Toolbar */}
+        <header className="sticky top-0 z-10 flex min-h-[64px] items-center justify-between border-b border-line/60 bg-white/95 px-4 backdrop-blur sm:px-6">
+          <div className="flex min-w-0 items-center gap-4">
+            <button onClick={onClose} className="grid size-10 shrink-0 place-items-center rounded-xl border border-line/80 text-ink transition-colors hover:bg-zinc-50" aria-label="Close details">
               <X size={18} />
             </button>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{ad.advertiserName}</p>
-              <p className="text-xs text-muted">Library ID {ad.externalAdId}</p>
+            <div className="min-w-0 flex flex-col justify-center">
+              <p className="truncate text-[15px] font-[600] text-ink leading-snug">{ad.advertiserName}</p>
+              <p className="truncate text-[12px] text-muted leading-tight mt-0.5">Library ID {ad.externalAdId}</p>
             </div>
           </div>
-          <Button variant="signal" onClick={handleSave} disabled={isSaved || saving} aria-label={isSaved ? "Saved" : "Save to Saved Ads"}>
+          <button 
+            onClick={handleSave} 
+            disabled={isSaved || saving} 
+            aria-label={isSaved ? "Saved" : "Save to Saved Ads"}
+            className={cn(
+              "flex items-center justify-center gap-2 h-10 px-4 rounded-[12px] text-[14px] font-[600] transition-all duration-150 shadow-sm",
+              isSaved || saving 
+                ? "bg-zinc-100 text-muted cursor-not-allowed shadow-none" 
+                : "bg-brand text-white hover:bg-brand-strong"
+            )}
+          >
             {saving ? <Loader2 size={16} className="animate-spin" /> : isSaved ? <Check size={16} /> : <Bookmark size={16} />}
-            {saving ? "Saving..." : isSaved ? "Saved" : "Save"}
-          </Button>
+            {saving ? "Saving" : isSaved ? "Saved" : "Save"}
+          </button>
         </header>
 
-        <div className="grid gap-8 p-4 sm:p-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,.8fr)]">
-          <div>
+        {/* Main Content Grid */}
+        <div className="grid gap-[28px] p-4 sm:p-6 lg:p-8 xl:grid-cols-[minmax(0,1.35fr)_minmax(350px,1fr)] max-w-[1400px] mx-auto">
+          
+          {/* Left Column: Creative & Copy */}
+          <div className="flex flex-col gap-[28px]">
             <section>
-              <SectionTitle number="01" title="Creative" />
+              <SectionHeader number="01" title="Creative" />
               <DetailCreativePreview ad={ad} media={media} />
             </section>
 
-            <section className="mt-8">
-              <SectionTitle number="02" title="Copy" />
-              <div className="mt-3 divide-y divide-line rounded-card border border-line">
-                <Meta label="Body copy" value={ad.body} wide />
-                <Meta label="Headline" value={ad.headline} />
-                <Meta label="Description" value={ad.description} />
-                <Meta label="Call to action" value={ad.cta} />
-                <Meta label="Hashtags" value={ad.hashtags.length ? ad.hashtags.join(" ") : null} wide />
+            <section>
+              <SectionHeader number="02" title="Copy" />
+              <div className="mt-4 rounded-[16px] border border-[#E8EAE7] bg-white divide-y divide-[#E8EAE7]">
+                <CopyMeta label="Body copy" value={ad.body} wide />
+                <CopyMeta label="Headline" value={ad.headline} />
+                <CopyMeta label="Description" value={ad.description} />
+                <CopyMeta label="Call to action" value={ad.cta} />
+                <CopyMeta label="Hashtags" value={ad.hashtags?.length ? ad.hashtags.join(" ") : null} wide />
               </div>
             </section>
 
-            <section className="mt-8">
-              <SectionTitle number="03" title="Landing page" />
-              <div className="mt-3 rounded-card border border-line p-4">
+            {ad.carouselCards && ad.carouselCards.length > 1 && (
+              <section>
+                <SectionHeader number="02b" title="Carousel Cards" />
+                <div className="mt-4 space-y-4">
+                  {ad.carouselCards.map((card, i) => (
+                    <div key={i} className="rounded-[16px] border border-[#E8EAE7] bg-white divide-y divide-[#E8EAE7]">
+                      <div className="px-5 py-3 bg-zinc-50/50 rounded-t-[16px]">
+                        <p className="text-[13px] font-[650] text-ink uppercase tracking-wide">Card {i + 1}</p>
+                      </div>
+                      <CopyMeta label="Headline" value={card.headline} />
+                      <CopyMeta label="Description" value={card.description} />
+                      <CopyMeta label="Call to action" value={card.callToAction} />
+                      <CopyMeta label="Destination" value={card.destinationUrl} wide />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <section>
+              <SectionHeader number="03" title="Landing page" />
+              <div className="mt-4 rounded-[16px] border border-[#E8EAE7] bg-white p-5">
                 {ad.landingPageUrl ? (
-                  <a href={ad.landingPageUrl} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-4 text-sm font-medium hover:text-signal">
+                  <a href={ad.landingPageUrl} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-4 text-sm font-[500] text-ink hover:text-brand transition-colors">
                     <span className="truncate">{ad.landingPageUrl}</span>
-                    <ExternalLink className="shrink-0" size={16} />
+                    <ExternalLink className="shrink-0 text-muted" size={16} />
                   </a>
                 ) : (
-                  <p className="text-sm text-muted">Not available from data provider</p>
+                  <p className="text-[14px] text-muted">Not available from data provider</p>
                 )}
               </div>
             </section>
           </div>
 
-          <aside>
+          {/* Right Column: Intelligence & Delivery */}
+          <aside className="flex flex-col gap-[28px]">
             <section>
-              <SectionTitle number="04" title={`${BRAND.name} Signals`} />
-              <div className="mt-3">
+              <SectionHeader number="04" title={`${BRAND.name} Signals`} />
+              <div className="mt-4">
                 <AdsHuntingSignalsPanel ad={ad} intelligence={intelligence} />
               </div>
 
               {ad.intelligenceLabels.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-[16px] flex flex-wrap gap-[8px]">
                   {ad.intelligenceLabels.map(label => (
-                    <Badge tone="red" key={label}>{displaySignalLabel(label, ad.winnerScore)}</Badge>
+                    <span key={label} className="inline-flex items-center h-[28px] px-3 rounded-full bg-brand/10 border border-brand/20 text-[12px] font-[600] text-[#4F9625]">
+                      {displaySignalLabel(label, ad.winnerScore)}
+                    </span>
                   ))}
                 </div>
               )}
             </section>
 
-            <section className="mt-8">
-              <SectionTitle number="05" title="Delivery" />
-              <div className="mt-3 divide-y divide-line rounded-card border border-line">
-                <Meta label="Status" value={ad.status.toUpperCase()} />
-                <Meta label="Started running" value={ad.startDate ? formatDate(ad.startDate) : null} />
-                <Meta label="Stopped running" value={ad.stopDate ? formatDate(ad.stopDate) : ad.status === "active" ? "Still active" : null} />
-                <Meta label="First seen" value={formatDate(ad.firstSeenAt)} />
-                <Meta label="Last checked" value={formatDate(ad.lastSeenAt)} />
-                <Meta label="Country" value={ad.country} />
-                <Meta label="Platforms" value={ad.platforms.length ? ad.platforms.map(titleCase).join(" · ") : null} />
+            <section>
+              <SectionHeader number="05" title="Delivery" />
+              <div className="mt-4 rounded-[16px] border border-[#E8EAE7] bg-white">
+                <DeliveryMeta label="Status" value={ad.status.toUpperCase()} />
+                <DeliveryMeta label="Started running" value={ad.startDate ? formatDate(ad.startDate) : null} />
+                <DeliveryMeta label="Stopped running" value={ad.stopDate ? formatDate(ad.stopDate) : ad.status === "active" ? "Still active" : null} />
+                <DeliveryMeta label="First seen" value={formatDate(ad.firstSeenAt)} />
+                <DeliveryMeta label="Last checked" value={formatDate(ad.lastSeenAt)} />
+                <DeliveryMeta label="Country" value={ad.country} />
+                <DeliveryMeta label="Platforms" value={ad.platforms?.length ? ad.platforms.map(titleCase).join(", ") : null} />
+                {(ad.observationCount && ad.observationCount > 1) ? (
+                  <DeliveryMeta label="Observations" value={`${ad.observationCount} times`} />
+                ) : null}
+                <DeliveryMeta label="Archive Status" value={ad.archiveStatus === "archived" ? "Safely Archived" : "Source Hosted"} noBorder />
               </div>
             </section>
 
-            <section className="mt-8">
-              <SectionTitle number="06" title="Audience / Demographics" />
+            <section>
+              <SectionHeader number="06" title="Audience / Demographics" />
               <DemographicsPanel demographics={ad.demographics} />
             </section>
 
-            <section className="mt-8">
-              <SectionTitle number="07" title="Advertiser" />
-              <div className="mt-3 rounded-card border border-line p-4">
-                <div className="flex items-center gap-3">
-                  {ad.advertiserAvatarUrl ? (
-                    <img src={ad.advertiserAvatarUrl} alt="" className="size-11 rounded-full border border-line" />
-                  ) : (
-                    <span className="grid size-11 place-items-center rounded-full bg-black font-semibold text-white">{ad.advertiserName[0]}</span>
-                  )}
-                  <div className="min-w-0">
-                    <Link href={`/brands/${encodeURIComponent(ad.advertiserId)}`} className="font-semibold hover:text-signal">
-                      {ad.advertiserName}
-                    </Link>
-                    <p className="mt-0.5 text-xs text-muted">Page ID {ad.advertiserId}</p>
-                  </div>
+            <section>
+              <SectionHeader number="07" title="Advertiser" />
+              <div className="mt-4 rounded-[16px] border border-[#E8EAE7] bg-white p-5 flex items-center gap-4">
+                {ad.advertiserAvatarUrl ? (
+                  <img src={ad.advertiserAvatarUrl} alt="" className="size-[48px] rounded-full border border-line/60" />
+                ) : (
+                  <span className="grid size-[48px] place-items-center rounded-full bg-ink font-[600] text-white text-[18px]">
+                    {ad.advertiserName[0]}
+                  </span>
+                )}
+                <div className="min-w-0">
+                  <Link href={`/brands/${encodeURIComponent(ad.advertiserId)}`} className="text-[15px] font-[600] text-ink transition-colors hover:text-brand">
+                    {ad.advertiserName}
+                  </Link>
+                  <p className="mt-1 text-[12px] text-muted">Page ID {ad.advertiserId}</p>
                 </div>
               </div>
             </section>
           </aside>
+
         </div>
       </div>
     </div>
   );
 }
-function SectionTitle({ number, title }: { number: string; title: string }) { return <div className="flex items-center gap-3"><span className="text-[10px] font-bold tracking-wider text-signal">{number}</span><h2 className="text-lg font-semibold tracking-tight">{title}</h2></div>; }
-function Meta({ label, value, wide }: { label: string; value?: string | null; wide?: boolean }) { return <div className={`p-4 ${wide ? "block" : "flex items-start justify-between gap-5"}`}><p className="text-xs font-medium text-muted">{label}</p><p className={`${wide ? "mt-2 max-w-prose leading-6" : "text-right"} text-sm font-medium`}>{value || "Not available from data provider"}</p></div>; }
-function titleCase(value: string) { return value.replaceAll("_", " ").replace(/\b\w/g, char => char.toUpperCase()); }
 
-function DemographicsPanel({ demographics }: { demographics: NormalizedAd["demographics"] }) {
-  const groups = Object.entries(demographics ?? {}).flatMap(([category, values]) => {
-    if (!values || !Object.keys(values).length) return [];
-    return [{ category, values }];
-  });
+// --------------------------------------------------------------------------------
+// Layout Primitives
+// --------------------------------------------------------------------------------
 
-  if (!groups.length) {
-    return (
-      <div className="mt-3 rounded-card border border-line bg-white p-4">
-        <div className="flex items-start gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-zinc-50 text-muted">
-            <Users size={17} />
-          </span>
-          <div>
-            <p className="text-sm font-semibold text-ink">Demographics not available for this advertisement.</p>
-            <p className="mt-1 text-xs leading-5 text-muted">Audience breakdown was not provided by the source for this ad.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+function SectionHeader({ number, title }: { number: string; title: string }) { 
   return (
-    <div className="mt-3 grid gap-3">
-      {groups.map(({ category, values }) => {
-        const entries = Object.entries(values)
-          .flatMap(([label, amount]) => Number.isFinite(Number(amount)) ? [[label, Number(amount)] as const] : [])
-          .sort(([, a], [, b]) => b - a);
-        const max = Math.max(...entries.map(([, amount]) => amount), 0);
-        return (
-          <div key={category} className="rounded-card border border-line bg-white p-4">
-            <p className="text-xs font-bold uppercase tracking-[.14em] text-muted">{demographicTitle(category)}</p>
-            <div className="mt-3 space-y-2">
-              {entries.map(([label, amount]) => (
-                <div key={label}>
-                  <div className="flex items-center justify-between gap-4 text-sm">
-                    <span className="min-w-0 truncate font-medium text-ink">{titleCase(label)}</span>
-                    <span className="shrink-0 text-xs font-semibold text-muted">{formatDemographicValue(amount)}</span>
-                  </div>
-                  {max > 0 && (
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-100">
-                      <div className="h-full rounded-full bg-signal" style={{ width: `${Math.max(3, Math.min(100, (amount / max) * 100))}%` }} />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })}
+    <div className="flex items-baseline gap-[12px]">
+      <span className="text-[11px] font-[700] tracking-[.08em] text-brand">{number}</span>
+      <h2 className="text-[19px] font-[600] tracking-tight text-ink">{title}</h2>
+    </div>
+  ); 
+}
+
+function CopyMeta({ label, value, wide }: { label: string; value?: string | null; wide?: boolean }) { 
+  return (
+    <div className={cn("p-5", !wide && "flex items-start justify-between gap-6")}>
+      <p className="text-[13px] font-[550] text-muted whitespace-nowrap">{label}</p>
+      <div className={cn(wide ? "mt-[8px]" : "text-right max-w-[65%]")}>
+        <p className="text-[14px] font-[400] text-ink leading-[1.6]">
+          {value || <span className="text-muted italic">Not provided by source</span>}
+        </p>
+      </div>
+    </div>
+  ); 
+}
+
+function DeliveryMeta({ label, value, noBorder }: { label: string; value?: string | null; noBorder?: boolean }) {
+  return (
+    <div className={cn("flex items-center justify-between gap-[16px] px-5 py-[14px]", !noBorder && "border-b border-[#E8EAE7]")}>
+      <p className="text-[13px] font-[550] text-muted">{label}</p>
+      <p className="text-[13px] font-[500] text-ink text-right max-w-[65%]">
+        {value || <span className="text-muted">—</span>}
+      </p>
     </div>
   );
 }
 
-function demographicTitle(value: string) {
-  if (value === "age") return "Age Distribution";
-  if (value === "gender") return "Gender";
-  if (value === "regions") return "Top Regions";
-  if (value === "reach") return "Reach Distribution";
-  return titleCase(value);
+function titleCase(value: string) { 
+  return value.replaceAll("_", " ").replace(/\b\w/g, char => char.toUpperCase()); 
 }
 
-function formatDemographicValue(value: number) {
-  if (value > 0 && value <= 1) return `${Math.round(value * 100)}%`;
-  return Number.isInteger(value) ? value.toLocaleString() : value.toLocaleString(undefined, { maximumFractionDigits: 2 });
-}
+// --------------------------------------------------------------------------------
+// Creative Viewer
+// --------------------------------------------------------------------------------
 
 function DetailCreativePreview({ ad, media }: { ad: NormalizedAd; media: string | null }) {
   const [ratio, setRatio] = useState<number | null>(null);
   const imageSource = media || safeExternalUrl(ad.thumbnailUrl);
   const orientation = orientationFromRatio(ratio);
+  
   const mediaClass = cn(
-    "mt-3 overflow-hidden rounded-card border border-line bg-zinc-50",
+    "mt-[16px] overflow-hidden rounded-[16px] border border-[#E8EAE7] bg-[#F5F5F5]",
     ad.mediaType === "video" && orientation === "portrait" && "mx-auto max-w-[460px] aspect-[9/16]",
     ad.mediaType === "video" && orientation === "landscape" && "aspect-video",
     ad.mediaType === "video" && orientation === "square" && "mx-auto max-w-[620px] aspect-square",
@@ -276,8 +293,19 @@ function DetailCreativePreview({ ad, media }: { ad: NormalizedAd; media: string 
     );
   }
 
-  return <div className="mt-3 grid aspect-[4/5] place-items-center rounded-card border border-line bg-zinc-50 text-muted"><ImageIcon /></div>;
+  return <div className="mt-[16px] grid aspect-[4/5] place-items-center rounded-[16px] border border-[#E8EAE7] bg-[#F5F5F5] text-muted"><ImageIcon size={32} /></div>;
 }
+
+function orientationFromRatio(ratio: number | null) {
+  if (!ratio) return "portrait";
+  if (ratio > 1.15) return "landscape";
+  if (ratio < 0.9) return "portrait";
+  return "square";
+}
+
+// --------------------------------------------------------------------------------
+// Intelligence Panels
+// --------------------------------------------------------------------------------
 
 function AdsHuntingSignalsPanel({
   ad,
@@ -289,54 +317,65 @@ function AdsHuntingSignalsPanel({
   const winner = intelligence.adjustedWinnerScore;
 
   return (
-    <div className="rounded-card border border-line bg-white p-4 shadow-card">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[11px] font-bold uppercase tracking-[.16em] text-ink">{BRAND.name} Signals</p>
-            <span className="rounded bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase text-signal">Estimated</span>
+    <div className="rounded-[18px] border border-[#E8EAE7] bg-white p-[24px] shadow-[0_1px_2px_rgba(0,0,0,0.03),0_8px_24px_rgba(0,0,0,0.035)]">
+      
+      {/* Header */}
+      <div className="flex items-start justify-between gap-[16px]">
+        <div className="flex-1">
+          <div className="flex items-center gap-[12px]">
+            <p className="text-[11px] font-[650] uppercase tracking-[.08em] text-ink">ADSHUNTING SIGNALS</p>
+            <span className="rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-[650] uppercase tracking-wide text-brand border border-brand/20">
+              Estimated
+            </span>
           </div>
-          <p className="mt-1 text-xs leading-5 text-muted">Observable creative and delivery intelligence estimated by {BRAND.name}, not official Meta performance data</p>
+          <p className="mt-[6px] text-[13px] text-muted">
+            Observable creative and delivery intelligence
+          </p>
         </div>
         <span
-          className="mt-0.5 shrink-0 text-muted"
+          className="shrink-0 text-muted transition-colors hover:text-ink cursor-help"
           title={`${BRAND.name} evaluates observable creative longevity, repetition, variants, recency, brand commitment, and creative quality. This is not private ad-account performance data.`}
           aria-label={`${BRAND.name} Winner Score explanation`}
         >
-          <Info size={16} />
+          <Info size={18} />
         </span>
       </div>
 
-      <div className="mt-5 flex items-end gap-4">
-        <div className="shrink-0">
-          <p className="text-5xl font-semibold tracking-[-.04em] text-ink">
-            {winner}<span className="ml-1 text-base text-muted">/100</span>
-          </p>
-          <p className="mt-1 text-sm font-semibold text-ink">{BRAND.name} Winner Score</p>
-          <p className="mt-0.5 text-xs text-muted">{scoreSignalLabel(winner)}</p>
+      {/* Winner Score Hero */}
+      <div className="mt-[32px]">
+        <div className="flex items-baseline gap-[4px]">
+          <span className="text-[48px] font-[650] leading-none text-ink tracking-tight">{winner}</span>
+          <span className="text-[16px] font-[500] text-muted">/ 100</span>
         </div>
-        <div className="min-w-0 flex-1 pb-3">
-          <ScoreBar value={winner} />
+        <div className="mt-[6px]">
+          <p className="text-[15px] font-[600] text-ink">AdsHunting Winner Score</p>
+          <p className="text-[13px] text-muted mt-[2px]">{scoreSignalLabel(winner)}</p>
+        </div>
+        <div className="mt-[16px] h-[7px] w-full overflow-hidden rounded-[999px] bg-[#EEF1EC]">
+          <div className="h-full rounded-[999px] bg-brand transition-all duration-500 ease-out" style={{ width: `${Math.min(100, Math.max(0, winner))}%` }} />
         </div>
       </div>
 
-      <div className="mt-4 space-y-2 border-t border-line pt-4">
+      <div className="mt-[32px] h-px w-full bg-[#E8EAE7]" />
+
+      {/* Primary Signal Rows */}
+      <div className="mt-[24px] flex flex-col gap-[12px]">
         <SignalRow
-          icon={<MousePointerClick />}
-          label="Click Propensity"
+          icon={<MousePointerClick size={20} />}
+          label="Hook Score"
           value={`${intelligence.clickPropensityScore} / 100`}
           score={intelligence.clickPropensityScore}
           title={`${BRAND.name} estimate based on observable creative signals. This is not the advertisement's actual click-through data.`}
         />
         <SignalRow
-          icon={<Target />}
+          icon={<Target size={20} />}
           label="Conversion Potential"
           value={`${intelligence.conversionPotentialScore} / 100`}
           score={intelligence.conversionPotentialScore}
           title="Modeled from observable creative and delivery signals. Not actual account conversion or sales performance."
         />
         <SignalRow
-          icon={<BarChart3 />}
+          icon={<BarChart3 size={20} />}
           label="Confidence"
           value={`${intelligence.confidenceScore}%`}
           score={intelligence.confidenceScore}
@@ -344,10 +383,13 @@ function AdsHuntingSignalsPanel({
         />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-2 border-t border-line pt-4 text-xs sm:grid-cols-3">
-        <Fact icon={<Timer />} label="Longevity" value={longevityDisplay(ad.runningDays)} score={`${intelligence.longevityScore} / 100`} />
-        <Fact icon={<Repeat2 />} label="Creative Repetition" value={repetitionDisplay(ad.creativeRepetition)} score={`${intelligence.repetitionScore} / 100`} />
-        <Fact icon={<Layers3 />} label="Brand Commitment" value={scoreSignalLabel(intelligence.brandCommitmentScore)} score={`${intelligence.brandCommitmentScore} / 100`} />
+      <div className="mt-[32px] h-px w-full bg-[#E8EAE7]" />
+
+      {/* Secondary Metrics Group */}
+      <div className="mt-[24px] grid grid-cols-1 sm:grid-cols-3 gap-[12px]">
+        <Fact label="Longevity" value={longevityDisplay(ad.runningDays)} score={`${intelligence.longevityScore} / 100`} />
+        <Fact label="Creative Repetition" value={repetitionDisplay(ad.creativeRepetition)} score={`${intelligence.repetitionScore} / 100`} />
+        <Fact label="Brand Commitment" value={scoreSignalLabel(intelligence.brandCommitmentScore)} score={`${intelligence.brandCommitmentScore} / 100`} />
       </div>
 
     </div>
@@ -356,37 +398,117 @@ function AdsHuntingSignalsPanel({
 
 function SignalRow({ icon, label, value, score, title }: { icon: React.ReactNode; label: string; value: string; score: number; title: string }) {
   return (
-    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-line px-3 py-2.5" title={title}>
-      <span className="grid size-8 place-items-center rounded-md bg-red-50 text-signal [&>svg]:size-4">{icon}</span>
-      <div className="min-w-0">
-        <div className="flex min-w-0 items-center gap-1.5">
-          <p className="truncate text-xs font-semibold text-ink">{label}</p>
-          <Info size={12} className="shrink-0 text-zinc-400" aria-hidden />
-        </div>
-        <ScoreBar value={score} className="mt-1.5" />
+    <div 
+      className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-x-[16px] gap-y-[6px] rounded-[14px] border border-[#E8EAE7] bg-white p-[16px] transition-colors hover:bg-zinc-50/50" 
+      title={title}
+    >
+      {/* Icon Column (Fixed width) */}
+      <div className="flex h-full w-[28px] items-start justify-center pt-0.5 text-brand">
+        {icon}
       </div>
-      <strong className="text-xs font-semibold text-ink">{value}</strong>
+      
+      {/* Content Column (Flexible width) */}
+      <div className="min-w-0">
+        <p className="truncate text-[14px] font-[600] text-ink">{label}</p>
+        <div className="mt-[8px] h-[6px] w-full overflow-hidden rounded-[999px] bg-[#EEF1EC]">
+          <div className="h-full rounded-[999px] bg-brand" style={{ width: `${Math.min(100, Math.max(0, score))}%` }} />
+        </div>
+      </div>
+      
+      {/* Score Column (Fixed width) */}
+      <div className="text-right pt-[2px]">
+        <span className="text-[13px] font-[600] text-ink whitespace-nowrap">{value}</span>
+      </div>
     </div>
   );
 }
 
-function Fact({ icon, label, value, score }: { icon: React.ReactNode; label: string; value: string; score: string }) {
+function Fact({ label, value, score }: { label: string; value: string; score: string }) {
   return (
-    <div className="rounded-lg border border-line p-3">
-      <div className="flex items-center gap-2 text-muted [&>svg]:size-3.5">{icon}<span>{label}</span></div>
-      <p className="mt-2 font-semibold text-ink">{value}</p>
-      <p className="mt-0.5 text-[11px] text-muted">{score}</p>
+    <div className="rounded-[14px] border border-[#E8EAE7] bg-white p-[16px] flex flex-col justify-between h-full min-h-[96px]">
+      <p className="text-[13px] font-[550] text-muted">{label}</p>
+      <div className="mt-auto pt-[8px]">
+        <p className="text-[14px] font-[600] text-ink leading-tight">{value}</p>
+        <p className="mt-[4px] text-[12px] text-muted leading-none">{score}</p>
+      </div>
     </div>
   );
 }
 
-function ScoreBar({ value, className = "" }: { value: number; className?: string }) {
+// --------------------------------------------------------------------------------
+// Demographics
+// --------------------------------------------------------------------------------
+
+function DemographicsPanel({ demographics }: { demographics: NormalizedAd["demographics"] }) {
+  const groups = Object.entries(demographics ?? {}).flatMap(([category, values]) => {
+    if (!values || !Object.keys(values).length) return [];
+    return [{ category, values }];
+  });
+
+  if (!groups.length) {
+    return (
+      <div className="mt-4 rounded-[16px] border border-[#E8EAE7] bg-white p-5">
+        <div className="flex items-start gap-[16px]">
+          <span className="grid size-[40px] shrink-0 place-items-center rounded-[12px] bg-zinc-50 text-muted">
+            <Users size={20} />
+          </span>
+          <div>
+            <p className="text-[14px] font-[600] text-ink">Demographics unavailable</p>
+            <p className="mt-[4px] text-[13px] leading-[1.6] text-muted">Meta does not expose audience demographic breakdown for this ad through the available public source.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={cn("h-1.5 overflow-hidden rounded-full bg-zinc-100", className)}>
-      <div className="h-full rounded-full bg-signal" style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
+    <div className="mt-4 grid gap-[16px]">
+      {groups.map(({ category, values }) => {
+        const entries = Object.entries(values)
+          .flatMap(([label, amount]) => Number.isFinite(Number(amount)) ? [[label, Number(amount)] as const] : [])
+          .sort(([, a], [, b]) => b - a);
+        const max = Math.max(...entries.map(([, amount]) => amount), 0);
+        return (
+          <div key={category} className="rounded-[16px] border border-[#E8EAE7] bg-white p-[20px]">
+            <p className="text-[11px] font-[700] uppercase tracking-[.1em] text-muted">{demographicTitle(category)}</p>
+            <div className="mt-[16px] space-y-[12px]">
+              {entries.map(([label, amount]) => (
+                <div key={label}>
+                  <div className="flex items-center justify-between gap-[16px] text-[13px]">
+                    <span className="min-w-0 truncate font-[500] text-ink">{titleCase(label)}</span>
+                    <span className="shrink-0 font-[600] text-muted">{formatDemographicValue(amount)}</span>
+                  </div>
+                  {max > 0 && (
+                    <div className="mt-[8px] h-[6px] overflow-hidden rounded-[999px] bg-[#EEF1EC]">
+                      <div className="h-full rounded-[999px] bg-brand" style={{ width: `${Math.max(3, Math.min(100, (amount / max) * 100))}%` }} />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
+
+function demographicTitle(value: string) {
+  if (value === "age") return "Age Distribution";
+  if (value === "gender") return "Gender";
+  if (value === "regions") return "Top Regions";
+  if (value === "reach") return "Reach Distribution";
+  return titleCase(value);
+}
+
+function formatDemographicValue(value: number) {
+  if (value > 0 && value <= 1) return `${Math.round(value * 100)}%`;
+  return Number.isInteger(value) ? value.toLocaleString() : value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+// --------------------------------------------------------------------------------
+// Label Helpers
+// --------------------------------------------------------------------------------
 
 function scoreSignalLabel(score: number) {
   if (score >= 90) return "Exceptional Signal";
@@ -420,11 +542,4 @@ function displaySignalLabel(label: string, score: number) {
   if (label === "Emerging Winner") return "Promising";
   if (label === "Standard") return score >= 70 ? "Strong Signal" : score >= 55 ? "Promising" : "Testing";
   return label;
-}
-
-function orientationFromRatio(ratio: number | null) {
-  if (!ratio) return "portrait";
-  if (ratio > 1.15) return "landscape";
-  if (ratio < 0.9) return "portrait";
-  return "square";
 }
