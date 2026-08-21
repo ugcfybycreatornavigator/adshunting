@@ -2,22 +2,27 @@
 
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Button, Card } from "@/components/ui";
-import { LogOut, ExternalLink } from "lucide-react";
-import { useState } from "react";
+import { LogOut } from "lucide-react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { WorkspaceEntitlement } from "@/lib/billing/subscription-state";
-import { BILLING_CONFIG, PlanKey, resolvePlanKey } from "@/lib/billing/billing-config";
+import { BILLING_CONFIG, resolvePlanKey } from "@/lib/billing/billing-config";
 
 export function SettingsAccount({ 
   entitlement, 
   subscription 
 }: { 
   entitlement?: WorkspaceEntitlement | null, 
-  subscription?: any | null 
+  subscription?: Record<string, unknown> | null 
 }) {
   const { isLoaded, user } = useUser();
   const { signOut, openUserProfile } = useClerk();
   const [signingOut, setSigningOut] = useState(false);
+  const [now, setNow] = useState<number>(0);
+
+  useEffect(() => {
+    setNow(Date.now());
+  }, []);
 
   if (!isLoaded || !user) {
     return (
@@ -49,11 +54,11 @@ export function SettingsAccount({
   // Dates
   const renewsDate = entitlement?.currentPeriodEnd ? new Date(entitlement.currentPeriodEnd).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : null;
   const trialEndsDate = entitlement?.trialEndsAt ? new Date(entitlement.trialEndsAt) : null;
-  const trialDaysRemaining = trialEndsDate ? Math.max(0, Math.ceil((trialEndsDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
+  const trialDaysRemaining = trialEndsDate && now ? Math.max(0, Math.ceil((trialEndsDate.getTime() - now) / (1000 * 60 * 60 * 24))) : 0;
   const formattedTrialEnds = trialEndsDate ? trialEndsDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : null;
 
   // Price
-  const price = subscription?.amount_paise ? `₹${subscription.amount_paise / 100} / month` : null;
+  const price = subscription?.amount_paise ? `₹${(subscription.amount_paise as number) / 100} / month` : null;
 
   return (
     <div className="space-y-6">
