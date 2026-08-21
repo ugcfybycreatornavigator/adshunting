@@ -16,7 +16,7 @@ export function Footer() {
               Ad intelligence for creative research.
             </p>
           </div>
-          
+
           <div>
             <h3 className="font-semibold text-sm text-text-primary mb-4 uppercase tracking-wider">Product</h3>
             <ul className="space-y-3">
@@ -59,7 +59,7 @@ export function Footer() {
             </ul>
           </div>
         </div>
-        
+
         <div className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-text-muted">
             © {new Date().getFullYear()} AdsHunting. All rights reserved.
@@ -68,11 +68,11 @@ export function Footer() {
       </LandingContainer>
 
       {/* Oversized Brand Wordmark */}
-      <div 
+      <div
         className="w-full flex justify-center px-3 md:px-5 lg:px-6 pt-6 md:pt-10 pb-0 md:pb-2 overflow-hidden select-none pointer-events-none mt-auto"
         aria-hidden="true"
       >
-        <div 
+        <div
           className="font-extrabold text-center tracking-[-0.055em] leading-[0.78]"
           style={{
             fontSize: 'clamp(4.5rem, 19.5vw, 22rem)',
