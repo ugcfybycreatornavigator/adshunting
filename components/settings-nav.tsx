@@ -44,7 +44,7 @@ export function SettingsNav() {
         <select
           value={pathname}
           onChange={handleSelect}
-          className="w-full h-12 appearance-none rounded-xl border border-line bg-white px-4 pr-10 text-sm font-semibold text-ink outline-none focus:ring-2 focus:ring-signal"
+          className="w-full h-12 appearance-none rounded-xl border border-line bg-white px-4 pr-10 text-sm font-semibold text-ink outline-none focus:ring-2 focus:ring-brand"
         >
           {navGroups.flatMap(g => g.items).map((item) => (
             <option key={item.href} value={item.href}>
@@ -74,11 +74,11 @@ export function SettingsNav() {
                       className={cn(
                         "flex h-[40px] items-center gap-3 rounded-[10px] px-3 text-[14px] transition-colors",
                         active
-                          ? "bg-red-50 text-ink font-semibold"
+                          ? "bg-brand-soft text-brand font-semibold"
                           : "text-[#525866] hover:bg-[#F5F6F8] font-medium"
                       )}
                     >
-                      <item.icon size={16} className={cn(active ? "text-signal" : "text-muted")} />
+                      <item.icon size={16} className={cn(active ? "text-brand" : "text-muted")} />
                       {item.name}
                     </Link>
                   </li>
