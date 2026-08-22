@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Menu, X, ChevronDown, Plus, Minus } from 'lucide-react';
+import { AdsHuntingLogo } from '../../brand/AdsHuntingLogo';
 import { CTAButton } from '../ui/CTAButton';
 import { navigationConfig, authLinks } from '@/data/landing/config';
 import { cn } from '@/lib/utils';
@@ -58,8 +59,8 @@ export function Navbar() {
       <div className="w-full max-w-[1200px] mx-auto bg-white/70 backdrop-blur-xl border border-black/[0.05] shadow-[0_8px_30px_rgba(37,99,235,0.08),0_1px_3px_rgba(0,0,0,0.02)] rounded-[20px] md:rounded-full">
         <div className="px-5 md:px-8">
           <div className="flex h-14 md:h-16 items-center justify-between">
-          <Link href="/" className="font-bold text-xl tracking-tight text-text-primary" onClick={closeMenus}>
-            AdsHunting
+          <Link href="/" onClick={closeMenus}>
+            <AdsHuntingLogo size="md" />
           </Link>
 
           {/* Desktop Nav */}

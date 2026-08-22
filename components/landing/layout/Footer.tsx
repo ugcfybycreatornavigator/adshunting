@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { LandingContainer } from './LandingContainer';
+import { AdsHuntingLogo } from '../../brand/AdsHuntingLogo';
 import { navigationConfig } from '@/data/landing/config';
 
 export function Footer() {
@@ -13,9 +14,9 @@ export function Footer() {
           <div className="col-span-2 md:col-span-3 lg:col-span-1 flex flex-col items-start min-w-0">
             <Link
               href="/"
-              className="font-bold text-xl tracking-tight text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm"
+              className="focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm"
             >
-              AdsHunting
+              <AdsHuntingLogo size="md" />
             </Link>
             <p className="mt-4 text-[14px] leading-relaxed text-text-secondary break-words overflow-wrap-anywhere max-w-sm">
               Ad intelligence for creative research.
