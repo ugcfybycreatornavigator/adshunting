@@ -7,15 +7,15 @@
   --background: #fcfcfa;
   --surface: #ffffff;
   --surface-subtle: #f5f7f2;
-  --surface-green: #f0f6ea;
   --text-primary: #161a16;
   --text-secondary: #626862;
   --text-muted: #8a908a;
   --border: #e4e8e2;
   --border-strong: #d8ddd5;
-  --brand: #68b32f;
-  --brand-strong: #4e9620;
-  --brand-soft: #eaf6df;
+  --brand: #68B32F;
+  --brand-strong: #4E9620;
+  --brand-soft: #EAF6DF;
+  --surface-green: #F0F6EA;
 }
 
 :root {
@@ -65,6 +65,12 @@ a {
 
 .scrollbar-none {
   scrollbar-width: none;
+}
+
+.noise-texture {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(22, 26, 22, 0.18) 1px, transparent 0);
+  background-size: 14px 14px;
 }
 
 @media (prefers-reduced-motion: reduce) {

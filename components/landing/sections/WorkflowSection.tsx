@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { LandingContainer } from '@/components/landing/layout/LandingContainer';
-import { Search, Play, Heart, Users, Filter, Plus, Share, CheckCircle2, ChevronRight, X, FolderTree, MessageCircle, Bookmark } from 'lucide-react';
+import { Search, Play, Heart, Users, Filter, Plus, Share, CheckCircle2, ChevronRight, X, FolderTree } from 'lucide-react';
 import { workflowAds } from '@/data/landing/workflowAds';
 import { CTAButton } from '../ui/CTAButton';
 import { authLinks } from '@/data/landing/config';

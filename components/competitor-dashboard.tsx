@@ -4,11 +4,11 @@ import Link from "next/link";
 import { FormEvent, useState, useEffect } from "react";
 import { ChevronRight, Loader2, Plus, Search, Users, X, Check } from "lucide-react";
 import { Button, EmptyState } from "@/components/ui";
-import { CompetitorSummary } from "@/lib/brand-data";
+import { CompetitorIntelligence } from "@/lib/brand-data";
 import { safeExternalUrl } from "@/lib/utils";
 import type { NormalizedAd } from "@/lib/types";
 
-export function CompetitorDashboard({ initialBrands }: { initialBrands: CompetitorSummary[] }) {
+export function CompetitorDashboard({ initialBrands }: { initialBrands: CompetitorIntelligence[] }) {
   const [adding, setAdding] = useState(false);
 
   return (
@@ -55,7 +55,7 @@ export function CompetitorDashboard({ initialBrands }: { initialBrands: Competit
   );
 }
 
-function CompetitorCard({ brand }: { brand: CompetitorSummary }) {
+function CompetitorCard({ brand }: { brand: CompetitorIntelligence }) {
   const initial = brand.brandName?.slice(0, 1).toUpperCase() || "B";
   const avatar = safeExternalUrl(brand.logoUrl);
 

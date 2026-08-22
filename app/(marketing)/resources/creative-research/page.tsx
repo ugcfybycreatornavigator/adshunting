@@ -5,15 +5,29 @@ import { ResourceHero } from '@/components/resources/ResourceHero';
 import { ResourceCTA } from '@/components/resources/ResourceCTA';
 import { ResourceRelatedLinks } from '@/components/resources/ResourceRelatedLinks';
 import { ResourceGuideNav } from '@/components/resources/ResourceGuideNav';
+import { breadcrumbJsonLd, createMetadata, jsonLd } from '@/lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Creative Ad Research Guide | AdsHunting',
+export const metadata: Metadata = createMetadata({
+  title: 'Creative Ad Research Guide',
   description: 'A practical guide to researching advertising creatives, identifying patterns and organizing useful references.',
-};
+  path: '/resources/creative-research',
+});
 
 export default function CreativeResearchPage() {
   return (
     <ResourceContainer>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd(
+            breadcrumbJsonLd([
+              { name: 'Home', path: '/' },
+              { name: 'Resources', path: '/resources' },
+              { name: 'Creative Research Guide', path: '/resources/creative-research' },
+            ]),
+          ),
+        }}
+      />
       <ResourceHero
         breadcrumbTitle="Creative Research Guide"
         eyebrow="GUIDE"

@@ -88,7 +88,7 @@ export function SharedCreativeView({ ad }: { ad: NormalizedAd }) {
         </div>
 
         <div className="mt-6 pt-6 border-t border-line">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-muted mb-3">Ads Hunting Signals (Estimated)</h4>
+          <h4 className="text-xs font-bold uppercase tracking-wider text-muted mb-3">AdsHunting Signals (Estimated)</h4>
           <div className="grid grid-cols-2 gap-3">
              <div className="rounded-lg bg-zinc-50 border border-line p-3">
                 <div className="text-[10px] font-semibold text-muted uppercase">Winner Score</div>

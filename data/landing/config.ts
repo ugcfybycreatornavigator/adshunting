@@ -79,19 +79,25 @@ export const navigationConfig = {
   product: [
     { 
       name: 'Discover Ads', 
-      href: '/#discover', 
+      href: '/product/discover-ads', 
       description: 'Search and research advertising creatives',
       icon: Search 
     },
+    {
+      name: 'Creative Intelligence',
+      href: '/product/creative-intelligence',
+      description: 'Review observable patterns in competitor ads',
+      icon: Lightbulb
+    },
     { 
       name: 'Swipe Files', 
-      href: '/#swipe-files', 
+      href: '/product/swipe-files', 
       description: 'Save and organize useful ad inspiration',
       icon: FolderOpen 
     },
     { 
-      name: 'Shared Ads', 
-      href: '/#shared-ads', 
+      name: 'Ad Sharing', 
+      href: '/product/ad-sharing', 
       description: 'Manage and share ads with your team',
       icon: Share2 
     },
@@ -123,8 +129,8 @@ export const navigationConfig = {
     }
   ],
   main: [
-    { name: 'Pricing', href: '/#pricing' },
-    { name: 'FAQ', href: '/#faq' },
+    { name: 'Pricing', href: '/pricing' },
+    { name: 'FAQ', href: '/resources/help' },
   ],
   legal: [
     { name: 'Privacy Policy', href: '/privacy' },

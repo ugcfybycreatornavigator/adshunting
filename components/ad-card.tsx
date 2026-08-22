@@ -178,11 +178,11 @@ export function AdCard({
           <CreativePreview ad={ad} media={media} thumb={thumb} advertiserName={advertiserName} />
         </div>
         <div className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex flex-col gap-1.5 items-start">
-          <Badge tone={ad.status === "active" ? "brand" : "dark"} className="px-2 py-1 text-[10px] shadow-sm uppercase font-bold tracking-wider">
+          <Badge className={cn("px-2 py-1 text-[10px] shadow-sm uppercase font-bold tracking-wider", ad.status === "active" ? "bg-white text-brand border border-line" : "bg-zinc-900 text-white border border-transparent")}>
             {ad.status}
           </Badge>
-          {ad.intelligenceLabels[0] && (
-            <Badge className="bg-brand/95 text-white px-2 py-1 text-[10px] shadow-sm font-semibold">{signalLabel(ad.intelligenceLabels[0], ad)}</Badge>
+          {ad.intelligenceLabels && ad.intelligenceLabels[0] && signalLabel(ad.intelligenceLabels[0], ad) && (
+            <Badge className="bg-brand text-white border-transparent px-2 py-1 text-[10px] shadow-sm font-semibold">{signalLabel(ad.intelligenceLabels[0], ad)}</Badge>
           )}
         </div>
       </div>

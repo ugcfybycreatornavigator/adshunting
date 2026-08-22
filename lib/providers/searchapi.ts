@@ -204,6 +204,7 @@ export function normalizeSearchApiAd(input: UnknownRecord, country?: string): No
     advertiserId: text(input.page_id) || text(snapshot.page_id) || undefined,
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const baseAd: any = {
     id: String(input.ad_archive_id),
     externalAdId: String(input.ad_archive_id),

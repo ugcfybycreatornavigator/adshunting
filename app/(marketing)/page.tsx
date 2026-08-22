@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import { HeroSection } from '@/components/landing/sections/HeroSection';
 import { TrustProofSection } from '@/components/landing/sections/TrustProofSection';
 import { CoreValueSection } from '@/components/landing/sections/CoreValueSection';
@@ -14,6 +15,15 @@ import { LandingContainer } from '@/components/landing/layout/LandingContainer';
 import { CTAButton } from '@/components/landing/ui/CTAButton';
 import { authLinks } from '@/data/landing/config';
 import { User, FolderOpen, Share2, Search, Target } from 'lucide-react';
+import { createMetadata, jsonLd } from '@/lib/seo';
+import { homepageFaqs } from '@/data/landing/faq';
+
+export const metadata: Metadata = createMetadata({
+  title: 'AdsHunting — Ad Intelligence & Competitor Ad Research Platform',
+  description:
+    'AdsHunting helps marketers and teams discover, research, save, organize, analyze, and share competitor advertising creatives from one focused ad intelligence workspace.',
+  path: '/',
+});
 
 function PricingSection() {
   const scoutFeatures = [
@@ -153,6 +163,23 @@ function PricingSection() {
 export default function Home() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: homepageFaqs.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: faq.answer,
+              },
+            })),
+          }),
+        }}
+      />
       <HeroSection />
       <TrustProofSection />
       <CoreValueSection />
@@ -168,4 +195,3 @@ export default function Home() {
     </>
   );
 }
-

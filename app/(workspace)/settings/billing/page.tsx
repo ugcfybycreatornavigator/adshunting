@@ -18,10 +18,10 @@ export default async function BillingSettingsPage({ searchParams }: { searchPara
 
       {isPaymentRequired && (
         <Card className="border-red-200 bg-red-50 p-6 shadow-sm">
-          <h3 className="text-base font-semibold text-red-900">Your Ads Hunting subscription needs attention</h3>
+          <h3 className="text-base font-semibold text-red-900">Your AdsHunting subscription needs attention</h3>
           <p className="mt-2 text-sm text-red-700">
             Your trial has ended or we couldn&apos;t confirm your subscription payment.
-            Restore your subscription to continue using Ads Hunting.
+            Restore your subscription to continue using AdsHunting.
           </p>
         </Card>
       )}

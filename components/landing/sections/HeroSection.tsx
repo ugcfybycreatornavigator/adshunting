@@ -115,7 +115,7 @@ export function HeroSection() {
         </div>
 
         {/* Crisp noise overlay to give it a premium matte finish */}
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.035] mix-blend-overlay" />
+        <div className="noise-texture absolute inset-0 opacity-[0.035] mix-blend-overlay" />
         
         {/* White vignette gradient to blend edges into the page */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#FCFDFB] via-transparent to-[#FCFDFB] opacity-80" />
@@ -221,4 +221,3 @@ export function HeroSection() {
     </section>
   );
 }
-

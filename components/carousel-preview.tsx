@@ -46,9 +46,13 @@ export function CarouselPreview({ assets, alt, className = "" }: { assets: strin
         />
       )}
       {safeAssets.length > 1 && <>
-        <button type="button" onClick={(event) => move(event, -1)} aria-label="Previous carousel item" className="absolute left-2 top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/70 text-white focus-visible:ring-2 focus-visible:ring-white"><ChevronLeft size={18} /></button>
-        <button type="button" onClick={(event) => move(event, 1)} aria-label="Next carousel item" className="absolute right-2 top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/70 text-white focus-visible:ring-2 focus-visible:ring-white"><ChevronRight size={18} /></button>
-        <span className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/65 px-2 py-1 text-[10px] font-semibold text-white">{index + 1} / {safeAssets.length}</span>
+        {index > 0 && (
+          <button type="button" onClick={(event) => move(event, -1)} aria-label="Previous carousel item" className="absolute left-1.5 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-full bg-black/50 text-white backdrop-blur hover:bg-black/70 focus-visible:ring-2 focus-visible:ring-white transition"><ChevronLeft size={16} /></button>
+        )}
+        {index < safeAssets.length - 1 && (
+          <button type="button" onClick={(event) => move(event, 1)} aria-label="Next carousel item" className="absolute right-1.5 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-full bg-black/50 text-white backdrop-blur hover:bg-black/70 focus-visible:ring-2 focus-visible:ring-white transition"><ChevronRight size={16} /></button>
+        )}
+        <span className="absolute bottom-2 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/60 backdrop-blur px-2.5 py-1 text-[10px] font-semibold tracking-wide text-white border border-white/10 shadow-sm">{index + 1} / {safeAssets.length}</span>
       </>}
     </div>
   );

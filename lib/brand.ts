@@ -1,6 +1,7 @@
 export const BRAND = {
-  name: "Ads Hunting",
-  uppercaseName: "ADS HUNTING",
-  productLine: "Ads Intelligence",
-  description: "Discover, analyze, and organize observable Meta advertising patterns.",
+  name: "AdsHunting",
+  uppercaseName: "ADSHUNTING",
+  productLine: "Ad Intelligence",
+  description:
+    "Discover, research, save, organize, analyze, and share competitor advertising creatives from one ad intelligence workspace.",
 } as const;

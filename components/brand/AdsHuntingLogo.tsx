@@ -77,7 +77,7 @@ export function AdsHuntingLogo({
   return (
     <div
       className={`group inline-flex items-center gap-[10px] whitespace-nowrap overflow-visible ${className}`.trim()}
-      aria-label="Ads Hunting"
+      aria-label="AdsHunting"
     >
       {markSvg}
       <span
@@ -88,7 +88,7 @@ export function AdsHuntingLogo({
           letterSpacing: "-0.015em"
         }}
       >
-        Ads Hunting
+        AdsHunting
       </span>
     </div>
   );

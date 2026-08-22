@@ -133,8 +133,8 @@ export function PlanCard({
       const options = {
         key: data.keyId,
         subscription_id: data.subscriptionId,
-        name: "Ads Hunting",
-        description: "Ads Hunting Subscription",
+        name: "AdsHunting",
+        description: "AdsHunting Subscription",
         prefill: {
           name: user?.fullName || undefined,
           email: user?.primaryEmailAddress?.emailAddress || undefined,

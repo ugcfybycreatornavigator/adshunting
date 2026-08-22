@@ -1,4 +1,4 @@
-import { getBrandData } from "@/lib/brand-data";
+import { getCompetitorIntelligence } from "@/lib/brand-data";
 import { BrandIntelligenceProfile } from "@/components/brand-intelligence-profile";
 import { requireUser } from "@/lib/auth";
 import Link from "next/link";
@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 
 export default async function BrandPage({params}:{params:Promise<{id:string}>}){
   const { id } = await params;
-  const data = await getBrandData(id);
+  const data = await getCompetitorIntelligence(id);
   const auth = await requireUser();
   let tracking = false;
   

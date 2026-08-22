@@ -5,7 +5,7 @@ import { isPreviewMode } from "@/lib/preview";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#F6F7F9] text-ink">
+    <div className="min-h-screen bg-[#FFFFFF] text-ink">
       <Sidebar />
       <MobileHeader />
       <main className="min-h-screen lg:pl-[252px]">

@@ -4,16 +4,30 @@ import { ResourceContainer } from '@/components/resources/ResourceContainer';
 import { ResourceHero } from '@/components/resources/ResourceHero';
 import { ResourceCTA } from '@/components/resources/ResourceCTA';
 import { ResourceRelatedLinks } from '@/components/resources/ResourceRelatedLinks';
+import { breadcrumbJsonLd, createMetadata, jsonLd } from '@/lib/seo';
 
 
-export const metadata: Metadata = {
-  title: 'How AdsHunting Works | Ad Research Workflow',
+export const metadata: Metadata = createMetadata({
+  title: 'How AdsHunting Works',
   description: 'Learn how AdsHunting helps you search, review, save, organize and share advertising creatives from one research workflow.',
-};
+  path: '/resources/how-it-works',
+});
 
 export default function HowItWorksPage() {
   return (
     <ResourceContainer>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd(
+            breadcrumbJsonLd([
+              { name: 'Home', path: '/' },
+              { name: 'Resources', path: '/resources' },
+              { name: 'How AdsHunting Works', path: '/resources/how-it-works' },
+            ]),
+          ),
+        }}
+      />
       <ResourceHero
         breadcrumbTitle="How AdsHunting Works"
         eyebrow="PRODUCT WORKFLOW"
@@ -148,7 +162,7 @@ export default function HowItWorksPage() {
             <div className="grid md:grid-cols-2 gap-8 md:gap-12">
               <div>
                 <h3 className="text-[18px] font-bold text-text-primary mb-4 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#68b32f]"></span>
+                  <span className="w-2 h-2 rounded-full bg-[#68B32F]"></span>
                   AdsHunting can help you review
                 </h3>
                 <ul className="space-y-3 text-[15px] text-text-secondary">

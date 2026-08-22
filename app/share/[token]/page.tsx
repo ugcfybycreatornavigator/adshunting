@@ -8,6 +8,7 @@ import { BRAND } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BrandMark } from "@/components/brand-mark";
 import { Metadata } from "next";
+import { createMetadata } from "@/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
   const { token } = await params;
@@ -18,17 +19,30 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
     .eq("token_hash", token)
     .single();
 
-  if (!link) return { title: "Shared Creative" };
-  if (link.visibility === "private" || !link.visibility) {
-    return {
-      title: "Private creative shared via Ads Hunting",
-      description: "Sign in to view.",
-    };
+  if (!link) {
+    return createMetadata({
+      title: "Shared Creative",
+      description: "Shared AdsHunting creative link.",
+      path: `/share/${token}`,
+      noIndex: true,
+    });
   }
-  return {
-    title: `${link.name || "Creative"} shared via Ads Hunting`,
-    description: "Research creative patterns with Ads Hunting.",
-  };
+
+  if (link.visibility === "private" || !link.visibility) {
+    return createMetadata({
+      title: "Private creative shared via AdsHunting",
+      description: "Sign in to view this private AdsHunting creative link.",
+      path: `/share/${token}`,
+      noIndex: true,
+    });
+  }
+
+  return createMetadata({
+    title: `${link.name || "Creative"} shared via AdsHunting`,
+    description: "Shared AdsHunting creative research link.",
+    path: `/share/${token}`,
+    noIndex: true,
+  });
 }
 
 export default async function SharedAdPage({ params }: { params: Promise<{ token: string }> }) {
@@ -75,7 +89,7 @@ export default async function SharedAdPage({ params }: { params: Promise<{ token
                 <Lock size={20} />
               </div>
               <h2 className="text-xl font-semibold text-ink">Private creative</h2>
-              <p className="mt-2 text-sm text-muted">This creative was shared privately.<br/>Sign in to Ads Hunting to view it.</p>
+              <p className="mt-2 text-sm text-muted">This creative was shared privately.<br/>Sign in to AdsHunting to view it.</p>
               <div className="mt-8 space-y-3">
                  <Link href={`/sign-in?redirect_url=/share/${token}`} className="flex h-11 w-full items-center justify-center rounded-lg bg-brand text-sm font-semibold text-white shadow-sm transition hover:bg-brand-strong">
                    Sign in
@@ -150,10 +164,10 @@ export default async function SharedAdPage({ params }: { params: Promise<{ token
 
           {!isPrivate && (
             <div className="mt-12 mb-8 flex flex-col items-center justify-center p-8 bg-white border border-line rounded-[16px] text-center shadow-sm">
-              <h3 className="text-lg font-semibold text-ink">Research creative patterns with Ads Hunting.</h3>
+              <h3 className="text-lg font-semibold text-ink">Research creative patterns with AdsHunting.</h3>
               <p className="mt-2 text-sm text-muted max-w-md mx-auto">Discover winning ads, save Swipe Files, and uncover what works in your industry.</p>
               <Link href="/" className="mt-6 flex h-11 items-center justify-center rounded-lg bg-brand px-6 font-semibold text-white transition hover:bg-brand-strong">
-                Explore Ads Hunting
+                Explore AdsHunting
               </Link>
             </div>
           )}

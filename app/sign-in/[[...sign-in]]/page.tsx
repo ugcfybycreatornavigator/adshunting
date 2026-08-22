@@ -1,5 +1,14 @@
 import { SignIn } from "@clerk/nextjs";
 import { AuthShell } from "@/components/auth-shell";
+import type { Metadata } from "next";
+import { createMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createMetadata({
+  title: "Sign in to AdsHunting",
+  description: "Sign in to your private AdsHunting workspace.",
+  path: "/sign-in",
+  noIndex: true,
+});
 
 const authAppearance = {
   elements: {

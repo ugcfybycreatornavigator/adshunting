@@ -108,10 +108,10 @@ export function ReviewResearchSection() {
             
             <div className="mt-8 pt-8 border-t border-border flex gap-4">
                <div className="w-20 h-24 bg-border/20 rounded-lg overflow-hidden border border-border">
-                  <img src={sampleAd2.thumbnail} className="w-full h-full object-cover" />
+                  <img src={sampleAd2.thumbnail} alt={`${sampleAd2.brand} ad preview`} className="w-full h-full object-cover" />
                </div>
                <div className="w-20 h-24 bg-border/20 rounded-lg overflow-hidden border border-border relative">
-                  <img src={sampleAd1.thumbnail} className="w-full h-full object-cover" />
+                  <img src={sampleAd1.thumbnail} alt={`${sampleAd1.brand} video ad preview`} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/20"><Play size={12} className="text-white fill-white" /></div>
                </div>
                <div className="w-20 h-24 bg-surface-subtle border border-border rounded-lg flex items-center justify-center text-[12px] font-medium text-text-muted">

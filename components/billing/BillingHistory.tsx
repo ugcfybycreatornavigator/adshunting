@@ -36,7 +36,7 @@ export function BillingHistory({ payments }: { payments: Payment[] }) {
                 {formatBillingDate(payment.created_at)}
               </td>
               <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
-                Ads Hunting Pro Subscription
+                AdsHunting Pro Subscription
               </td>
               <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground">
                 ₹{(payment.amount_paise / 100).toFixed(2)}

@@ -20,9 +20,11 @@ const schema = z.object({
   ADS_PROVIDER: z.enum(["auto", "searchapi", "meta", "foreplay"]).default("auto"),
   META_APP_ID: optionalSecret,
   META_APP_SECRET: optionalSecret,
-  META_ACCESS_TOKEN: optionalSecret,
+  META_AD_LIBRARY_ACCESS_TOKEN: optionalSecret,
+  META_AD_LIBRARY_ENABLED: z.enum(["true", "false"]).default("false"),
   META_API_VERSION: optionalVersion,
   META_DEFAULT_COUNTRY: optionalCountry,
+  META_API_TIMEOUT_MS: z.string().optional(),
   GOOGLE_API_KEY: optionalSecret,
   GOOGLE_SEARCH_ENGINE_ID: optionalSecret,
   ALLOW_MEDIA_ARCHIVAL: z.enum(["true", "false"]).default("false"),
@@ -39,8 +41,10 @@ export type ServerEnv = {
   metaAppId?: string;
   metaAppSecret?: string;
   metaAccessToken?: string;
+  metaEnabled: boolean;
   metaApiVersion?: string;
   metaDefaultCountry?: string;
+  metaTimeoutMs?: string;
   googleApiKey?: string;
   googleSearchEngineId?: string;
   allowMediaArchival: boolean;
@@ -71,9 +75,11 @@ export function getServerEnv(): ServerEnv {
     adsProvider: env.ADS_PROVIDER,
     metaAppId: env.META_APP_ID,
     metaAppSecret: env.META_APP_SECRET,
-    metaAccessToken: env.META_ACCESS_TOKEN,
+    metaAccessToken: env.META_AD_LIBRARY_ACCESS_TOKEN,
+    metaEnabled: env.META_AD_LIBRARY_ENABLED === "true",
     metaApiVersion: env.META_API_VERSION,
     metaDefaultCountry: normalizeCountry(env.META_DEFAULT_COUNTRY),
+    metaTimeoutMs: env.META_API_TIMEOUT_MS,
     googleApiKey: env.GOOGLE_API_KEY,
     googleSearchEngineId: env.GOOGLE_SEARCH_ENGINE_ID,
     allowMediaArchival: env.ALLOW_MEDIA_ARCHIVAL === "true",

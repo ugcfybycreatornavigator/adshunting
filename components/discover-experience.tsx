@@ -20,7 +20,8 @@ const countries = [["ALL","All countries"],["IN","India"],["US","United States"]
 const defaults: AdSearchFilters = { query: "", status: "all", country: "ALL", platforms: [], mediaType: "all", cta: "", duration: "", startDate: "", endDate: "" };
 
 export function DiscoverExperience({ brandId }: { brandId?: string }) {
-  const { filters, updateFilters: setFilters, clearFilters } = useUrlFilters({ ...defaults, brand: brandId });
+  const defaultFilters = useMemo(() => ({ ...defaults, brand: brandId }), [brandId]);
+  const { filters, updateFilters: setFilters, clearFilters } = useUrlFilters(defaultFilters);
   const [ads, setAds] = useState<NormalizedAd[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [total, setTotal] = useState<number | null>(null);
@@ -103,13 +104,19 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
         throw { message: data.message || data.error || "Search failed.", code: data.code };
       }
       const result = data as AdSearchResult;
+      
+      if (result.resolvedIntent?.type === "advertiser" && nextFilters.brand !== result.resolvedIntent.advertiserId) {
+        setFilters({ brand: result.resolvedIntent.advertiserId, query: result.resolvedIntent.advertiserName });
+      }
+
       setAds(current => append ? [...current, ...result.ads.filter(ad => !current.some(existing => existing.externalAdId === ad.externalAdId))] : result.ads);
       setCursor(result.nextCursor);
       setTotal(result.total);
 
-      if (nextFilters.query?.trim()) {
+      if (nextFilters.query?.trim() || result.resolvedIntent?.type === "advertiser") {
+        const queryToSave = result.resolvedIntent?.type === "advertiser" ? result.resolvedIntent.advertiserName : nextFilters.query!.trim();
         setHistory(current => {
-          const updated = [nextFilters.query!.trim(), ...current.filter(item => item.toLowerCase() !== nextFilters.query!.trim().toLowerCase())].slice(0, 6);
+          const updated = [queryToSave, ...current.filter(item => item.toLowerCase() !== queryToSave.toLowerCase())].slice(0, 6);
           localStorage.setItem("signal-search-history", JSON.stringify(updated));
           return updated;
         });
@@ -129,9 +136,15 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
         setLoadingMore(false);
       }
     }
-  }, []);
+  }, [setFilters]);
+
+  const searchBrandsController = useRef<AbortController | null>(null);
 
   const searchBrands = useCallback(async (query?: string) => {
+    searchBrandsController.current?.abort();
+    const controller = new AbortController();
+    searchBrandsController.current = controller;
+
     setBrandsLoading(true);
     setBrandsError(null);
     try {
@@ -139,16 +152,20 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query }),
+        signal: controller.signal,
       });
       const data = await response.json();
       if (!response.ok) throw { message: data.error || "Failed to search brands" };
       setBrands(data.brands || []);
     } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       const errorObj = typeof err === "object" && err !== null && "message" in err ? (err as { message: string }) : { message: "Failed to search brands" };
       setBrandsError(errorObj);
       setBrands([]);
     } finally {
-      setBrandsLoading(false);
+      if (searchBrandsController.current === controller) {
+        setBrandsLoading(false);
+      }
     }
   }, []);
 
@@ -415,14 +432,14 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
 
       <div className="mt-3">
         {isBrandsView ? (
-          brandsLoading ? (
+          brandsLoading && brands.length === 0 ? (
             <BrandGridSkeleton />
           ) : brandsError ? (
             <EmptyState title="Search Error" body={brandsError.message} />
-          ) : brands.length === 0 ? (
+          ) : brands.length === 0 && !brandsLoading ? (
             <EmptyState title="No brands found" body="Try searching for another brand name." />
           ) : (
-            <div className={brandGridClass()}>
+            <div className={cn(brandGridClass(), brandsLoading && "opacity-60 transition-opacity")}>
               {brands.map(brand => <BrandCard key={brand.id} brand={brand} />)}
             </div>
           )
@@ -440,17 +457,17 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
                 </Button>
               }
             />
-          ) : ads.length === 0 ? (
+          ) : ads.length === 0 && !loading ? (
             <EmptyState
               icon={<Search />}
-              title="No ads found"
-              body={filters.query?.trim() ? `No ads found for "${filters.query.trim()}". Try another keyword or remove active filters.` : "Try removing active filters or typing a keyword above to search live ads."}
+              title={filters.brand ? "No advertiser ads found" : "No ads found"}
+              body={filters.brand ? `No ${filters.query || "advertiser"} ads match these filters. Try adjusting your filters.` : filters.query?.trim() ? `No ads found for "${filters.query.trim()}". Try another keyword or remove active filters.` : "Try removing active filters or typing a keyword above to search live ads."}
               action={activeChips.length > 0 ? (
                 <Button variant="secondary" onClick={clearAllFilters}>Clear filters</Button>
               ) : undefined}
             />
           ) : (
-            <div className={gridClass()}>
+            <div className={cn(gridClass(), loading && !loadingMore && "opacity-60 transition-opacity")}>
               {displayedAds.map(ad => (
                 <AdCard
                   key={`${ad.externalAdId}-${ad.id}`}

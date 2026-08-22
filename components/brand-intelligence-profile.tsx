@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BrandData } from "@/lib/brand-data";
+import { CompetitorIntelligence } from "@/lib/brand-data";
 import { DiscoverExperience } from "@/components/discover-experience";
 import { safeExternalUrl } from "@/lib/utils";
 import { Check, Plus, Loader2 } from "lucide-react";
@@ -10,20 +10,20 @@ export function BrandIntelligenceProfile({
   data,
   initialTracking,
 }: {
-  data: BrandData;
+  data: CompetitorIntelligence;
   initialTracking: boolean;
 }) {
   const [tab, setTab] = useState<"overview" | "ads" | "activity">("overview");
   const [tracking, setTracking] = useState(initialTracking);
   const [trackingBusy, setTrackingBusy] = useState(false);
-  const initial = data.name?.slice(0, 1).toUpperCase() || "B";
-  const avatar = safeExternalUrl(data.avatar);
+  const initial = data.brandName?.slice(0, 1).toUpperCase() || "B";
+  const avatar = safeExternalUrl(data.logoUrl);
 
   async function toggleTracking() {
     setTrackingBusy(true);
     try {
       if (tracking) {
-        const response = await fetch(`/api/competitors?advertiser_id=${encodeURIComponent(data.id)}`, {
+        const response = await fetch(`/api/competitors?advertiser_id=${encodeURIComponent(data.advertiserId)}`, {
           method: "DELETE",
         });
         if (response.ok) setTracking(false);
@@ -32,9 +32,9 @@ export function BrandIntelligenceProfile({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            advertiserId: data.id,
-            advertiserName: data.name,
-            advertiserAvatarUrl: data.avatar,
+            advertiserId: data.advertiserId,
+            advertiserName: data.brandName,
+            advertiserAvatarUrl: data.logoUrl,
           }),
         });
         if (response.ok) setTracking(true);
@@ -52,7 +52,7 @@ export function BrandIntelligenceProfile({
           {avatar ? (
             <img
               src={avatar}
-              alt={data.name}
+              alt={data.brandName}
               className="size-20 shrink-0 rounded-full border border-line object-cover bg-white shadow-sm"
             />
           ) : (
@@ -61,25 +61,25 @@ export function BrandIntelligenceProfile({
             </span>
           )}
           <div className="flex flex-col pt-1">
-            <h1 className="text-3xl font-bold tracking-tight text-ink">{data.name}</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-ink">{data.brandName}</h1>
             <p className="mt-1 text-sm font-medium text-muted">
-              {Object.keys(data.platforms).length > 0
-                ? Object.keys(data.platforms)
+              {data.platforms && data.platforms.length > 0
+                ? data.platforms
                     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
                     .join(" · ")
                 : "Cross Platform"}
             </p>
             <div className="flex gap-5 mt-4">
               <div className="flex flex-col">
-                <span className="text-xl font-bold text-brand leading-none">{data.active}</span>
+                <span className="text-xl font-bold text-brand leading-none">{data.activeAds}</span>
                 <span className="text-[11px] font-semibold text-muted uppercase tracking-wider mt-1">Active Ads</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-bold text-ink leading-none">{data.total}</span>
+                <span className="text-xl font-bold text-ink leading-none">{data.totalAds}</span>
                 <span className="text-[11px] font-semibold text-muted uppercase tracking-wider mt-1">Total Ads</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-bold text-ink leading-none">{data.longest}d</span>
+                <span className="text-xl font-bold text-ink leading-none">{data.averageRunningDays || data.longestRunningDays || 0}d</span>
                 <span className="text-[11px] font-semibold text-muted uppercase tracking-wider mt-1">Avg. Running</span>
               </div>
             </div>
@@ -130,40 +130,40 @@ export function BrandIntelligenceProfile({
       {/* Content */}
       <div className="py-8">
         {tab === "overview" && <OverviewTab data={data} />}
-        {tab === "ads" && <DiscoverExperience brandId={data.id} />}
+        {tab === "ads" && <DiscoverExperience brandId={data.advertiserId} />}
         {tab === "activity" && <ActivityTab data={data} />}
       </div>
     </div>
   );
 }
 
-function OverviewTab({ data }: { data: BrandData }) {
+function OverviewTab({ data }: { data: CompetitorIntelligence }) {
   return (
     <div className="flex flex-col gap-10">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="rounded-xl border border-line bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Active Ads</p>
-          <p className="text-2xl font-bold text-ink">{data.active}</p>
+          <p className="text-2xl font-bold text-ink">{data.activeAds}</p>
         </div>
         <div className="rounded-xl border border-line bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Unique Ads</p>
-          <p className="text-2xl font-bold text-ink">{data.total}</p>
+          <p className="text-2xl font-bold text-ink">{data.uniqueAds}</p>
         </div>
         <div className="rounded-xl border border-line bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Longest Running</p>
-          <p className="text-2xl font-bold text-ink">{data.longest} days</p>
+          <p className="text-2xl font-bold text-ink">{data.longestRunningDays || 0} days</p>
         </div>
         <div className="rounded-xl border border-line bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">First Seen</p>
-          <p className="text-2xl font-bold text-ink">{data.earliest ? new Date(data.earliest).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : "N/A"}</p>
+          <p className="text-2xl font-bold text-ink">{data.firstSeenAt ? new Date(data.firstSeenAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : "N/A"}</p>
         </div>
       </div>
 
-      {data.previews?.length > 0 && (
+      {data.latestCreatives?.length > 0 && (
         <div>
           <h2 className="text-lg font-bold text-ink mb-4">Top Creatives</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {data.previews.map((preview) => (
+            {data.latestCreatives.map((preview) => (
               <div key={preview.id} className="relative aspect-[4/5] bg-zinc-100 rounded-lg overflow-hidden border border-line">
                 <img src={preview.url} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
               </div>
@@ -175,7 +175,7 @@ function OverviewTab({ data }: { data: BrandData }) {
   );
 }
 
-function ActivityTab({ data }: { data: BrandData }) {
+function ActivityTab({ data }: { data: CompetitorIntelligence }) {
   return (
     <div className="max-w-2xl">
       <h2 className="text-lg font-bold text-ink mb-6">Recent Activity</h2>
@@ -183,13 +183,13 @@ function ActivityTab({ data }: { data: BrandData }) {
         <div className="relative pl-8">
           <span className="absolute left-0 top-1.5 size-6 rounded-full border-[4px] border-white bg-brand shadow-sm" />
           <p className="text-sm font-bold text-ink">Tracking started</p>
-          <p className="text-sm text-muted mt-1">Began monitoring creative activity for {data.name}.</p>
+          <p className="text-sm text-muted mt-1">Began monitoring creative activity for {data.brandName}.</p>
           <p className="text-xs text-muted mt-2 font-medium">Recently</p>
         </div>
         <div className="relative pl-8">
           <span className="absolute left-0 top-1.5 size-6 rounded-full border-[4px] border-white bg-zinc-300 shadow-sm" />
-          <p className="text-sm font-bold text-ink">{data.total} ads discovered</p>
-          <p className="text-sm text-muted mt-1">Historically cataloged {data.total} distinct creative variants.</p>
+          <p className="text-sm font-bold text-ink">{data.totalAds} ads discovered</p>
+          <p className="text-sm text-muted mt-1">Historically cataloged {data.totalAds} distinct creative variants.</p>
           <p className="text-xs text-muted mt-2 font-medium">Historical</p>
         </div>
       </div>

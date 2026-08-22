@@ -124,11 +124,16 @@ export interface AdSearchFilters {
   };
 }
 
+export type SearchIntent =
+  | { type: "advertiser"; advertiserId: string; advertiserName: string; }
+  | { type: "keyword"; query: string; };
+
 export interface AdSearchResult {
   ads: NormalizedAd[];
   nextCursor: string | null;
   total: number | null;
   source: "provider" | "catalog";
+  resolvedIntent?: SearchIntent;
 }
 
 export interface Advertiser {

@@ -1,6 +1,5 @@
-import Link from "next/link";
-import { ArrowRight, Search, Store } from "lucide-react";
-import { Card, EmptyState, PageHeader } from "@/components/ui";
+import { Search, Store } from "lucide-react";
+import { EmptyState, PageHeader } from "@/components/ui";
 import { BrandCard } from "@/components/brand-card";
 import { getBrands } from "@/lib/brand-data";
 

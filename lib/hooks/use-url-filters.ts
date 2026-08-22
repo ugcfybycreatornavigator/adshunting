@@ -84,6 +84,10 @@ export function useUrlFilters(defaultFilters: AdSearchFilters) {
     const queryStr = params.toString();
     const newUrl = queryStr ? `${pathname}?${queryStr}` : pathname;
 
+    const currentSearch = window.location.search;
+    const currentUrl = pathname + (currentSearch ? currentSearch : "");
+    if (newUrl === currentUrl) return; // Prevent unnecessary history state updates
+
     if (replace) {
       window.history.replaceState({ ...window.history.state, as: newUrl, url: newUrl }, "", newUrl);
     } else {

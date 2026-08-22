@@ -9,9 +9,18 @@ const nextConfig = {
     serverActions: { bodySizeLimit: "2mb" },
   },
   async redirects() {
-    return process.env.DEV_BYPASS_AUTH === "true"
-      ? [{ source: "/login", destination: "/dashboard", permanent: false }]
-      : [];
+    const redirects = [
+      { source: "/trial", destination: "/sign-up", permanent: true },
+      { source: "/signup", destination: "/sign-up", permanent: true },
+    ];
+
+    if (process.env.DEV_BYPASS_AUTH === "true") {
+      redirects.push({ source: "/login", destination: "/dashboard", permanent: false });
+    } else {
+      redirects.push({ source: "/login", destination: "/sign-in", permanent: true });
+    }
+
+    return redirects;
   },
 };
 

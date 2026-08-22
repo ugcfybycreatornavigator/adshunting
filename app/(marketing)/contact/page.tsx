@@ -4,15 +4,28 @@ import { LandingContainer } from '@/components/landing/layout/LandingContainer';
 import { ContactForm } from '@/components/contact/ContactForm';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
+import { breadcrumbJsonLd, createMetadata, jsonLd } from '@/lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Contact AdsHunting | Product, Trial & Support Questions',
+export const metadata: Metadata = createMetadata({
+  title: 'Contact AdsHunting',
   description: 'Contact AdsHunting with questions about the product, free trial, pricing, billing, or ad research workflow.',
-};
+  path: '/contact',
+});
 
 export default function ContactPage() {
   return (
     <div className="bg-[#fcfcfa] min-h-[calc(100vh-60px)]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd(
+            breadcrumbJsonLd([
+              { name: 'Home', path: '/' },
+              { name: 'Contact', path: '/contact' },
+            ]),
+          ),
+        }}
+      />
       <LandingContainer>
         {/* Page Header / Hero */}
         <div className="pt-[48px] md:pt-[64px] lg:pt-[80px] pb-[44px] md:pb-[56px] text-left max-w-[1180px] mx-auto">

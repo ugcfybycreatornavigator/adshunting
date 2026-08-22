@@ -5,15 +5,29 @@ import { ResourceHero } from '@/components/resources/ResourceHero';
 import { ResourceCTA } from '@/components/resources/ResourceCTA';
 import { ResourceRelatedLinks } from '@/components/resources/ResourceRelatedLinks';
 import { ResourceGuideNav } from '@/components/resources/ResourceGuideNav';
+import { breadcrumbJsonLd, createMetadata, jsonLd } from '@/lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Competitor Ad Research Guide | AdsHunting',
+export const metadata: Metadata = createMetadata({
+  title: 'Competitor Ad Research Guide',
   description: 'Learn how to research competitor advertising activity using observable creative information without relying on private performance metrics.',
-};
+  path: '/resources/competitor-ad-research',
+});
 
 export default function CompetitorAdResearchPage() {
   return (
     <ResourceContainer>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd(
+            breadcrumbJsonLd([
+              { name: 'Home', path: '/' },
+              { name: 'Resources', path: '/resources' },
+              { name: 'Competitor Ad Research Guide', path: '/resources/competitor-ad-research' },
+            ]),
+          ),
+        }}
+      />
       <ResourceHero
         breadcrumbTitle="Competitor Ad Research"
         eyebrow="COMPETITOR RESEARCH"

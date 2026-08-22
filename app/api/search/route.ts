@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import { z } from "zod";
 import { isSupabaseConfigured } from "@/lib/env";
-import { isAnyAdsProviderConfigured } from "@/lib/env/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { dbAdToNormalized } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth";
 import { requirePaidWorkspaceAccess } from "@/lib/billing/entitlement";
-import { getAdProviders, setProviderHealth, clearProviderCircuit } from "@/lib/providers";
 import { ProviderError } from "@/lib/providers/errors";
 import { adsForClient, persistNormalizedAds, archiveAdsInBackground } from "@/lib/ads-persistence";
 import { isPreviewMode } from "@/lib/preview";
-import type { AdSearchResult, NormalizedAd } from "@/lib/types";
+import type { AdSearchResult, NormalizedAd, SearchIntent } from "@/lib/types";
 import { normalizeDiscoverFilters } from "@/lib/filter-utils";
+import { auth } from "@clerk/nextjs/server";
+import { getServerEnv } from "@/lib/env/server";
 
 const schema = z.object({
   query: z.string().trim().max(160).optional(),
@@ -94,6 +94,40 @@ export async function POST(request: NextRequest) {
   }
 
   const filters = normalizeDiscoverFilters(parsed.data);
+  
+  let resolvedIntent: SearchIntent | undefined = undefined;
+
+  if (filters.brand) {
+    resolvedIntent = { type: "advertiser", advertiserId: filters.brand, advertiserName: filters.query || "" };
+  } else if (filters.query && isSupabaseConfigured) {
+    const q = filters.query.trim().toLowerCase();
+    const { data: fallbackData } = await catalogClient!.from('ads')
+      .select('advertiser_id, advertiser_name')
+      .ilike('advertiser_name', `${q}%`)
+      .limit(500);
+
+    if (fallbackData) {
+      const exactMatches = new Map();
+      for (const ad of fallbackData) {
+        if (ad.advertiser_name.toLowerCase() === q) {
+           exactMatches.set(ad.advertiser_id, ad.advertiser_name);
+        }
+      }
+      
+      if (exactMatches.size === 1) {
+        const [resolvedId, resolvedName] = Array.from(exactMatches.entries())[0];
+        filters.brand = resolvedId;
+        filters.query = resolvedName;
+        resolvedIntent = { type: "advertiser", advertiserId: resolvedId, advertiserName: resolvedName };
+      } else {
+        resolvedIntent = { type: "keyword", query: filters.query };
+      }
+    } else {
+      resolvedIntent = { type: "keyword", query: filters.query };
+    }
+  } else if (filters.query) {
+    resolvedIntent = { type: "keyword", query: filters.query };
+  }
   
   // Sort array fields for stable cache key
   const normalizedFilters = { ...filters };
@@ -209,82 +243,69 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Call provider if not satisfied by preloaded cache (e.g. we have a search query)
-    if (!payload && isAnyAdsProviderConfigured) {
-      let providers;
-      try {
-        providers = getAdProviders(filters);
-      } catch (err) {
-        if (err instanceof ProviderError && (err.code === "META_TOKEN_EXPIRED" || err.code === "PROVIDER_AUTH")) {
-          // If Meta token expired and no other provider is configured, check Supabase fallback
-          if (isSupabaseConfigured) {
-            const { data } = await catalogClient!.from("ads").select("*").order("last_seen_at", { ascending: false }).limit(24);
-            if (data && data.length) {
-              payload = { ads: adsForClient(data.map(dbAdToNormalized)), nextCursor: null, total: data.length, source: "catalog" };
-            }
+    if (!payload && isSupabaseConfigured) {
+      const { getToken } = await auth();
+      const token = await getToken();
+      
+      if (token) {
+        const env = getServerEnv();
+        const functionUrl = `${env.supabaseUrl}/functions/v1/ads-search`;
+        
+        try {
+          const requestKey = `edge:${key}`;
+          let pending = inFlight.get(requestKey);
+          if (!pending) {
+            pending = fetch(functionUrl, {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(filters)
+            }).then(async (res) => {
+              if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new ProviderError(errData.code || "UNKNOWN", errData.message || "Edge function failed", res.status);
+              }
+              return res.json() as Promise<AdSearchResult>;
+            }).finally(() => inFlight.delete(requestKey));
+            
+            inFlight.set(requestKey, pending);
+          }
+          
+          const result = await pending;
+          
+          if (result && result.ads && result.ads.length > 0) {
+            await persistNormalizedAds(result.ads);
+            const adsToArchive = result.ads;
+            after(() => {
+              archiveAdsInBackground(adsToArchive).catch(console.error);
+            });
+            payload = { ...result, ads: adsForClient(result.ads) };
+          }
+        } catch (error) {
+          console.error("Edge function error:", error);
+          if (error instanceof ProviderError) {
+             throw error;
           }
         }
-        if (!payload) throw err;
       }
 
-      if (!payload && providers) {
-        let result: AdSearchResult | null = null;
-        let lastError: ProviderError | null = null;
-
-        for (const { provider, name } of providers) {
-          try {
-            const requestKey = `${name}:${key}`;
-            let pending = inFlight.get(requestKey);
-            if (!pending) {
-              pending = provider.searchAds(filters).finally(() => inFlight.delete(requestKey));
-              inFlight.set(requestKey, pending);
-            }
-            result = await pending;
-            clearProviderCircuit(name);
-            setProviderHealth(name, "CONNECTED");
-            break;
-          } catch (error) {
-            if (!(error instanceof ProviderError)) throw error;
-            lastError = error;
-
-            if (error.code === "META_TOKEN_EXPIRED") {
-              setProviderHealth(name, "TOKEN_EXPIRED", error.message);
-            } else if (error.code === "META_PERMISSION_ERROR") {
-              setProviderHealth(name, "PERMISSION_REQUIRED", error.message);
-            } else if (error.code === "PROVIDER_AUTH" || error.code === "SEARCHAPI_AUTH_ERROR" || error.code === "FOREPLAY_AUTH_ERROR") {
-              setProviderHealth(name, "AUTH_ERROR", error.message);
-            } else if (["PROVIDER_RATE_LIMIT", "META_RATE_LIMIT", "SEARCHAPI_RATE_LIMIT", "FOREPLAY_RATE_LIMIT", "FOREPLAY_QUOTA_EXCEEDED"].includes(error.code)) {
-              setProviderHealth(name, "RATE_LIMITED", error.message);
-            } else {
-              setProviderHealth(name, "UNAVAILABLE", error.message);
-            }
-
-            if (providers.length === 1) break;
-          }
-        }
-
-        if (result) {
-          await persistNormalizedAds(result.ads);
-          const adsToArchive = result.ads;
-          after(() => {
-            archiveAdsInBackground(adsToArchive).catch(console.error);
-          });
-          payload = { ...result, ads: adsForClient(result.ads) };
-        } else if (isSupabaseConfigured) {
-          // Fallback to Supabase stored ads on total provider failure
-          const { data } = await catalogClient!.from("ads").select("*").order("last_seen_at", { ascending: false }).limit(24);
-          if (data && data.length) {
-            payload = { ads: adsForClient(data.map(dbAdToNormalized)), nextCursor: null, total: data.length, source: "catalog" };
-          } else if (lastError) {
-            throw lastError;
-          }
-        } else if (lastError) {
-          throw lastError;
+      if (!payload) {
+        // Fallback to Supabase stored ads on total provider failure
+        const { data } = await catalogClient!.from("ads").select("*").order("last_seen_at", { ascending: false }).limit(24);
+        if (data && data.length) {
+          payload = { ads: adsForClient(data.map(dbAdToNormalized)), nextCursor: null, total: data.length, source: "catalog" };
         }
       }
     }
 
-    if (!payload) {
-      return NextResponse.json({ error: "No ads available.", code: "NOT_CONFIGURED" }, { status: 503 });
+    if (payload) {
+      if (payload.ads.length > 0) {
+        cache.set(key, { expires: Date.now() + 5 * 60_000, payload });
+      }
+      payload.resolvedIntent = resolvedIntent;
+      return NextResponse.json(payload);
     }
 
     cache.set(key, { expires: Date.now() + 5 * 60_000, payload });

@@ -7,13 +7,13 @@ export default function PrivacySettingsPage() {
     <div className="max-w-3xl space-y-6">
       <div className="mb-8">
         <h2 className="text-xl font-semibold">Data & Privacy</h2>
-        <p className="mt-1 text-sm text-muted">Review Ads Hunting&apos;s privacy posture and media archival policy.</p>
+        <p className="mt-1 text-sm text-muted">Review AdsHunting&apos;s privacy posture and media archival policy.</p>
       </div>
 
       <div className="space-y-6">
         <Card className="p-6 shadow-sm">
           <h3 className="text-base font-semibold">Media Storage</h3>
-          <p className="mt-1 text-sm text-muted">Ads Hunting stores permitted creative assets in controlled storage to reduce dependency on temporary provider URLs.</p>
+          <p className="mt-1 text-sm text-muted">AdsHunting stores permitted creative assets in controlled storage to reduce dependency on temporary provider URLs.</p>
           <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
             <span className="text-sm font-medium">Creative archival</span>
             <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
@@ -40,7 +40,7 @@ export default function PrivacySettingsPage() {
         </Card>
 
         <div className="mt-8 rounded-lg bg-surface p-5 text-xs leading-5 text-muted">
-          <span className="font-semibold text-ink">Intelligence Limits:</span> Ads Hunting does not claim private advertiser CTR, CPC, ROAS, sales, revenue, or conversion data.
+          <span className="font-semibold text-ink">Intelligence Limits:</span> AdsHunting does not claim private advertiser CTR, CPC, ROAS, sales, revenue, or conversion data.
         </div>
       </div>
     </div>

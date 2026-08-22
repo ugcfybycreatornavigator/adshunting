@@ -37,7 +37,7 @@ export function TrustProofSection() {
     <section className="py-6 border-b border-border relative overflow-hidden">
       {/* Light Premium Gradient Background */}
       <div className="absolute inset-0 bg-gradient-to-r from-[#FCFDFB] via-brand/5 to-[#FCFDFB]"></div>
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.02]"></div>
+      <div className="noise-texture absolute inset-0 opacity-[0.02]"></div>
 
       <LandingContainer className="relative z-10">
         <motion.div 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { LandingContainer } from '../layout/LandingContainer';
 import { workflowAds } from '@/data/landing/workflowAds';
-import { Bookmark, Share2, FolderTree, Users } from 'lucide-react';
+import { Bookmark, FolderTree, Users } from 'lucide-react';
 
 export function SaveShareSection() {
   const sampleAd = workflowAds[4]; // Svasta Foods (Image)
@@ -22,7 +22,7 @@ export function SaveShareSection() {
           </div>
           <div className="w-full lg:w-1/2 rounded-2xl bg-surface-subtle border border-border shadow-[0_20px_50px_rgba(0,0,0,0.04)] p-8 flex flex-col items-center justify-center relative">
             
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03]"></div>
+            <div className="noise-texture absolute inset-0 opacity-[0.03]"></div>
             
             <div className="w-[220px] aspect-[4/5] bg-white rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.12)] border border-border overflow-hidden relative mb-[-50px] z-10 hover:-translate-y-2 transition-transform duration-500 rotate-[-2deg]">
               <img src={sampleAd.thumbnail} alt={sampleAd.brand} className="w-full h-full object-cover" />

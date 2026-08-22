@@ -53,14 +53,14 @@ export function MobileHeader() {
           onClick={() => setOpen(false)}
         >
           <div
-            className="flex h-full w-[min(88vw,300px)] flex-col bg-[#0B0D12] px-4 pb-4 border-r border-white/5"
+            className="flex h-full w-[min(88vw,300px)] flex-col bg-[#F9F9F9] px-4 pb-4 border-r border-[#E1E1E1]"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex h-[72px] items-center justify-between pl-3 pr-1 pt-4">
-              <BrandMark inverted />
+              <BrandMark />
               <button
                 aria-label="Close navigation"
-                className="flex size-10 items-center justify-center text-[#A1A1AA] hover:text-white transition"
+                className="flex size-10 items-center justify-center text-[#A1A1AA] hover:text-[#111216] transition"
                 onClick={() => setOpen(false)}
               >
                 <X size={20} />
@@ -81,9 +81,9 @@ export function MobileHeader() {
 
 export function Sidebar() {
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-[252px] flex-col border-r border-white/[0.07] bg-[#0B0D12] px-4 pb-4 lg:flex">
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-[252px] flex-col border-r border-[#E1E1E1] bg-[#F9F9F9] px-4 pb-4 lg:flex">
       <div className="flex h-[72px] items-center pl-3 pt-4">
-        <BrandMark inverted />
+        <BrandMark />
       </div>
       <div className="flex-1 overflow-y-auto overflow-x-hidden pt-[16px] scrollbar-hide">
         <Navigation />
@@ -101,7 +101,7 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
     <nav aria-label="Primary navigation" className="flex flex-col gap-[20px]">
       {navGroups.map((group) => (
         <div key={group.label}>
-          <p className="mb-[6px] px-3 text-[10px] font-semibold uppercase tracking-[.12em] text-[#626774]">
+          <p className="mb-[6px] px-3 text-[10px] font-semibold uppercase tracking-[.12em] text-[#71717A]">
             {group.label}
           </p>
           <ul className="space-y-[3px]">
@@ -115,17 +115,17 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
                     href={href}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "group relative flex h-[42px] items-center gap-[11px] rounded-[10px] px-3 transition-all duration-150 ease-out outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-1 focus-visible:ring-offset-[#0B0D12]",
+                      "group relative flex h-[42px] items-center gap-[11px] rounded-[10px] px-3 transition-all duration-150 ease-out outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-1 focus-visible:ring-offset-[#F9F9F9]",
                       active
-                        ? "text-[#FFFFFF] border border-[#68B32F]/15"
-                        : "text-[#A0A4AE] hover:bg-white/[0.045] hover:text-[#F4F4F5] border border-transparent"
+                        ? "text-[#111216] border border-[#68B32F]/15"
+                        : "text-[#71717A] hover:bg-black/[0.03] hover:text-[#111216] border border-transparent"
                     )}
                     style={active ? {
-                      background: "linear-gradient(90deg, rgba(104, 179, 47, 0.16) 0%, rgba(104, 179, 47, 0.07) 35%, rgba(255,255,255,0.055) 100%)"
+                      background: "linear-gradient(90deg, rgba(104, 179, 47, 0.16) 0%, rgba(104, 179, 47, 0.07) 35%, rgba(0,0,0,0.02) 100%)"
                     } : undefined}
                   >
                     {active && <div className="absolute left-0 top-0 bottom-0 w-[2px] rounded-r-full bg-[#68B32F]" />}
-                    <Icon size={18} strokeWidth={1.8} className={cn("shrink-0 transition-colors duration-150", active ? "text-[#68B32F]" : "text-[#767C89] group-hover:text-[#C5C8CF]")} />
+                    <Icon size={18} strokeWidth={1.8} className={cn("shrink-0 transition-colors duration-150", active ? "text-[#68B32F]" : "text-[#A1A1AA] group-hover:text-[#71717A]")} />
                     <span className={cn("truncate", active ? "font-semibold text-[14px]" : "font-medium text-[14px]")}>{label}</span>
                   </Link>
                 </li>
@@ -161,7 +161,7 @@ function SidebarProfile() {
   }, [isOpen]);
 
   if (!isLoaded) {
-    return <div className="h-[58px] animate-pulse rounded-[12px] bg-[#12151C] border-t border-white/[0.07]" />;
+    return <div className="h-[58px] animate-pulse rounded-[12px] bg-[#E5E7EB] border-t border-[#E1E1E1]" />;
   }
 
   if (!user) return null;
@@ -172,23 +172,23 @@ function SidebarProfile() {
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-haspopup="true"
-        className="group relative flex w-full items-center gap-3 rounded-[12px] pt-[12px] pb-[10px] px-[10px] transition duration-150 hover:bg-[#151820] border-t border-white/[0.07] bg-transparent text-left outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-1 focus-visible:ring-offset-[#0B0D12]"
-        style={isOpen ? { backgroundColor: "#171A22" } : {}}
+        className="group relative flex w-full items-center gap-3 rounded-[12px] pt-[12px] pb-[10px] px-[10px] transition duration-150 hover:bg-black/[0.04] border-t border-[#E1E1E1] bg-transparent text-left outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-1 focus-visible:ring-offset-[#F9F9F9]"
+        style={isOpen ? { backgroundColor: "rgba(0,0,0,0.06)" } : {}}
       >
         <img
           src={user.imageUrl}
           alt=""
-          className="size-[34px] shrink-0 rounded-full border border-white/10 object-cover bg-[#1A1D24]"
+          className="size-[34px] shrink-0 rounded-full border border-black/10 object-cover bg-white"
         />
         <div className="flex flex-1 flex-col overflow-hidden">
-          <p className="truncate text-[13px] font-semibold text-[#F7F7F8]">
+          <p className="truncate text-[13px] font-semibold text-[#111216]">
             {user.fullName || user.primaryEmailAddress?.emailAddress?.split('@')[0] || "User"}
           </p>
-          <p className="truncate text-[11px] text-[#777C88]">
+          <p className="truncate text-[11px] text-[#71717A]">
             Personal account
           </p>
         </div>
-        <MoreHorizontal size={16} className={cn("transition-colors", isOpen ? "text-[#F7F7F8]" : "text-[#6F7380] group-hover:text-[#A1A1AA]")} />
+        <MoreHorizontal size={16} className={cn("transition-colors", isOpen ? "text-[#111216]" : "text-[#A1A1AA] group-hover:text-[#71717A]")} />
       </button>
 
       {isOpen && (

@@ -5,15 +5,29 @@ import { ResourceHero } from '@/components/resources/ResourceHero';
 import { ResourceCTA } from '@/components/resources/ResourceCTA';
 import { ResourceRelatedLinks } from '@/components/resources/ResourceRelatedLinks';
 import { HelpClient } from '@/components/resources/HelpClient';
+import { breadcrumbJsonLd, createMetadata, jsonLd } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createMetadata({
   title: 'AdsHunting Help & FAQ',
   description: 'Answers about AdsHunting. Understand what the product does, what information is available, and how the core research workflow works.',
-};
+  path: '/resources/help',
+});
 
 export default function HelpPage() {
   return (
     <ResourceContainer>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd(
+            breadcrumbJsonLd([
+              { name: 'Home', path: '/' },
+              { name: 'Resources', path: '/resources' },
+              { name: 'Help & FAQ', path: '/resources/help' },
+            ]),
+          ),
+        }}
+      />
       <ResourceHero
         breadcrumbTitle="Help & FAQ"
         eyebrow="HELP & FAQ"

@@ -17,7 +17,9 @@ export function ResourceBreadcrumbs({
         </li>
         <li className="flex items-center space-x-2">
           <ChevronRight size={14} />
-          <span className="cursor-default">Resources</span>
+          <Link href="/resources" className="hover:text-text-primary transition-colors">
+            Resources
+          </Link>
         </li>
         <li className="flex items-center space-x-2">
           <ChevronRight size={14} />

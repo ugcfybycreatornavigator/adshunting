@@ -105,15 +105,15 @@ export function VideoPreview({
         type="button"
         onClick={toggle}
         aria-label={playing ? "Pause preview" : "Play muted preview"}
-        className="absolute bottom-3 left-3 z-10 grid size-11 place-items-center rounded-full bg-black/75 text-white backdrop-blur transition hover:bg-black focus-visible:ring-2 focus-visible:ring-white"
+        className="absolute bottom-2 left-2 z-10 grid size-8 place-items-center rounded-full bg-black/50 text-white backdrop-blur transition hover:bg-black/70 focus-visible:ring-2 focus-visible:ring-white border border-white/10 shadow-sm"
       >
         {playing ? (
-          <Pause size={16} fill="currentColor" />
+          <Pause size={14} fill="currentColor" />
         ) : (
-          <Play className="ml-0.5" size={16} fill="currentColor" />
+          <Play className="ml-0.5" size={14} fill="currentColor" />
         )}
       </button>}
-      {!controls && <span className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-full bg-black/65 px-2 py-1 text-[10px] font-medium text-white">
+      {!controls && <span className="absolute bottom-2 right-2 z-10 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur px-2.5 py-1 border border-white/10 shadow-sm text-[10px] font-medium tracking-wide text-white">
         <VolumeX size={11} /> Muted
       </span>}
     </div>
