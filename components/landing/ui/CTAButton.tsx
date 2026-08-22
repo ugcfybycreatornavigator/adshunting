@@ -21,7 +21,7 @@ export function CTAButton({
   
   const variants = {
     primary: 'bg-brand text-white hover:bg-brand-strong',
-    secondary: 'bg-surface-green text-brand-strong hover:bg-brand-soft',
+    secondary: 'bg-surface-blue text-brand-strong hover:bg-brand-soft',
     outline: 'border border-border-strong text-text-primary hover:bg-surface-subtle',
     ghost: 'text-text-secondary hover:text-text-primary hover:bg-surface-subtle',
     inverted: 'bg-white text-brand-strong hover:bg-surface-subtle',

@@ -77,55 +77,80 @@ export function normalizeForeplayAd(input: UnknownRecord): NormalizedAd {
   });
   const externalAdId = text(input.ad_id) || text(input.id) || crypto.randomUUID();
 
-  const baseAd = {
+  const baseAd: NormalizedAd = {
     id: text(input.id) || externalAdId,
-    externalAdId,
-    advertiserId,
-    advertiserName,
-    advertiserAvatarUrl: safeExternalUrl(text(input.avatar)),
-    advertiserProfileUrl: null,
-    body,
-    caption: body,
-    headline,
-    description: sanitizeAdCopy(text(input.full_transcription)),
-    hashtags: [...new Set(body?.match(/#[\p{L}\p{N}_]+/gu) ?? [])].slice(0, 30),
-    cta,
-    landingPageUrl,
-    sourceMediaUrl,
-    thumbnailUrl: thumbnail || (mediaType === "image" ? image : null),
-    carouselAssets: assets,
-    storedMediaPath: null,
-    archiveStatus: "not_requested",
-    mediaType,
-    status,
-    startDate: started,
-    stopDate: null,
-    firstSeenAt: now,
-    lastSeenAt: now,
-    runningDays,
-    country: null,
-    platforms,
-    demographics: null,
-    snapshotUrl: safeExternalUrl(text(input.foreplay_url)),
-    source: "foreplay",
+    externalId: externalAdId,
+    provider: {
+      discoveryProvider: "foreplay",
+      fetchedAt: now,
+    },
+    advertiser: {
+      id: advertiserId,
+      name: advertiserName,
+      normalizedName: null,
+      pageUrl: null,
+      logoUrl: safeExternalUrl(text(input.avatar)),
+      domain: null,
+      social: { facebook: null, instagram: null, linkedin: null },
+    },
+    copy: {
+      primaryText: body,
+      headline,
+      description: sanitizeAdCopy(text(input.full_transcription)),
+      cta,
+    },
+    creative: {
+      type: mediaType,
+      imageUrl: image,
+      videoUrl: video,
+      thumbnailUrl: thumbnail || (mediaType === "image" ? image : null),
+      carouselItems: cards.map((card) => ({
+        imageUrl: safeExternalUrl(text(card.image)) ?? undefined,
+        videoUrl: safeExternalUrl(text(card.video)) ?? undefined,
+        headline: text(card.headline) ?? undefined,
+        destinationUrl: safeExternalUrl(text(card.link_url)) ?? undefined,
+      })),
+    },
+    delivery: {
+      status,
+      startedAt: started,
+      endedAt: null,
+      daysRunning: runningDays,
+      platforms,
+      countries: [],
+    },
+    destination: {
+      url: landingPageUrl,
+      resolvedUrl: null,
+      domain: null,
+      title: null,
+      productName: null,
+    },
+    intelligence: {
+      category: null,
+      creativeFormat: null,
+      hookType: null,
+      offerType: null,
+      winnerScore: intelligence.adjustedWinnerScore,
+      labels: [intelligence.badgeCategory, intelligence.longevityLabel.split(" ")[0]],
+    },
+    enrichment: {
+      archiveStatus: "not_requested",
+      status: "pending",
+      qualityScore: intelligence.adjustedWinnerScore,
+      lastEnrichedAt: null,
+    },
     variants: 1,
     creativeRepetition: 0,
     brandActiveAds: null,
-    winnerScore: intelligence.adjustedWinnerScore,
-    intelligenceLabels: [intelligence.badgeCategory, intelligence.longevityLabel.split(" ")[0]],
     rawData: input,
   };
 
-  const fps = computeAdFingerprints(baseAd as NormalizedAd);
+  const fps = computeAdFingerprints(baseAd);
 
   return {
-    ...(baseAd as NormalizedAd),
-    canonicalAdId: fps.canonicalAdId,
-    creativeFingerprint: fps.creativeFingerprint,
-    creativeGroupId: fps.creativeGroupId,
-    observationCount: 1,
-    providerAdIds: [baseAd.externalAdId],
-  };
+    ...baseAd,
+  } as NormalizedAd;
 }
 
 export class ForeplayProvider implements AdProvider {
@@ -212,7 +237,7 @@ export class ForeplayProvider implements AdProvider {
     const { payload } = await this.request("/api/discovery/ads", params);
     const data = Array.isArray(payload.data) ? payload.data.map(record) : [];
     let ads = data.map(normalizeForeplayAd);
-    if (filters.cta) ads = ads.filter((ad) => ad.cta?.toLowerCase() === filters.cta?.toLowerCase());
+    if (filters.cta) ads = ads.filter((ad) => ad.copy.cta?.toLowerCase() === filters.cta?.toLowerCase());
     const metadata = record(payload.metadata);
     const cursor = typeof metadata.cursor === "string" || typeof metadata.cursor === "number" ? String(metadata.cursor) : null;
     return { ads, nextCursor: cursor, total: typeof metadata.count === "number" ? metadata.count : null, source: "provider" };

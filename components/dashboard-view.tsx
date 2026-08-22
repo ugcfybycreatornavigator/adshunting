@@ -147,12 +147,12 @@ export function DashboardView({ data }: { data: DashboardData }) {
 function ResearchCard({ ad }: { ad: NormalizedAd }) {
   const [failed, setFailed] = useState(false);
   
-  let mediaUrl = ad.thumbnailUrl || ad.sourceMediaUrl;
-  const isVideo = ad.mediaType === "video";
-  const isCarousel = ad.mediaType === "carousel";
+  let mediaUrl = ad.creative?.thumbnailUrl || ad.creative?.videoUrl || ad.creative?.imageUrl;
+  const isVideo = ad.creative?.type === "video";
+  const isCarousel = ad.creative?.type === "carousel";
   
-  if (isCarousel && ad.carouselAssets && ad.carouselAssets.length > 0) {
-    mediaUrl = ad.carouselAssets[0];
+  if (isCarousel && ad.creative?.carouselItems && ad.creative.carouselItems.length > 0) {
+    mediaUrl = ad.creative.carouselItems[0].imageUrl || ad.creative.carouselItems[0].videoUrl || null;
   }
 
   // If the primary media is a video file but we have no thumbnail, we can't reliably show an image.
@@ -161,7 +161,7 @@ function ResearchCard({ ad }: { ad: NormalizedAd }) {
   }
 
   return (
-    <Link href={`/discover?ad=${ad.externalAdId}`} className="group flex flex-col overflow-hidden rounded-[16px] border border-line bg-white shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all duration-150 hover:-translate-y-[1px] hover:border-zinc-300 hover:shadow-[0_4px_16px_rgba(0,0,0,0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2">
+    <Link href={`/discover?ad=${ad.externalId || ad.id}`} className="group flex flex-col overflow-hidden rounded-[16px] border border-line bg-white shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all duration-150 hover:-translate-y-[1px] hover:border-zinc-300 hover:shadow-[0_4px_16px_rgba(0,0,0,0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2">
       <div className="aspect-[4/5] w-full bg-neutral-100 relative overflow-hidden flex items-center justify-center">
         {!mediaUrl || failed ? (
           <div className="flex flex-col items-center justify-center gap-2 text-zinc-400 p-4 text-center">
@@ -171,7 +171,7 @@ function ResearchCard({ ad }: { ad: NormalizedAd }) {
         ) : (
           <img 
             src={mediaUrl} 
-            alt={ad.advertiserName} 
+            alt={ad.advertiser?.name || "Advertiser"} 
             onError={() => setFailed(true)}
             className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" 
             loading="lazy" 
@@ -184,21 +184,21 @@ function ResearchCard({ ad }: { ad: NormalizedAd }) {
           </div>
         )}
 
-        {isCarousel && ad.carouselAssets && ad.carouselAssets.length > 0 && !failed && (
+        {isCarousel && ad.creative?.carouselItems && ad.creative.carouselItems.length > 0 && !failed && (
           <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
             <Images size={10} />
-            Carousel · {ad.carouselAssets.length}
+            Carousel · {ad.creative.carouselItems.length}
           </div>
         )}
 
         <div className="absolute inset-0 bg-black/0 transition duration-150 group-hover:bg-black/5" />
       </div>
       <div className="flex flex-1 flex-col p-4">
-        <p className="truncate text-sm font-semibold text-ink">{ad.advertiserName}</p>
-        <p className="mt-1 line-clamp-1 text-xs text-muted">{ad.headline || ad.body || "View creative details"}</p>
+        <p className="truncate text-sm font-semibold text-ink">{ad.advertiser?.name}</p>
+        <p className="mt-1 line-clamp-1 text-xs text-muted">{ad.copy?.headline || ad.copy?.primaryText || "View creative details"}</p>
         <div className="mt-auto pt-3">
           <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">
-            {ad.lastSeenAt ? formatDate(ad.lastSeenAt) : ad.startDate ? formatDate(ad.startDate) : "Recently active"}
+            {ad.provider?.fetchedAt ? formatDate(ad.provider.fetchedAt) : ad.delivery?.startedAt ? formatDate(ad.delivery.startedAt) : "Recently active"}
           </p>
         </div>
       </div>

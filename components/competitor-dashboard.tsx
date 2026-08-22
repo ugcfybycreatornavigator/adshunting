@@ -183,12 +183,13 @@ function AddCompetitorModal({ onClose, onAdded }: { onClose: () => void; onAdded
 
     const map = new Map<string, Candidate>();
     (data.ads as NormalizedAd[]).forEach((ad) => {
-      const current = map.get(ad.advertiserId);
-      map.set(ad.advertiserId, {
-        id: ad.advertiserId,
-        name: ad.advertiserName,
-        avatar: ad.advertiserAvatarUrl,
-        activeAds: (current?.activeAds || 0) + (ad.status === "active" ? 1 : 0),
+      const advertiserId = ad.advertiser?.id || ad.id;
+      const current = map.get(advertiserId);
+      map.set(advertiserId, {
+        id: advertiserId,
+        name: ad.advertiser?.name || "Unknown",
+        avatar: ad.advertiser?.logoUrl || null,
+        activeAds: (current?.activeAds || 0) + (ad.delivery?.status === "active" ? 1 : 0),
       });
     });
 

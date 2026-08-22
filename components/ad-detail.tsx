@@ -23,8 +23,8 @@ export function AdDetailDrawer({
 }) {
   const [optimisticSaved, setOptimisticSaved] = useState(saved);
   const [saving, setSaving] = useState(false);
-  const media = safeExternalUrl(ad.sourceMediaUrl);
-  const intelligence = computeAdIntelligence({ startDate: ad.startDate, stopDate: ad.stopDate, status: ad.status, lastSeenAt: ad.lastSeenAt, variants: ad.variants, creativeRepetition: ad.creativeRepetition, platforms: ad.platforms, mediaType: ad.mediaType, headline: ad.headline, body: ad.body, cta: ad.cta, landingPageUrl: ad.landingPageUrl, sourceMediaUrl: ad.sourceMediaUrl, advertiserId: ad.advertiserId });
+  const media = safeExternalUrl(ad.creative.videoUrl || ad.creative.imageUrl);
+  const intelligence = computeAdIntelligence({ startDate: ad.delivery.startedAt, stopDate: ad.delivery.endedAt, status: ad.delivery.status, lastSeenAt: ad.provider.fetchedAt, variants: ad.variants || 1, creativeRepetition: 0, platforms: ad.delivery.platforms, mediaType: ad.creative.type, headline: ad.copy.headline, body: ad.copy.primaryText, cta: ad.copy.cta, landingPageUrl: ad.destination.url, sourceMediaUrl: ad.creative.imageUrl || ad.creative.videoUrl, advertiserId: ad.advertiser.id });
   const isSaved = saved || optimisticSaved;
 
   async function handleSave() {
@@ -41,7 +41,7 @@ export function AdDetailDrawer({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/25 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-label={`Ad details for ${ad.advertiserName}`} onMouseDown={onClose}>
+    <div className="fixed inset-0 z-[60] bg-black/25 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-label={`Ad details for ${ad.advertiser.name}`} onMouseDown={onClose}>
       <div className="absolute inset-0 overflow-y-auto bg-white md:left-auto md:w-[min(94vw,1100px)] md:border-l md:border-line md:shadow-2xl" onMouseDown={event => event.stopPropagation()}>
         
         {/* Toolbar */}
@@ -51,8 +51,8 @@ export function AdDetailDrawer({
               <X size={18} />
             </button>
             <div className="min-w-0 flex flex-col justify-center">
-              <p className="truncate text-[15px] font-[600] text-ink leading-snug">{ad.advertiserName}</p>
-              <p className="truncate text-[12px] text-muted leading-tight mt-0.5">Library ID {ad.externalAdId}</p>
+              <p className="truncate text-[15px] font-[600] text-ink leading-snug">{ad.advertiser.name || "Unknown advertiser"}</p>
+              <p className="truncate text-[12px] text-muted leading-tight mt-0.5">Library ID {ad.externalId || ad.id}</p>
             </div>
           </div>
           <button 
@@ -84,26 +84,24 @@ export function AdDetailDrawer({
             <section>
               <SectionHeader number="02" title="Copy" />
               <div className="mt-4 rounded-[16px] border border-[#E8EAE7] bg-white divide-y divide-[#E8EAE7]">
-                <CopyMeta label="Body copy" value={ad.body} wide />
-                <CopyMeta label="Headline" value={ad.headline} />
-                <CopyMeta label="Description" value={ad.description} />
-                <CopyMeta label="Call to action" value={ad.cta} />
-                <CopyMeta label="Hashtags" value={ad.hashtags?.length ? ad.hashtags.join(" ") : null} wide />
+                <CopyMeta label="Body copy" value={ad.copy.primaryText} wide />
+                <CopyMeta label="Headline" value={ad.copy.headline} />
+                <CopyMeta label="Description" value={ad.copy.description} />
+                <CopyMeta label="Call to action" value={ad.copy.cta} />
+                <CopyMeta label="Hashtags" value={null} wide />
               </div>
             </section>
 
-            {ad.carouselCards && ad.carouselCards.length > 1 && (
+            {ad.creative.carouselItems && ad.creative.carouselItems.length > 1 && (
               <section>
                 <SectionHeader number="02b" title="Carousel Cards" />
                 <div className="mt-4 space-y-4">
-                  {ad.carouselCards.map((card, i) => (
+                  {ad.creative.carouselItems.map((card, i) => (
                     <div key={i} className="rounded-[16px] border border-[#E8EAE7] bg-white divide-y divide-[#E8EAE7]">
                       <div className="px-5 py-3 bg-zinc-50/50 rounded-t-[16px]">
                         <p className="text-[13px] font-[650] text-ink uppercase tracking-wide">Card {i + 1}</p>
                       </div>
                       <CopyMeta label="Headline" value={card.headline} />
-                      <CopyMeta label="Description" value={card.description} />
-                      <CopyMeta label="Call to action" value={card.callToAction} />
                       <CopyMeta label="Destination" value={card.destinationUrl} wide />
                     </div>
                   ))}
@@ -114,9 +112,9 @@ export function AdDetailDrawer({
             <section>
               <SectionHeader number="03" title="Landing page" />
               <div className="mt-4 rounded-[16px] border border-[#E8EAE7] bg-white p-5">
-                {ad.landingPageUrl ? (
-                  <a href={ad.landingPageUrl} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-4 text-sm font-[500] text-ink hover:text-brand transition-colors">
-                    <span className="truncate">{ad.landingPageUrl}</span>
+                {ad.destination.url ? (
+                  <a href={ad.destination.url} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-4 text-sm font-[500] text-ink hover:text-brand transition-colors">
+                    <span className="truncate">{ad.destination.url}</span>
                     <ExternalLink className="shrink-0 text-muted" size={16} />
                   </a>
                 ) : (
@@ -134,11 +132,11 @@ export function AdDetailDrawer({
                 <AdsHuntingSignalsPanel ad={ad} intelligence={intelligence} />
               </div>
 
-              {ad.intelligenceLabels.length > 0 && (
+              {ad.intelligence.labels.length > 0 && (
                 <div className="mt-[16px] flex flex-wrap gap-[8px]">
-                  {ad.intelligenceLabels.map(label => (
+                  {ad.intelligence.labels.map((label: string) => (
                     <span key={label} className="inline-flex items-center h-[28px] px-3 rounded-full bg-brand/10 border border-brand/20 text-[12px] font-[600] text-[#4F9625]">
-                      {displaySignalLabel(label, ad.winnerScore)}
+                      {displaySignalLabel(label, ad.intelligence.winnerScore ?? 0)}
                     </span>
                   ))}
                 </div>
@@ -148,40 +146,37 @@ export function AdDetailDrawer({
             <section>
               <SectionHeader number="05" title="Delivery" />
               <div className="mt-4 rounded-[16px] border border-[#E8EAE7] bg-white">
-                <DeliveryMeta label="Status" value={ad.status.toUpperCase()} />
-                <DeliveryMeta label="Started running" value={ad.startDate ? formatDate(ad.startDate) : null} />
-                <DeliveryMeta label="Stopped running" value={ad.stopDate ? formatDate(ad.stopDate) : ad.status === "active" ? "Still active" : null} />
-                <DeliveryMeta label="First seen" value={formatDate(ad.firstSeenAt)} />
-                <DeliveryMeta label="Last checked" value={formatDate(ad.lastSeenAt)} />
-                <DeliveryMeta label="Country" value={ad.country} />
-                <DeliveryMeta label="Platforms" value={ad.platforms?.length ? ad.platforms.map(titleCase).join(", ") : null} />
-                {(ad.observationCount && ad.observationCount > 1) ? (
-                  <DeliveryMeta label="Observations" value={`${ad.observationCount} times`} />
-                ) : null}
-                <DeliveryMeta label="Archive Status" value={ad.archiveStatus === "archived" ? "Safely Archived" : "Source Hosted"} noBorder />
+                <DeliveryMeta label="Status" value={ad.delivery.status.toUpperCase()} />
+                <DeliveryMeta label="Started running" value={ad.delivery.startedAt ? formatDate(ad.delivery.startedAt) : null} />
+                <DeliveryMeta label="Stopped running" value={ad.delivery.endedAt ? formatDate(ad.delivery.endedAt) : ad.delivery.status === "active" ? "Still active" : null} />
+                <DeliveryMeta label="First seen" value={formatDate(ad.provider.fetchedAt)} />
+                <DeliveryMeta label="Last checked" value={formatDate(ad.provider.fetchedAt)} />
+                <DeliveryMeta label="Country" value={ad.delivery.countries[0]} />
+                <DeliveryMeta label="Platforms" value={ad.delivery.platforms?.length ? ad.delivery.platforms.map(titleCase).join(", ") : null} />
+                <DeliveryMeta label="Archive Status" value="Source Hosted" noBorder />
               </div>
             </section>
 
             <section>
               <SectionHeader number="06" title="Audience / Demographics" />
-              <DemographicsPanel demographics={ad.demographics} />
+              <DemographicsPanel demographics={null} />
             </section>
 
             <section>
               <SectionHeader number="07" title="Advertiser" />
               <div className="mt-4 rounded-[16px] border border-[#E8EAE7] bg-white p-5 flex items-center gap-4">
-                {ad.advertiserAvatarUrl ? (
-                  <img src={ad.advertiserAvatarUrl} alt="" className="size-[48px] rounded-full border border-line/60" />
+                {ad.advertiser.logoUrl ? (
+                  <img src={ad.advertiser.logoUrl} alt="" className="size-[48px] rounded-full border border-line/60" />
                 ) : (
                   <span className="grid size-[48px] place-items-center rounded-full bg-ink font-[600] text-white text-[18px]">
-                    {ad.advertiserName[0]}
+                    {ad.advertiser.name?.[0] || "U"}
                   </span>
                 )}
                 <div className="min-w-0">
-                  <Link href={`/brands/${encodeURIComponent(ad.advertiserId)}`} className="text-[15px] font-[600] text-ink transition-colors hover:text-brand">
-                    {ad.advertiserName}
+                  <Link href={`/brands/${encodeURIComponent(ad.advertiser.id || "unknown")}`} className="text-[15px] font-[600] text-ink transition-colors hover:text-brand">
+                    {ad.advertiser.name || "Unknown"}
                   </Link>
-                  <p className="mt-1 text-[12px] text-muted">Page ID {ad.advertiserId}</p>
+                  <p className="mt-1 text-[12px] text-muted">Page ID {ad.advertiser.id}</p>
                 </div>
               </div>
             </section>
@@ -240,24 +235,24 @@ function titleCase(value: string) {
 
 function DetailCreativePreview({ ad, media }: { ad: NormalizedAd; media: string | null }) {
   const [ratio, setRatio] = useState<number | null>(null);
-  const imageSource = media || safeExternalUrl(ad.thumbnailUrl);
+  const imageSource = media || safeExternalUrl(ad.creative.thumbnailUrl);
   const orientation = orientationFromRatio(ratio);
   
   const mediaClass = cn(
     "mt-[16px] overflow-hidden rounded-[16px] border border-[#E8EAE7] bg-[#F5F5F5]",
-    ad.mediaType === "video" && orientation === "portrait" && "mx-auto max-w-[460px] aspect-[9/16]",
-    ad.mediaType === "video" && orientation === "landscape" && "aspect-video",
-    ad.mediaType === "video" && orientation === "square" && "mx-auto max-w-[620px] aspect-square",
-    ad.mediaType === "carousel" && "aspect-[4/5] max-h-[760px]",
-    ad.mediaType !== "video" && ad.mediaType !== "carousel" && "max-h-[760px]"
+    ad.creative.type === "video" && orientation === "portrait" && "mx-auto max-w-[460px] aspect-[9/16]",
+    ad.creative.type === "video" && orientation === "landscape" && "aspect-video",
+    ad.creative.type === "video" && orientation === "square" && "mx-auto max-w-[620px] aspect-square",
+    ad.creative.type === "carousel" && "aspect-[4/5] max-h-[760px]",
+    ad.creative.type !== "video" && ad.creative.type !== "carousel" && "max-h-[760px]"
   );
 
-  if (ad.mediaType === "video" && media) {
+  if (ad.creative.type === "video" && media) {
     return (
       <div className={mediaClass} style={ratio ? { aspectRatio: `${ratio}` } : undefined}>
         <VideoPreview
           src={media}
-          poster={ad.thumbnailUrl}
+          poster={ad.creative.thumbnailUrl}
           controls
           objectFit="contain"
           className="h-full w-full bg-black"
@@ -267,10 +262,11 @@ function DetailCreativePreview({ ad, media }: { ad: NormalizedAd; media: string 
     );
   }
 
-  if (ad.mediaType === "carousel" && ad.carouselAssets.length) {
+  if (ad.creative.type === "carousel" && ad.creative.carouselItems?.length) {
+    const assets = ad.creative.carouselItems.map(item => item.imageUrl || item.videoUrl).filter(Boolean) as string[];
     return (
       <div className={mediaClass}>
-        <CarouselPreview assets={ad.carouselAssets} alt={`Creative from ${ad.advertiserName}`} className="h-full w-full" />
+        <CarouselPreview assets={assets} alt={`Creative from ${ad.advertiser?.name}`} className="h-full w-full" />
       </div>
     );
   }
@@ -280,7 +276,7 @@ function DetailCreativePreview({ ad, media }: { ad: NormalizedAd; media: string 
       <div className={cn(mediaClass, "flex items-center justify-center")} style={{ aspectRatio: ratio ? `${ratio}` : "4 / 5" }}>
         <img
           src={imageSource}
-          alt={`Creative from ${ad.advertiserName}`}
+          alt={`Creative from ${ad.advertiser?.name}`}
           className="h-full w-full object-contain"
           onLoad={(event) => {
             const image = event.currentTarget;
@@ -387,8 +383,8 @@ function AdsHuntingSignalsPanel({
 
       {/* Secondary Metrics Group */}
       <div className="mt-[24px] grid grid-cols-1 sm:grid-cols-3 gap-[12px]">
-        <Fact label="Longevity" value={longevityDisplay(ad.runningDays)} score={`${intelligence.longevityScore} / 100`} />
-        <Fact label="Creative Repetition" value={repetitionDisplay(ad.creativeRepetition)} score={`${intelligence.repetitionScore} / 100`} />
+        <Fact label="Longevity" value={longevityDisplay(ad.delivery.daysRunning ?? null)} score={`${intelligence.longevityScore} / 100`} />
+        <Fact label="Creative Repetition" value={repetitionDisplay(ad.creativeRepetition ?? 0)} score={`${intelligence.repetitionScore} / 100`} />
         <Fact label="Brand Commitment" value={scoreSignalLabel(intelligence.brandCommitmentScore)} score={`${intelligence.brandCommitmentScore} / 100`} />
       </div>
 
@@ -439,7 +435,7 @@ function Fact({ label, value, score }: { label: string; value: string; score: st
 // Demographics
 // --------------------------------------------------------------------------------
 
-function DemographicsPanel({ demographics }: { demographics: NormalizedAd["demographics"] }) {
+function DemographicsPanel({ demographics }: { demographics: Record<string, Record<string, number>> | null }) {
   const groups = Object.entries(demographics ?? {}).flatMap(([category, values]) => {
     if (!values || !Object.keys(values).length) return [];
     return [{ category, values }];

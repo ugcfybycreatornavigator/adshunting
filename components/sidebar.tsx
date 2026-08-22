@@ -117,15 +117,15 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
                     className={cn(
                       "group relative flex h-[42px] items-center gap-[11px] rounded-[10px] px-3 transition-all duration-150 ease-out outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-1 focus-visible:ring-offset-[#F9F9F9]",
                       active
-                        ? "text-[#111216] border border-[#68B32F]/15"
+                        ? "text-[#111216] border border-[#2563EB]/15"
                         : "text-[#71717A] hover:bg-black/[0.03] hover:text-[#111216] border border-transparent"
                     )}
                     style={active ? {
                       background: "linear-gradient(90deg, rgba(104, 179, 47, 0.16) 0%, rgba(104, 179, 47, 0.07) 35%, rgba(0,0,0,0.02) 100%)"
                     } : undefined}
                   >
-                    {active && <div className="absolute left-0 top-0 bottom-0 w-[2px] rounded-r-full bg-[#68B32F]" />}
-                    <Icon size={18} strokeWidth={1.8} className={cn("shrink-0 transition-colors duration-150", active ? "text-[#68B32F]" : "text-[#A1A1AA] group-hover:text-[#71717A]")} />
+                    {active && <div className="absolute left-0 top-0 bottom-0 w-[2px] rounded-r-full bg-[#2563EB]" />}
+                    <Icon size={18} strokeWidth={1.8} className={cn("shrink-0 transition-colors duration-150", active ? "text-[#2563EB]" : "text-[#A1A1AA] group-hover:text-[#71717A]")} />
                     <span className={cn("truncate", active ? "font-semibold text-[14px]" : "font-medium text-[14px]")}>{label}</span>
                   </Link>
                 </li>

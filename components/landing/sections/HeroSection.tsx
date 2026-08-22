@@ -1,223 +1,239 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useRef, useEffect, useCallback } from 'react';
+import { motion, useScroll, useTransform, useMotionValue, useSpring } from 'framer-motion';
 import { LandingContainer } from '../layout/LandingContainer';
-import { CTAButton } from '../ui/CTAButton';
+import { HeroOpticalBackground } from './HeroOpticalBackground';
+import { HeroProductPreview } from './HeroProductPreview';
 import { authLinks } from '@/data/landing/config';
-import { ArrowRight, Search, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
-const PLACEHOLDERS = [
-  "Search brands, ads or competitors...",
-  "e.g. 'Aether Athletics'",
-  "e.g. 'Nike running shoes'",
-  "e.g. 'Beauty campaigns 2026'"
-];
+/* ─────────────────────────────────────────────────────────────────────
+   ENTRANCE ANIMATION VARIANTS
+   ───────────────────────────────────────────────────────────────────── */
+
+const fadeUpVariant = {
+  hidden: { opacity: 0, y: 30, filter: 'blur(12px)', scale: 0.96 },
+  visible: (delay: number) => ({
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    scale: 1,
+    transition: {
+      duration: 1.2,
+      delay,
+      ease: [0.19, 1, 0.22, 1] as const,
+    },
+  }),
+};
+
+/* ─────────────────────────────────────────────────────────────────────
+   HERO SECTION
+   ───────────────────────────────────────────────────────────────────── */
 
 export function HeroSection() {
-  const [searchValue, setSearchValue] = useState('');
-  const [isRedirecting, setIsRedirecting] = useState(false);
-  const [placeholderText, setPlaceholderText] = useState('');
-  const router = useRouter();
+  const sectionRef = useRef<HTMLElement>(null);
+  const bgRef = useRef<HTMLDivElement>(null);
 
+  // ── Mouse tracking (MotionValues — no React state updates) ──
+  const rawMouseX = useMotionValue(0);
+  const rawMouseY = useMotionValue(0);
+  const smoothMouseX = useSpring(rawMouseX, { stiffness: 70, damping: 25, mass: 0.5 });
+  const smoothMouseY = useSpring(rawMouseY, { stiffness: 70, damping: 25, mass: 0.5 });
+
+  // ── Scroll parallax ──
+  const { scrollY } = useScroll();
+  const bgTranslateY = useTransform(scrollY, [0, 800], [0, 40]);
+  const bgOpacity = useTransform(scrollY, [0, 600], [1, 0.45]);
+  const bgScale = useTransform(scrollY, [0, 800], [1, 1.03]);
+
+  // ── Apply mouse position as CSS custom properties (GPU-only) ──
   useEffect(() => {
-    let currentPlaceholderIndex = 0;
-    let currentCharIndex = 0;
-    let isDeleting = false;
-    let timeoutId: NodeJS.Timeout;
+    // Check for touch device / reduced motion
+    const isTouch = window.matchMedia('(pointer: coarse)').matches;
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (isTouch || prefersReduced) return;
 
-    const type = () => {
-      const currentFullText = PLACEHOLDERS[currentPlaceholderIndex];
-
-      if (isDeleting) {
-        setPlaceholderText(currentFullText.substring(0, currentCharIndex - 1));
-        currentCharIndex--;
-      } else {
-        setPlaceholderText(currentFullText.substring(0, currentCharIndex + 1));
-        currentCharIndex++;
+    let frameId: number;
+    const updateCSSProps = () => {
+      const el = bgRef.current;
+      if (el) {
+        el.style.setProperty('--hero-mouse-x', String(smoothMouseX.get().toFixed(4)));
+        el.style.setProperty('--hero-mouse-y', String(smoothMouseY.get().toFixed(4)));
       }
-
-      let typingSpeed = isDeleting ? 30 : 70;
-
-      if (!isDeleting && currentCharIndex === currentFullText.length) {
-        // Pause at end of typing
-        typingSpeed = 2000;
-        isDeleting = true;
-      } else if (isDeleting && currentCharIndex === 0) {
-        // Move to next word
-        isDeleting = false;
-        currentPlaceholderIndex = (currentPlaceholderIndex + 1) % PLACEHOLDERS.length;
-        typingSpeed = 500;
-      }
-
-      timeoutId = setTimeout(type, typingSpeed);
+      frameId = requestAnimationFrame(updateCSSProps);
     };
+    frameId = requestAnimationFrame(updateCSSProps);
 
-    timeoutId = setTimeout(type, 500);
+    return () => cancelAnimationFrame(frameId);
+  }, [smoothMouseX, smoothMouseY]);
 
-    return () => clearTimeout(timeoutId);
-  }, []);
+  // ── Mouse move handler ──
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      // Normalized -1 to 1
+      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const y = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+      rawMouseX.set(x);
+      rawMouseY.set(y);
+    },
+    [rawMouseX, rawMouseY],
+  );
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchValue.trim()) return;
-    
-    setIsRedirecting(true);
-    // Simulate a brief delay for polish before redirecting
-    setTimeout(() => {
-      // Pass the search term as a query param so the signup page or subsequent onboarding can potentially use it
-      router.push(`${authLinks.signUp}?search=${encodeURIComponent(searchValue)}`);
-    }, 1200);
-  };
+  const handleMouseLeave = useCallback(() => {
+    rawMouseX.set(0);
+    rawMouseY.set(0);
+  }, [rawMouseX, rawMouseY]);
 
   return (
-    <section className="relative overflow-hidden pt-16 pb-20 md:pt-24 md:pb-32 bg-[#FCFDFB]">
-      {/* Animated Liquid Mesh Gradient Background */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center">
-        
-        {/* Core wrapper with heavy blur to fuse the blobs together */}
-        <div className="absolute w-[120vw] h-[120vh] blur-[100px] md:blur-[140px] opacity-70">
-          
-          {/* Main central liquid body */}
-          <motion.div 
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[40vw] rounded-[100%] bg-brand/20"
-            animate={{
-              rotate: [0, 180, 360],
-              scale: [1, 1.2, 1],
-              x: ["-50%", "-45%", "-55%", "-50%"],
-              y: ["-50%", "-40%", "-60%", "-50%"]
-            }}
-            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          />
+    <section
+      ref={sectionRef}
+      className="relative isolate overflow-hidden"
+      style={{
+        minHeight: '760px',
+        background: 'linear-gradient(180deg, #ffffff 0%, #fafcff 100%)',
+      }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
+      {/* ── Animated optical background ── */}
+      <motion.div
+        ref={bgRef}
+        className="absolute inset-0 will-change-transform"
+        style={{
+          y: bgTranslateY,
+          opacity: bgOpacity,
+          scale: bgScale,
+        }}
+      >
+        <HeroOpticalBackground />
+      </motion.div>
 
-          {/* Sweeping wave 1 */}
-          <motion.div 
-            className="absolute top-[20%] left-[10%] w-[50vw] h-[60vw] rounded-[100%] bg-[#83D146]/20"
-            animate={{
-              rotate: [360, 180, 0],
-              scale: [1, 1.3, 0.9, 1],
-            }}
-            transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-          />
-
-          {/* Sweeping wave 2 */}
-          <motion.div 
-            className="absolute bottom-[10%] right-[10%] w-[60vw] h-[50vw] rounded-[100%] bg-[#539620]/15"
-            animate={{
-              rotate: [0, 120, 240, 360],
-              scale: [0.9, 1.1, 1.3, 0.9],
-              x: ["0%", "-10%", "5%", "0%"]
-            }}
-            transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
-          />
-
-        </div>
-
-        {/* Crisp noise overlay to give it a premium matte finish */}
-        <div className="noise-texture absolute inset-0 opacity-[0.035] mix-blend-overlay" />
-        
-        {/* White vignette gradient to blend edges into the page */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#FCFDFB] via-transparent to-[#FCFDFB] opacity-80" />
-      </div>
-
-      <LandingContainer className="flex flex-col items-center text-center relative z-10">
-        
-        {/* Headline & Copy */}
-        <div className="max-w-[1000px] mx-auto z-10 relative">
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <h1 className="text-[42px] sm:text-[56px] md:text-[72px] lg:text-[84px] leading-[0.96] font-bold tracking-[-0.04em] text-text-primary text-balance mx-auto">
-              Find the ads worth <br className="hidden sm:block" /> stealing inspiration from.
-            </h1>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <p className="mt-6 md:mt-8 text-[17px] md:text-[20px] leading-relaxed text-text-secondary max-w-[640px] mx-auto text-balance">
-              Search competitor creatives, review the details that matter, save useful inspiration, and share your research from one organized workspace.
-            </p>
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto"
-          >
-            <CTAButton href={authLinks.signUp} size="lg" className="w-full sm:w-auto text-[16px] h-12 md:h-14 px-8 shadow-sm">
-              Start 7-Day Free Trial
-            </CTAButton>
-          </motion.div>
-        </div>
-
-        {/* Visual Product Search */}
-        <motion.div 
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full mt-16 md:mt-24 relative z-10 max-w-[1200px] mx-auto"
-        >
-          {/* Decorative glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-brand/5 blur-[120px] rounded-full pointer-events-none -z-10"></div>
-
-          {/* Search Input Interactive */}
-          <form 
-            onSubmit={handleSearch}
-            className="mx-auto w-full max-w-[680px] bg-white rounded-2xl md:rounded-[20px] border border-border/80 shadow-[0_8px_30px_rgb(0,0,0,0.04),0_20px_80px_rgb(0,0,0,0.06)] flex items-center p-2 md:p-3 h-[72px] md:h-[88px] relative z-20 transition-all duration-300 hover:shadow-[0_12px_40px_rgb(0,0,0,0.06),0_24px_100px_rgb(0,0,0,0.08)] focus-within:shadow-[0_12px_40px_rgb(0,0,0,0.06),0_24px_100px_rgb(0,0,0,0.08)] focus-within:border-brand/30 focus-within:ring-4 focus-within:ring-brand/10"
-          >
-            <div className="pl-4 md:pl-6 pr-2 flex items-center justify-center">
-               <Search className="text-text-muted/60" size={24} strokeWidth={1.75} />
-            </div>
-            <input 
-              type="text"
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              placeholder={placeholderText || "Search brands, ads or competitors..."}
-              className="flex-1 h-full min-w-0 bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-[17px] md:text-[20px] text-text-primary font-medium placeholder:text-text-muted/50 placeholder:font-normal px-2"
-              disabled={isRedirecting}
-            />
-            <button 
-              type="submit"
-              disabled={isRedirecting || !searchValue.trim()}
-              className="ml-2 h-full px-6 md:px-8 rounded-xl md:rounded-[14px] bg-brand text-white font-semibold flex items-center justify-center transition-all duration-300 hover:bg-brand-strong hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 text-[15px] md:text-[17px]"
+      {/* ── Hero content ── */}
+      <div className="relative z-20 pt-28 pb-20 md:pt-40 md:pb-32">
+        <LandingContainer className="flex flex-col items-center text-center">
+          <div className="max-w-[1000px] mx-auto">
+            {/* Headline */}
+            <motion.div
+              custom={0.18}
+              variants={fadeUpVariant}
+              initial="hidden"
+              animate="visible"
             >
-              {isRedirecting ? (
-                <>
-                  <Loader2 size={20} className="animate-spin md:mr-2" />
-                  <span className="hidden md:inline">Redirecting...</span>
-                </>
-              ) : (
-                <>
-                  <span className="mr-2">Search</span> <ArrowRight size={20} strokeWidth={2.5} />
-                </>
-              )}
-            </button>
-          </form>
-          
-          {isRedirecting && (
-             <motion.div 
-               initial={{ opacity: 0, y: -10 }}
-               animate={{ opacity: 1, y: 0 }}
-               className="mt-6 flex flex-col items-center justify-center gap-2"
-             >
-               <p className="text-[15px] font-semibold text-brand">
-                 Preparing your search results...
-               </p>
-               <p className="text-[13px] text-text-secondary max-w-[400px]">
-                 Create a free account to view full competitor analysis and creative details.
-               </p>
-             </motion.div>
-          )}
+              <h1
+                className="text-balance mx-auto"
+                style={{
+                  fontSize: 'clamp(38px, 6vw, 84px)',
+                  lineHeight: 0.98,
+                  fontWeight: 700,
+                  letterSpacing: '-0.045em',
+                  color: '#0A0A0A',
+                  maxWidth: '920px',
+                }}
+              >
+                Find the ads worth{' '}
+                <br className="hidden sm:block" />
+                <span
+                  style={{
+                    background: 'linear-gradient(90deg, #1D4ED8, #2563EB, #3B82F6)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  stealing inspiration from.
+                </span>
+              </h1>
+            </motion.div>
 
-        </motion.div>
-      </LandingContainer>
+            {/* Description */}
+            <motion.div
+              custom={0.28}
+              variants={fadeUpVariant}
+              initial="hidden"
+              animate="visible"
+            >
+              <p
+                className="mt-6 md:mt-8 text-balance mx-auto"
+                style={{
+                  fontSize: 'clamp(16px, 1.4vw, 20px)',
+                  lineHeight: 1.6,
+                  color: '#52525B',
+                  maxWidth: '640px',
+                }}
+              >
+                Search competitor creatives, review the details that matter, save useful inspiration, and share your research from one organized workspace.
+              </p>
+            </motion.div>
+
+            {/* CTA area */}
+            <motion.div
+              custom={0.38}
+              variants={fadeUpVariant}
+              initial="hidden"
+              animate="visible"
+              className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
+            >
+              {/* Primary CTA */}
+              <Link
+                href={authLinks.signUp}
+                className="group inline-flex items-center justify-center h-[48px] md:h-[52px] px-7 md:px-8 text-[15px] md:text-[16px] font-semibold text-white transition-all duration-200 hover:-translate-y-[1px] w-full sm:w-auto"
+                style={{
+                  borderRadius: '12px',
+                  background: '#2563EB',
+                  boxShadow: '0 1px 3px rgba(37,99,235,0.18), 0 4px 12px rgba(37,99,235,0.10)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#1D4ED8';
+                  e.currentTarget.style.boxShadow = '0 2px 6px rgba(37,99,235,0.22), 0 6px 16px rgba(37,99,235,0.14)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#2563EB';
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(37,99,235,0.18), 0 4px 12px rgba(37,99,235,0.10)';
+                }}
+              >
+                Start 7-Day Free Trial
+                <ArrowRight size={18} strokeWidth={2.5} className="ml-2 transition-transform duration-200 group-hover:translate-x-[3px]" />
+              </Link>
+
+              {/* Secondary CTA */}
+              <Link
+                href="/product/discover-ads"
+                className="inline-flex items-center justify-center h-[48px] md:h-[52px] px-7 md:px-8 text-[15px] md:text-[16px] font-semibold transition-all duration-200 w-full sm:w-auto"
+                style={{
+                  borderRadius: '12px',
+                  color: '#0A0A0A',
+                  background: 'rgba(255,255,255,0.8)',
+                  border: '1px solid rgba(10,10,10,0.12)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(250,250,250,0.95)';
+                  e.currentTarget.style.borderColor = 'rgba(10,10,10,0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.8)';
+                  e.currentTarget.style.borderColor = 'rgba(10,10,10,0.12)';
+                }}
+              >
+                See How It Works
+              </Link>
+            </motion.div>
+          </div>
+
+          {/* Product preview / search */}
+          <motion.div
+            custom={0.48}
+            variants={fadeUpVariant}
+            initial="hidden"
+            animate="visible"
+            className="w-full mt-16 md:mt-24 relative z-10"
+          >
+            <HeroProductPreview />
+          </motion.div>
+        </LandingContainer>
+      </div>
     </section>
   );
 }

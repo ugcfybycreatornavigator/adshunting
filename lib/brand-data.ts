@@ -70,8 +70,8 @@ export async function syncCompetitorAds(advertiserId: string): Promise<boolean> 
       if (advertiser) {
         // Enforce the canonical name on the normalized ads so persistence gets it right
         for (const ad of result.ads) {
-          ad.advertiserName = advertiser.name;
-          if (advertiser.avatarUrl) ad.advertiserAvatarUrl = advertiser.avatarUrl;
+          ad.advertiser.name = advertiser.name;
+          if (advertiser.avatarUrl) ad.advertiser.logoUrl = advertiser.avatarUrl;
         }
       }
       await persistNormalizedAds(result.ads);

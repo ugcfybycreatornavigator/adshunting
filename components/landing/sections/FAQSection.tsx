@@ -21,7 +21,7 @@ export function FAQSection() {
       <div 
         className="absolute inset-0 pointer-events-none" 
         style={{
-          background: 'radial-gradient(circle at 15% 20%, rgba(104,179,47,0.045), transparent 32%)'
+          background: 'radial-gradient(circle at 15% 20%, rgba(37,99,235,0.045), transparent 32%)'
         }}
       />
       
@@ -65,8 +65,8 @@ export function FAQSection() {
                   className={cn(
                     "group rounded-[18px] border transition-all duration-300",
                     isOpen 
-                      ? "bg-[#F9FCF6] border-brand/20 shadow-sm" 
-                      : "bg-white border-[rgba(20,30,20,0.08)] hover:border-[rgba(20,30,20,0.15)] hover:bg-[#FDFEFD]"
+                      ? "bg-surface-blue border-brand/20 shadow-sm" 
+                      : "bg-white border-border hover:border-border-strong hover:bg-[#F8FAFC]"
                   )}
                 >
                   <button

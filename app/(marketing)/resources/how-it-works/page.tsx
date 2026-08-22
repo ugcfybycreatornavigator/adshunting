@@ -50,7 +50,7 @@ export default function HowItWorksPage() {
             { num: '05', title: 'Share', desc: 'Send context' }
           ].map((step) => (
             <div key={step.title} className="flex md:flex-col items-center md:items-center md:justify-center md:text-center gap-4 z-10 bg-[#FCFCFA] md:px-3 relative w-full md:w-auto">
-              <div className="w-14 h-14 shrink-0 rounded-full bg-surface-green text-brand border border-[#d2dfcb] flex items-center justify-center font-bold text-[15px]">
+              <div className="w-14 h-14 shrink-0 rounded-full bg-surface-blue text-brand border border-[#d2dfcb] flex items-center justify-center font-bold text-[15px]">
                 {step.num}
               </div>
               <div className="flex flex-col flex-1 md:flex-none">
@@ -162,7 +162,7 @@ export default function HowItWorksPage() {
             <div className="grid md:grid-cols-2 gap-8 md:gap-12">
               <div>
                 <h3 className="text-[18px] font-bold text-text-primary mb-4 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#68B32F]"></span>
+                  <span className="w-2 h-2 rounded-full bg-[#2563EB]"></span>
                   AdsHunting can help you review
                 </h3>
                 <ul className="space-y-3 text-[15px] text-text-secondary">

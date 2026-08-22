@@ -13,8 +13,14 @@ export function CapabilityGridSection() {
   ];
 
   return (
-    <section className="py-24 bg-surface-subtle border-t border-border">
-      <LandingContainer>
+    <section className="py-24 bg-slate-50 border-t border-border relative overflow-hidden">
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(circle at 50% 0%, rgba(37,99,235,0.05), transparent 50%)'
+        }}
+      />
+      <LandingContainer className="relative z-10">
         <div className="text-center mb-16">
           <h2 className="text-[32px] md:text-[40px] font-bold text-text-primary mb-4">
             Everything you need. Nothing you don&apos;t.
@@ -23,7 +29,7 @@ export function CapabilityGridSection() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-[1000px] mx-auto">
           {capabilities.map((cap, i) => (
             <div key={i} className="bg-white rounded-[16px] border border-border p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col gap-4">
-              <div className="w-10 h-10 rounded-xl bg-surface-green text-brand flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-surface-blue text-brand flex items-center justify-center">
                 <cap.icon size={20} />
               </div>
               <div>

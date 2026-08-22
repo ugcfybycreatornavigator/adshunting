@@ -149,7 +149,7 @@ export function PlanCard({
           }
         },
         theme: {
-          color: "#68B32F",
+          color: "#2563EB",
         },
       };
 

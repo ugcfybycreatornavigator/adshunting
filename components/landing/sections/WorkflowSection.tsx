@@ -50,12 +50,12 @@ export function WorkflowSection() {
   const sampleAd = workflowAds.find(ad => ad.id === 'ad_beauty_1') || workflowAds[0];
 
   return (
-    <section id="workflow" className="py-24 md:py-32 bg-[#FCFDFB] border-t border-b border-border overflow-hidden relative">
+    <section id="workflow" className="py-24 md:py-32 bg-slate-50 border-t border-b border-border overflow-hidden relative">
       {/* Subtle background radial gradient */}
       <div 
         className="absolute inset-0 pointer-events-none" 
         style={{
-          background: 'radial-gradient(circle at 50% 35%, rgba(104,179,47,.05), transparent 40%)'
+          background: 'radial-gradient(circle at 50% 35%, rgba(37,99,235,0.05), transparent 40%)'
         }}
       />
       
@@ -85,7 +85,7 @@ export function WorkflowSection() {
               {tabs.map((tab, idx) => (
                 <div key={tab.id} className="flex flex-col items-center text-center w-1/3 group cursor-pointer" onClick={() => setActiveTab(tab.id as Tab)}>
                   <div className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ring-4 ring-[#FCFDFB] mb-6",
+                    "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ring-4 ring-slate-50 mb-6",
                     activeTab === tab.id ? "bg-brand border-2 border-brand" :
                     getLineFill(idx) ? "bg-brand border-2 border-brand" : "bg-white border-2 border-border-strong group-hover:border-brand-strong"
                   )}>
@@ -134,7 +134,7 @@ export function WorkflowSection() {
               >
                 {/* Find Top Bar */}
                 <div className="px-6 py-5 border-b border-border flex items-center gap-4">
-                  <div className="flex-1 max-w-[480px] h-12 bg-surface-subtle border border-border rounded-xl px-4 flex items-center shadow-sm transition-shadow hover:shadow-md">
+                  <div className="flex-1 max-w-[480px] h-12 bg-slate-100 border border-border rounded-xl px-4 flex items-center shadow-sm transition-shadow hover:shadow-md">
                     <Search size={18} className="text-text-muted mr-3" />
                     <span className="text-[15px] font-medium text-text-primary">
                       {searchValue}
@@ -142,7 +142,7 @@ export function WorkflowSection() {
                       {!searchValue && !isTyping && <span className="text-text-muted/60 font-normal">Search brands, formats and competitors...</span>}
                     </span>
                   </div>
-                  <div className="hidden sm:flex h-12 px-4 border border-border hover:border-brand-soft bg-surface-subtle hover:bg-surface-green rounded-xl items-center text-[14px] font-medium text-text-primary gap-2 transition-colors cursor-pointer">
+                  <div className="hidden sm:flex h-12 px-4 border border-border hover:border-brand-soft bg-slate-100 hover:bg-surface-blue rounded-xl items-center text-[14px] font-medium text-text-primary gap-2 transition-colors cursor-pointer">
                     <Filter size={16} className="text-brand" /> Filter
                   </div>
                 </div>
@@ -253,13 +253,13 @@ export function WorkflowSection() {
                       
                       <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-4">
-                          <div className="w-14 h-14 rounded-2xl bg-surface-subtle border border-border flex items-center justify-center text-text-primary font-bold text-xl shadow-sm">
+                          <div className="w-14 h-14 rounded-2xl bg-slate-100 border border-border flex items-center justify-center text-text-primary font-bold text-xl shadow-sm">
                             {sampleAd.brand.charAt(0)}
                           </div>
                           <div>
                             <h2 className="font-bold text-[22px] text-text-primary leading-none mb-1.5">{sampleAd.brand}</h2>
                             <div className="flex items-center gap-2">
-                              <span className="flex items-center gap-1.5 text-[13px] font-medium text-brand bg-surface-green px-2 py-0.5 rounded-md border border-brand/20">
+                              <span className="flex items-center gap-1.5 text-[13px] font-medium text-brand bg-surface-blue px-2 py-0.5 rounded-md border border-brand/20">
                                 <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse"></span> Active
                               </span>
                               <span className="text-[13px] text-text-muted">Since Aug 12, 2026</span>
@@ -270,7 +270,7 @@ export function WorkflowSection() {
                       
                       <div className="mb-8">
                         <h4 className="text-[13px] font-bold text-text-muted uppercase tracking-wider mb-3">Primary Text</h4>
-                        <div className="bg-surface-subtle p-5 rounded-2xl border border-border/60">
+                        <div className="bg-slate-100 p-5 rounded-2xl border border-border/60">
                           <p className="text-[15px] text-text-primary leading-relaxed">
                             {sampleAd.primaryText}
                           </p>
@@ -292,7 +292,7 @@ export function WorkflowSection() {
                          <button className="flex-1 h-12 bg-brand text-white rounded-xl font-bold text-[15px] hover:bg-brand-strong transition-colors flex items-center justify-center gap-2 shadow-md shadow-brand/20">
                            <Heart size={18} /> Save to Swipe File
                          </button>
-                         <button className="w-12 h-12 bg-surface-subtle border border-border text-text-primary rounded-xl flex items-center justify-center hover:bg-surface-green hover:border-brand/30 hover:text-brand transition-colors">
+                         <button className="w-12 h-12 bg-slate-100 border border-border text-text-primary rounded-xl flex items-center justify-center hover:bg-surface-blue hover:border-brand/30 hover:text-brand transition-colors">
                            <Share size={18} />
                          </button>
                       </div>
@@ -326,7 +326,7 @@ export function WorkflowSection() {
                 <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-white">
                   
                   {/* Mock Swipe File */}
-                  <div className="bg-surface-subtle rounded-2xl border border-border p-6 shadow-sm mb-8">
+                  <div className="bg-slate-100 rounded-2xl border border-border p-6 shadow-sm mb-8">
                      <div className="flex items-center justify-between mb-5">
                         <div className="flex items-center gap-3">
                            <div className="w-10 h-10 bg-brand/10 text-brand rounded-lg flex items-center justify-center">
@@ -340,7 +340,7 @@ export function WorkflowSection() {
                        <img src={workflowAds[0].thumbnail} className="w-12 h-12 rounded-full border-2 border-white object-cover shadow-sm" alt="Saved" />
                        <img src={workflowAds[1].thumbnail} className="w-12 h-12 rounded-full border-2 border-white object-cover shadow-sm" alt="Saved" />
                        <img src={workflowAds[2].thumbnail} className="w-12 h-12 rounded-full border-2 border-white object-cover shadow-sm" alt="Saved" />
-                       <div className="w-12 h-12 rounded-full border-2 border-white bg-surface-green text-brand-strong flex items-center justify-center text-[12px] font-bold z-10 shadow-sm">+9</div>
+                       <div className="w-12 h-12 rounded-full border-2 border-white bg-surface-blue text-brand-strong flex items-center justify-center text-[12px] font-bold z-10 shadow-sm">+9</div>
                      </div>
                      <button className="w-full h-12 bg-white border border-border text-text-primary rounded-xl font-medium text-[14px] hover:border-brand hover:text-brand transition-colors flex items-center justify-center gap-2 shadow-sm">
                        <Plus size={18} /> Add more ads
@@ -354,7 +354,7 @@ export function WorkflowSection() {
                         <h4 className="font-bold text-[16px] text-text-primary">Share with Team</h4>
                      </div>
                      <div className="flex flex-col sm:flex-row items-center gap-3 mb-4">
-                       <div className="flex-1 w-full h-11 bg-surface-subtle border border-border rounded-lg px-3 flex items-center text-[13px] text-text-secondary truncate">
+                       <div className="flex-1 w-full h-11 bg-slate-100 border border-border rounded-lg px-3 flex items-center text-[13px] text-text-secondary truncate">
                          adshunting.com/share/q3-insp...
                        </div>
                        <button className="w-full sm:w-auto h-11 px-6 bg-text-primary text-white rounded-lg font-medium text-[13px] hover:bg-black transition-colors">

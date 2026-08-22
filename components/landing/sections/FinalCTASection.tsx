@@ -6,10 +6,10 @@ import { ArrowRight } from 'lucide-react';
 
 export function FinalCTASection() {
   return (
-    <section className="py-20 md:py-28 bg-gradient-to-br from-brand to-[#4b8a1c] overflow-hidden relative">
+    <section className="py-20 md:py-28 bg-gradient-to-br from-[#2563EB] via-[#1D4ED8] to-[#0F172A] overflow-hidden relative">
       {/* Decorative elements */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-white/15 blur-[120px] rounded-full pointer-events-none -translate-y-1/3 translate-x-1/3"></div>
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-black/10 blur-[100px] rounded-full pointer-events-none translate-y-1/2 -translate-x-1/3"></div>
+      <div className="absolute top-0 right-0 w-[700px] h-[700px] bg-white/10 blur-[120px] rounded-full pointer-events-none -translate-y-1/3 translate-x-1/3"></div>
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-black/20 blur-[100px] rounded-full pointer-events-none translate-y-1/2 -translate-x-1/3"></div>
       
       <LandingContainer className="text-center flex flex-col items-center relative z-10">
         <h2 className="text-[38px] md:text-[48px] lg:text-[56px] font-extrabold text-white tracking-tight leading-[1.05] max-w-[700px] mb-5">

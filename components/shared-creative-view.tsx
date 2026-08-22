@@ -12,7 +12,7 @@ function signalLabel(label: string | undefined | null, ad: NormalizedAd) {
   if (label === "High-Confidence Winner") return "Exceptional";
   if (label === "Proven Long Runner") return "Long Runner";
   if (label === "Emerging Winner") return "Promising";
-  if (label === "Standard") return (ad.winnerScore ?? 0) >= 70 ? "Strong Signal" : (ad.winnerScore ?? 0) >= 55 ? "Promising" : "Testing";
+  if (label === "Standard") return (ad.intelligence.winnerScore ?? 0) >= 70 ? "Strong Signal" : (ad.intelligence.winnerScore ?? 0) >= 55 ? "Promising" : "Testing";
   if (label === "Testing") return "Testing";
   return label.replace(/\(.+\)/, "").trim() || "Unknown";
 }
@@ -23,15 +23,15 @@ function titleCase(value: string) {
 }
 
 export function SharedCreativeView({ ad }: { ad: NormalizedAd }) {
-  const media = safeExternalUrl(ad.sourceMediaUrl);
-  const thumb = safeExternalUrl(ad.thumbnailUrl);
-  const advertiserName = ad.advertiserName || "Unknown advertiser";
+  const media = safeExternalUrl(ad.creative.videoUrl || ad.creative.imageUrl);
+  const thumb = safeExternalUrl(ad.creative.thumbnailUrl);
+  const advertiserName = ad.advertiser.name || "Unknown advertiser";
   const initial = advertiserName.slice(0, 1).toUpperCase() || "A";
 
   const displayCopy =
-    sanitizeAdCopy(ad.headline) ||
-    sanitizeAdCopy(ad.body) ||
-    sanitizeAdCopy(ad.description);
+    sanitizeAdCopy(ad.copy.headline) ||
+    sanitizeAdCopy(ad.copy.primaryText) ||
+    sanitizeAdCopy(ad.copy.description);
 
   return (
     <article className="flex flex-col overflow-hidden rounded-[16px] border border-line bg-white shadow-sm md:flex-row mb-6 w-full max-w-5xl mx-auto">
@@ -45,9 +45,9 @@ export function SharedCreativeView({ ad }: { ad: NormalizedAd }) {
       {/* 40% Information Section */}
       <div className="flex w-full md:w-[45%] lg:w-[40%] flex-col p-5 md:p-6 lg:p-8">
         <div className="flex items-center gap-3">
-          {ad.advertiserAvatarUrl ? (
+          {ad.advertiser.logoUrl ? (
             <img 
-              src={ad.advertiserAvatarUrl} 
+              src={ad.advertiser.logoUrl} 
               alt="" 
               className="size-10 shrink-0 rounded-full border border-line object-cover bg-zinc-50" 
               loading="lazy"
@@ -60,22 +60,22 @@ export function SharedCreativeView({ ad }: { ad: NormalizedAd }) {
               {advertiserName}
             </span>
             <span className="truncate text-xs font-medium text-muted">
-               {(Array.isArray(ad.platforms) ? ad.platforms : []).map(titleCase).join(" + ") || "Unknown Platform"}
+               {(Array.isArray(ad.delivery.platforms) ? ad.delivery.platforms : []).map(titleCase).join(" + ") || "Unknown Platform"}
             </span>
           </div>
         </div>
 
         <div className="mt-5 flex items-center gap-2 flex-wrap">
-          <Badge tone={ad.status === "active" ? "red" : "dark"} className="px-2 py-1 text-[11px] shadow-sm uppercase font-semibold tracking-wide">
-            {ad.status || "Unknown"}
+          <Badge tone={ad.delivery.status === "active" ? "red" : "dark"} className="px-2 py-1 text-[11px] shadow-sm uppercase font-semibold tracking-wide">
+            {ad.delivery.status || "Unknown"}
           </Badge>
           <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-zinc-100 text-[11px] font-semibold text-zinc-600 capitalize">
-            {ad.mediaType === "video" ? <PlaySquare size={13} /> : ad.mediaType === "carousel" ? <Images size={13} /> : <ImageIcon size={13} />}
-            {ad.mediaType || "Unknown"}
+            {ad.creative.type === "video" ? <PlaySquare size={13} /> : ad.creative.type === "carousel" ? <Images size={13} /> : <ImageIcon size={13} />}
+            {ad.creative.type || "Unknown"}
           </span>
-          {ad.runningDays != null && (
+          {ad.delivery.daysRunning != null && (
             <span className="inline-flex items-center px-2 py-1 rounded-md bg-zinc-100 text-[11px] font-semibold text-zinc-600">
-              {formatDuration(ad.runningDays)}
+              {formatDuration(ad.delivery.daysRunning)}
             </span>
           )}
         </div>
@@ -93,8 +93,8 @@ export function SharedCreativeView({ ad }: { ad: NormalizedAd }) {
              <div className="rounded-lg bg-zinc-50 border border-line p-3">
                 <div className="text-[10px] font-semibold text-muted uppercase">Winner Score</div>
                 <div className="mt-1 text-xl font-bold text-ink">
-                  {ad.winnerScore != null ? (
-                    <>{Math.round(ad.winnerScore)}<span className="text-sm font-medium text-muted">/100</span></>
+                  {ad.intelligence?.winnerScore != null ? (
+                    <>{Math.round(ad.intelligence.winnerScore)}<span className="text-sm font-medium text-muted">/100</span></>
                   ) : (
                     <span className="text-sm font-medium">Not enough data</span>
                   )}
@@ -103,8 +103,8 @@ export function SharedCreativeView({ ad }: { ad: NormalizedAd }) {
              <div className="rounded-lg bg-zinc-50 border border-line p-3">
                 <div className="text-[10px] font-semibold text-muted uppercase">Signal</div>
                 <div className="mt-1 text-sm font-bold text-signal truncate">
-                  {Array.isArray(ad.intelligenceLabels) && ad.intelligenceLabels.length > 0
-                    ? signalLabel(ad.intelligenceLabels[0], ad)
+                  {Array.isArray(ad.intelligence?.labels) && ad.intelligence!.labels.length > 0
+                    ? signalLabel(ad.intelligence!.labels[0], ad)
                     : "Not enough data"}
                 </div>
              </div>
@@ -126,7 +126,7 @@ function CreativePreview({
   thumb: string | null;
   advertiserName: string;
 }) {
-  if (ad.mediaType === "video" && media) {
+  if (ad.creative.type === "video" && media) {
     return (
       <div className="h-full w-full bg-zinc-950 flex items-center justify-center relative">
         <VideoPreview
@@ -140,10 +140,11 @@ function CreativePreview({
     );
   }
 
-  if (ad.mediaType === "carousel" && Array.isArray(ad.carouselAssets) && ad.carouselAssets.length) {
+  if (ad.creative.type === "carousel" && Array.isArray(ad.creative.carouselItems) && ad.creative.carouselItems.length) {
+    const assets = ad.creative.carouselItems.map(item => item.imageUrl || item.videoUrl).filter(Boolean) as string[];
     return (
       <div className="h-full w-full bg-zinc-900 flex items-center justify-center relative">
-        <CarouselPreview assets={ad.carouselAssets} alt={`Creative from ${advertiserName}`} className="h-full w-full" />
+        <CarouselPreview assets={assets} alt={`Creative from ${advertiserName}`} className="h-full w-full" />
       </div>
     );
   }

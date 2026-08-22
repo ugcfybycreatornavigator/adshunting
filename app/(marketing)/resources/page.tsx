@@ -73,9 +73,9 @@ export default function ResourcesPage() {
                 <Link
                   key={resource.href}
                   href={resource.href}
-                  className="group rounded-[20px] border border-border bg-white p-6 md:p-7 transition-colors hover:border-[#d2dfcb] hover:bg-surface-green"
+                  className="group rounded-[20px] border border-border bg-white p-6 md:p-7 transition-colors hover:border-[#d2dfcb] hover:bg-surface-blue"
                 >
-                  <div className="mb-6 grid size-11 place-items-center rounded-xl bg-surface-green text-brand group-hover:bg-white">
+                  <div className="mb-6 grid size-11 place-items-center rounded-xl bg-surface-blue text-brand group-hover:bg-white">
                     <Icon size={21} />
                   </div>
                   <h2 className="text-[21px] font-bold text-text-primary">{resource.title}</h2>

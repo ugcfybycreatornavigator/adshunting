@@ -246,13 +246,13 @@ function normalizeMetaAd(raw: MetaRawAd, country: string): NormalizedAd {
   const fps = computeAdFingerprints(baseAd as unknown as NormalizedAd);
 
   return {
-    ...(baseAd as unknown as NormalizedAd),
+    ...(baseAd as any),
     canonicalAdId: fps.canonicalAdId,
     creativeFingerprint: fps.creativeFingerprint,
     creativeGroupId: fps.creativeGroupId,
     observationCount: 1,
     providerAdIds: [baseAd.externalAdId],
-  };
+  } as any;
 }
 
 function extractHashtags(value: string | null) {

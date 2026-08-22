@@ -32,20 +32,20 @@ export function normalizeUrl(url: string | null | undefined): string {
 }
 
 export function computeAdFingerprints(ad: NormalizedAd) {
-  const normAdvertiser = normalizeText(ad.advertiserId || ad.advertiserName);
+  const normAdvertiser = normalizeText(ad.advertiser?.id || ad.advertiser?.name);
   
   // Create a deterministic media identity
   let mediaIdentity = "";
-  if (ad.sourceMediaUrl) {
-    mediaIdentity = normalizeUrl(ad.sourceMediaUrl);
-  } else if (ad.carouselAssets && ad.carouselAssets.length > 0) {
-    mediaIdentity = ad.carouselAssets.map(normalizeUrl).join("|");
-  } else if (ad.thumbnailUrl) {
-    mediaIdentity = normalizeUrl(ad.thumbnailUrl);
+  if (ad.creative?.videoUrl || ad.creative?.imageUrl) {
+    mediaIdentity = normalizeUrl(ad.creative.videoUrl || ad.creative.imageUrl);
+  } else if (ad.creative?.carouselItems && ad.creative.carouselItems.length > 0) {
+    mediaIdentity = ad.creative.carouselItems.map(item => normalizeUrl(item.imageUrl || item.videoUrl)).join("|");
+  } else if (ad.creative?.thumbnailUrl) {
+    mediaIdentity = normalizeUrl(ad.creative.thumbnailUrl);
   }
 
-  const normHeadline = normalizeText(ad.headline);
-  const normBody = normalizeText(ad.body);
+  const normHeadline = normalizeText(ad.copy?.headline);
+  const normBody = normalizeText(ad.copy?.primaryText);
 
   const creativePayload = `${normAdvertiser}::${mediaIdentity}::${normHeadline}::${normBody}`;
   const groupPayload = `${normAdvertiser}::${mediaIdentity}`;

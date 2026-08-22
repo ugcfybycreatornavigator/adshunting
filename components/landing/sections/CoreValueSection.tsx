@@ -4,7 +4,13 @@ import { LandingContainer } from '../layout/LandingContainer';
 export function CoreValueSection() {
   return (
     <section className="py-24 md:py-32 bg-white relative overflow-hidden">
-      <LandingContainer className="text-center">
+      <div 
+        className="absolute inset-0 pointer-events-none" 
+        style={{
+          background: 'radial-gradient(circle at 50% 50%, rgba(37,99,235,0.03), transparent 60%)'
+        }}
+      />
+      <LandingContainer className="text-center relative z-10">
         <div className="max-w-[800px] mx-auto">
           <h2 className="text-[36px] sm:text-[44px] md:text-[54px] leading-[1.05] font-bold tracking-tight text-text-primary text-balance mx-auto">
             Stop collecting screenshots. <br className="hidden md:block" />

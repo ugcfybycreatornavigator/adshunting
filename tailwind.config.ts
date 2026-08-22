@@ -8,7 +8,7 @@ export default {
         background: "var(--background)",
         "surface-marketing": "var(--surface)",
         "surface-subtle": "var(--surface-subtle)",
-        "surface-green": "var(--surface-green)",
+        "surface-blue": "var(--surface-blue)",
         "text-primary": "var(--text-primary)",
         "text-secondary": "var(--text-secondary)",
         "text-muted": "var(--text-muted)",

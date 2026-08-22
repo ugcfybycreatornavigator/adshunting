@@ -27,8 +27,8 @@ export async function processArchiveBatch() {
     
     // We get the external URLs from the normalizer (or the DB if they are already there)
     const norm = normalizeSearchApiAd(ad.raw_data);
-    let newSourceUrl = norm.sourceMediaUrl;
-    let newThumbnailUrl = norm.thumbnailUrl;
+    let newSourceUrl = norm.creative.videoUrl || norm.creative.imageUrl;
+    let newThumbnailUrl = norm.creative.thumbnailUrl;
     const newCarouselAssets: string[] = [];
     
     let failed = false;
@@ -55,9 +55,11 @@ export async function processArchiveBatch() {
     }
     
     // Archive carousel
-    if (norm.carouselAssets && norm.carouselAssets.length > 0) {
-       for (let i = 0; i < norm.carouselAssets.length; i++) {
-          const assetUrl = norm.carouselAssets[i];
+    if (norm.creative.carouselItems && norm.creative.carouselItems.length > 0) {
+       for (let i = 0; i < norm.creative.carouselItems.length; i++) {
+          const item = norm.creative.carouselItems[i];
+          const assetUrl = item.imageUrl || item.videoUrl;
+          if (!assetUrl) continue;
           if (assetUrl.includes("supabase.co")) {
              newCarouselAssets.push(assetUrl);
              continue;

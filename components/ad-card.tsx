@@ -56,17 +56,17 @@ export function AdCard({
     setAvatarFailed(false);
   }, [ad.id]);
   
-  const media = safeExternalUrl(ad.sourceMediaUrl);
-  const thumb = safeExternalUrl(ad.thumbnailUrl);
-  const advertiserProfile = safeExternalUrl(ad.advertiserProfileUrl);
-  const landingPage = safeExternalUrl(ad.landingPageUrl);
-  const advertiserName = ad.advertiserName || "Unknown advertiser";
+  const media = safeExternalUrl(ad.creative.videoUrl || ad.creative.imageUrl);
+  const thumb = safeExternalUrl(ad.creative.thumbnailUrl);
+  const advertiserProfile = safeExternalUrl(ad.advertiser.pageUrl);
+  const landingPage = safeExternalUrl(ad.destination.url);
+  const advertiserName = ad.advertiser.name || "Unknown advertiser";
   const initial = advertiserName.slice(0, 1).toUpperCase() || "A";
 
   const displayCopy =
-    sanitizeAdCopy(ad.headline) ||
-    sanitizeAdCopy(ad.body) ||
-    sanitizeAdCopy(ad.description);
+    sanitizeAdCopy(ad.copy.headline) ||
+    sanitizeAdCopy(ad.copy.primaryText) ||
+    sanitizeAdCopy(ad.copy.description);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -88,9 +88,9 @@ export function AdCard({
     <article className="group flex flex-col w-full overflow-hidden rounded-[12px] border border-line bg-white shadow-sm transition-all duration-200 hover:border-zinc-300 hover:shadow-md">
       {/* Header */}
       <div className="flex h-[52px] items-center gap-2.5 px-3">
-        {ad.advertiserAvatarUrl && !avatarFailed ? (
+        {ad.advertiser.logoUrl && !avatarFailed ? (
           <img 
-            src={ad.advertiserAvatarUrl} 
+            src={ad.advertiser.logoUrl} 
             alt="" 
             className="size-7 shrink-0 rounded-full border border-line object-cover bg-zinc-50" 
             loading="lazy"
@@ -101,15 +101,15 @@ export function AdCard({
         )}
         <div className="flex flex-col min-w-0 flex-1 justify-center">
           <Link
-            href={`/brands/${encodeURIComponent(ad.advertiserId)}`}
+            href={`/brands/${encodeURIComponent(ad.advertiser.id || ad.id)}`}
             onClick={(event) => event.stopPropagation()}
             className="truncate text-[13px] font-semibold text-ink hover:text-signal"
           >
             {advertiserName}
           </Link>
-          {ad.platforms.length > 0 && (
+          {ad.delivery.platforms && ad.delivery.platforms.length > 0 && (
             <span className="truncate text-[11px] text-muted">
-              {ad.platforms.slice(0, 2).map(titleCase).join(" + ")}
+              {ad.delivery.platforms.slice(0, 2).map(titleCase).join(" + ")}
             </span>
           )}
         </div>
@@ -160,7 +160,7 @@ export function AdCard({
                 role="menuitem"
                 className="flex min-h-9 w-full items-center gap-2 rounded-md px-2.5 text-left hover:bg-zinc-50"
                 onClick={async () => {
-                  await copyText(ad.externalAdId);
+                  await copyText(ad.externalId || ad.id);
                   setMenuOpen(false);
                 }}
               >
@@ -178,27 +178,15 @@ export function AdCard({
           <CreativePreview ad={ad} media={media} thumb={thumb} advertiserName={advertiserName} />
         </div>
         <div className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex flex-col gap-1.5 items-start">
-          <Badge className={cn("px-2 py-1 text-[10px] shadow-sm uppercase font-bold tracking-wider", ad.status === "active" ? "bg-white text-brand border border-line" : "bg-zinc-900 text-white border border-transparent")}>
-            {ad.status}
+          <Badge className={cn("px-2 py-1 text-[10px] shadow-sm uppercase font-bold tracking-wider", ad.delivery.status === "active" ? "bg-white text-brand border border-line" : "bg-zinc-900 text-white border border-transparent")}>
+            {ad.delivery.status}
           </Badge>
-          {ad.intelligenceLabels && ad.intelligenceLabels[0] && signalLabel(ad.intelligenceLabels[0], ad) && (
-            <Badge className="bg-brand text-white border-transparent px-2 py-1 text-[10px] shadow-sm font-semibold">{signalLabel(ad.intelligenceLabels[0], ad)}</Badge>
-          )}
         </div>
       </div>
 
       {/* Primary Action Row */}
       <div className="flex w-full flex-wrap items-center justify-between gap-y-2 gap-x-1 border-b border-line px-2 py-1.5 relative" ref={saveBtnRef}>
-        {(ad.variants && ad.variants > 1) ? (
-          <button
-            type="button"
-            onClick={onOpen}
-            className="flex min-h-[32px] shrink-0 items-center justify-center rounded-md bg-brand-soft px-2.5 text-[12px] font-[650] text-brand transition hover:bg-brand/10 hover:text-brand-active"
-            aria-label={`View ${ad.variants} variants`}
-          >
-            {ad.variants} Variants
-          </button>
-        ) : <div className="hidden sm:block flex-1" />}
+        <div className="flex-1" />
         
         <div className="flex items-center gap-1 shrink-0 ml-auto">
           <div className="flex items-center">
@@ -254,10 +242,10 @@ export function AdCard({
         </h3>
 
         <div className="mt-2.5 flex items-center justify-between gap-2 text-[11px] font-medium text-muted">
-          <span className="truncate">{formatDuration(ad.runningDays)}</span>
+          <span className="truncate">{formatDuration(ad.delivery.daysRunning)}</span>
           <span className="inline-flex shrink-0 items-center gap-1.5 capitalize">
-            {ad.mediaType === "video" ? <PlaySquare size={13} /> : ad.mediaType === "carousel" ? <Images size={13} /> : <ImageIcon size={13} />}
-            {ad.mediaType}
+            {ad.creative.type === "video" ? <PlaySquare size={13} /> : ad.creative.type === "carousel" ? <Images size={13} /> : <ImageIcon size={13} />}
+            {ad.creative.type}
           </span>
         </div>
       </div>
@@ -337,12 +325,15 @@ function CreativePreview({
   thumb: string | null;
   advertiserName: string;
 }) {
-  if (ad.mediaType === "video" && media) {
+  if (ad.creative.type === "video" && media) {
     return <VideoCreativePreview src={media} poster={thumb} />;
   }
 
-  if (ad.mediaType === "carousel" && ad.carouselAssets.length) {
-    return <CarouselCreativePreview assets={ad.carouselAssets} alt={`Creative from ${advertiserName}`} />;
+  if (ad.creative.type === "carousel" && ad.creative.carouselItems.length) {
+    const assets = ad.creative.carouselItems
+      .map(item => item.imageUrl || item.videoUrl)
+      .filter((url): url is string => Boolean(url));
+    return <CarouselCreativePreview assets={assets} alt={`Creative from ${advertiserName}`} />;
   }
 
   if (media || thumb) {
@@ -415,7 +406,7 @@ function signalLabel(label: string, ad: NormalizedAd) {
   if (label === "High-Confidence Winner") return "Exceptional";
   if (label === "Proven Long Runner") return "Long Runner";
   if (label === "Emerging Winner") return "Promising";
-  if (label === "Standard") return ad.winnerScore >= 70 ? "Strong Signal" : ad.winnerScore >= 55 ? "Promising" : "Testing";
+  if (label === "Standard") return (ad.intelligence.winnerScore ?? 0) >= 70 ? "Strong Signal" : (ad.intelligence.winnerScore ?? 0) >= 55 ? "Promising" : "Testing";
   if (label === "Testing") return "Testing";
   return label.replace(/\(.+\)/, "").trim();
 }

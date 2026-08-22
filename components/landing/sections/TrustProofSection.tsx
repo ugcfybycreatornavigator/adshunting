@@ -25,22 +25,22 @@ export function TrustProofSection() {
 
   const itemVariants: Variants = {
     hidden: { opacity: 0, y: 10, filter: 'blur(4px)' },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
+    visible: {
+      opacity: 1,
+      y: 0,
       filter: 'blur(0px)',
-      transition: { duration: 0.5, ease: "easeOut" } 
+      transition: { duration: 0.5, ease: "easeOut" }
     }
   };
 
   return (
     <section className="py-6 border-b border-border relative overflow-hidden">
       {/* Light Premium Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#FCFDFB] via-brand/5 to-[#FCFDFB]"></div>
+      <div className="absolute inset-0 bg-gradient-to-r from-white via-brand/5 to-white"></div>
       <div className="noise-texture absolute inset-0 opacity-[0.02]"></div>
 
       <LandingContainer className="relative z-10">
-        <motion.div 
+        <motion.div
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"

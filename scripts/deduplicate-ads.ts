@@ -65,7 +65,7 @@ async function run() {
     group.sort((a, b) => {
       const aNorm = dbAdToNormalized(a);
       const bNorm = dbAdToNormalized(b);
-      if (bNorm.winnerScore !== aNorm.winnerScore) return bNorm.winnerScore - aNorm.winnerScore;
+      if ((bNorm.intelligence?.winnerScore || 0) !== (aNorm.intelligence?.winnerScore || 0)) return (bNorm.intelligence?.winnerScore || 0) - (aNorm.intelligence?.winnerScore || 0);
       return new Date(b.last_seen_at).getTime() - new Date(a.last_seen_at).getTime();
     });
     

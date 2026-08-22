@@ -1,6 +1,4 @@
 import type { AdStatus, MediaType, NormalizedAd } from "@/lib/types";
-import { computeAdIntelligence } from "@/lib/intelligence";
-import { normalizeSearchApiAd } from "@/lib/providers/searchapi";
 
 export interface DatabaseAdRow {
   id: string;
@@ -39,139 +37,127 @@ export interface DatabaseAdRow {
   platforms: string[] | null;
   demographics?: Record<string, Record<string, number>> | null;
   snapshot_url: string | null;
-  source: "searchapi" | "meta" | "foreplay" | "catalog";
+  source: string;
   raw_data: Record<string, unknown> | null;
+  refined_data: Record<string, unknown> | null;
+  quality_score: number | null;
 }
 
 export function dbAdToNormalized(row: DatabaseAdRow): NormalizedAd {
-  if (row.source === "searchapi" && row.raw_data && Object.keys(row.raw_data).length > 0) {
-    try {
-      const renorm = normalizeSearchApiAd(row.raw_data, row.country || undefined);
-      // Overlay the latest state from the database record
-      return {
-        ...renorm,
-        id: row.id,
-        status: row.status,
-        lastSeenAt: row.last_seen_at,
-        runningDays: row.running_days == null ? null : Number(row.running_days),
-        storedMediaPath: row.stored_media_path,
-        archiveStatus: row.archive_status ?? (row.stored_media_path ? "archived" : "not_requested"),
-        canonicalAdId: row.canonical_ad_id || renorm.canonicalAdId,
-        creativeFingerprint: row.creative_fingerprint || renorm.creativeFingerprint,
-        creativeGroupId: row.creative_group_id || renorm.creativeGroupId,
-        observationCount: row.observation_count ?? 1,
-        providerAdIds: row.provider_ad_ids || [row.external_ad_id],
-      };
-    } catch (err) {
-      console.error("[AdsHunting dbAdToNormalized] Re-normalization failed, falling back to DB columns", err);
-    }
+  if (row.refined_data && Object.keys(row.refined_data).length > 0) {
+    const refinedAd = row.refined_data as unknown as NormalizedAd;
+    // ensure IDs match row
+    refinedAd.id = row.id;
+    return refinedAd;
   }
-
-  const variants = Number(row.raw_data?.collation_count || 1);
-  const repetition = Math.max(0, variants - 1);
-  const runningDays = row.running_days == null ? null : Number(row.running_days);
-
-  const intelligence = computeAdIntelligence({
-    startDate: row.start_date,
-    stopDate: row.stop_date,
-    status: row.status,
-    lastSeenAt: row.last_seen_at,
-    variants,
-    creativeRepetition: repetition,
-    platforms: row.platforms ?? [],
-    mediaType: row.media_type,
-    headline: row.headline,
-    body: row.body,
-    cta: row.cta,
-    landingPageUrl: row.landing_page_url,
-    sourceMediaUrl: row.source_media_url,
-    advertiserId: row.advertiser_id,
-  });
-
+  
+  // Fallback for old records without refined_data
   return {
     id: row.id,
-    externalAdId: row.external_ad_id,
-    advertiserId: row.advertiser_id,
-    advertiserName: row.advertiser_name,
-    advertiserAvatarUrl: row.advertiser_avatar_url,
-    advertiserProfileUrl: row.advertiser_profile_url,
-    body: row.body,
-    caption: row.caption ?? row.body,
-    headline: row.headline,
-    description: row.description,
-    hashtags: row.hashtags ?? [],
-    cta: row.cta,
-    landingPageUrl: row.landing_page_url,
-    sourceMediaUrl: row.source_media_url,
-    thumbnailUrl: row.thumbnail_url,
-    carouselAssets: row.carousel_assets ?? [],
-    storedMediaPath: row.stored_media_path,
-    archiveStatus: row.archive_status ?? (row.stored_media_path ? "archived" : "not_requested"),
-    mediaType: row.media_type,
-    status: row.status,
-    startDate: row.start_date,
-    stopDate: row.stop_date,
-    firstSeenAt: row.first_seen_at,
-    lastSeenAt: row.last_seen_at,
-    runningDays,
-    country: row.country,
-    platforms: row.platforms ?? [],
-    demographics: row.demographics ?? null,
-    snapshotUrl: row.snapshot_url,
-    source: "catalog",
-    variants,
-    creativeRepetition: repetition,
+    externalId: row.external_ad_id,
+    provider: {
+      discoveryProvider: row.source as NormalizedAd["provider"]["discoveryProvider"],
+      fetchedAt: row.first_seen_at,
+    },
+    advertiser: {
+      id: row.advertiser_id,
+      name: row.advertiser_name,
+      normalizedName: null,
+      pageUrl: row.advertiser_profile_url,
+      logoUrl: row.advertiser_avatar_url,
+      domain: null,
+      social: { facebook: null, instagram: null, linkedin: null },
+    },
+    copy: {
+      primaryText: row.body,
+      headline: row.headline,
+      description: row.description,
+      cta: row.cta,
+    },
+    creative: {
+      type: row.media_type,
+      imageUrl: row.source_media_url,
+      videoUrl: row.source_media_url,
+      thumbnailUrl: row.thumbnail_url,
+      carouselItems: [], // Fallback ignores old carousel
+    },
+    delivery: {
+      status: row.status,
+      startedAt: row.start_date,
+      endedAt: row.stop_date,
+      daysRunning: row.running_days == null ? null : Number(row.running_days),
+      platforms: row.platforms ?? [],
+      countries: row.country ? [row.country] : [],
+    },
+    destination: {
+      url: row.landing_page_url,
+      resolvedUrl: null,
+      domain: null,
+      title: null,
+      productName: null,
+    },
+    intelligence: {
+      category: null,
+      creativeFormat: null,
+      hookType: null,
+      offerType: null,
+      winnerScore: Number(row.quality_score) || 0,
+      labels: [],
+    },
+    enrichment: {
+      archiveStatus: (row.archive_status as NormalizedAd["enrichment"]["archiveStatus"]) || "not_requested",
+      status: "pending",
+      qualityScore: Number(row.quality_score) || 0,
+      lastEnrichedAt: null,
+    },
+    variants: 1,
+    creativeRepetition: 0,
     brandActiveAds: null,
-    winnerScore: intelligence.adjustedWinnerScore,
-    intelligenceLabels: [intelligence.badgeCategory, intelligence.longevityLabel.split(" ")[0]],
-    canonicalAdId: row.canonical_ad_id || row.id,
-    creativeFingerprint: row.creative_fingerprint || "",
-    creativeGroupId: row.creative_group_id || "",
-    observationCount: row.observation_count ?? 1,
-    providerAdIds: row.provider_ad_ids || [row.external_ad_id],
-    rawData: row.raw_data ?? undefined,
+    rawData: row.raw_data,
   };
 }
 
 export function normalizedToDb(ad: NormalizedAd): Omit<DatabaseAdRow, "created_at" | "updated_at"> {
   return {
     id: ad.id,
-    external_ad_id: ad.externalAdId,
-    canonical_ad_id: ad.canonicalAdId,
-    creative_fingerprint: ad.creativeFingerprint,
-    creative_group_id: ad.creativeGroupId,
-    observation_count: ad.observationCount || 1,
-    provider_ad_ids: ad.providerAdIds || [ad.externalAdId],
-    advertiser_id: ad.advertiserId,
-    advertiser_name: ad.advertiserName,
-    advertiser_avatar_url: ad.advertiserAvatarUrl,
-    advertiser_profile_url: ad.advertiserProfileUrl,
-    body: ad.body,
-    caption: ad.caption,
-    headline: ad.headline,
-    description: ad.description,
-    hashtags: ad.hashtags,
-    cta: ad.cta,
-    landing_page_url: ad.landingPageUrl,
-    source_media_url: ad.sourceMediaUrl,
-    thumbnail_url: ad.thumbnailUrl,
-    carousel_assets: ad.carouselAssets,
-    media_type: ad.mediaType,
-    status: ad.status,
-    start_date: ad.startDate,
-    stop_date: ad.stopDate,
-    first_seen_at: ad.firstSeenAt || new Date().toISOString(),
+    external_ad_id: ad.externalId || ad.id,
+    canonical_ad_id: ad.id,
+    creative_fingerprint: "",
+    creative_group_id: "",
+    observation_count: 1,
+    provider_ad_ids: [ad.externalId || ad.id],
+    advertiser_id: ad.advertiser.id || "unknown",
+    advertiser_name: ad.advertiser.name || "Unknown",
+    advertiser_avatar_url: ad.advertiser.logoUrl,
+    advertiser_profile_url: ad.advertiser.pageUrl,
+    body: ad.copy.primaryText,
+    caption: ad.copy.description,
+    headline: ad.copy.headline,
+    description: ad.copy.description,
+    hashtags: [],
+    cta: ad.copy.cta,
+    landing_page_url: ad.destination.url,
+    source_media_url: ad.creative.videoUrl || ad.creative.imageUrl,
+    thumbnail_url: ad.creative.thumbnailUrl,
+    carousel_assets: [],
+    media_type: ad.creative.type,
+    status: ad.delivery.status,
+    start_date: ad.delivery.startedAt,
+    stop_date: ad.delivery.endedAt,
+    first_seen_at: ad.provider.fetchedAt,
     last_seen_at: new Date().toISOString(),
-    stored_media_path: ad.storedMediaPath,
-    archive_status: ad.archiveStatus,
+    stored_media_path: null,
+    archive_status: "not_requested",
     missing_checks: 0,
-    running_days: ad.runningDays,
-    country: ad.country,
-    platforms: ad.platforms.length > 0 ? ad.platforms : null,
-    demographics: ad.demographics as unknown as Record<string, Record<string, number>>,
-    snapshot_url: ad.snapshotUrl,
-    source: ad.source,
-    variant_key: `${ad.advertiserId}:${ad.headline || ""}:${ad.mediaType}`.slice(0, 500),
-    raw_data: ad.rawData || null,
-  };
+    running_days: ad.delivery.daysRunning,
+    country: ad.delivery.countries[0] || null,
+    platforms: ad.delivery.platforms.length > 0 ? ad.delivery.platforms : null,
+    demographics: null,
+    snapshot_url: null,
+    source: ad.provider.discoveryProvider === "meta_official" ? "meta" : ad.provider.discoveryProvider as string,
+    variant_key: `${ad.advertiser.name}:${ad.copy.headline || ""}:${ad.creative.type}`.slice(0, 500),
+    raw_data: null,
+    refined_data: ad,
+    quality_score: ad.enrichment.qualityScore,
+  } as unknown as Omit<DatabaseAdRow, "created_at" | "updated_at">;
 }

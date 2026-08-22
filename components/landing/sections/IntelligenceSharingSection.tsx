@@ -44,12 +44,12 @@ export function IntelligenceSharingSection() {
   return (
     <section 
       ref={sectionRef}
-      className="py-[64px] md:py-[80px] lg:py-[96px] relative overflow-hidden bg-[#FCFDFB] border-t border-border"
+      className="py-[64px] md:py-[80px] lg:py-[96px] relative overflow-hidden bg-slate-50 border-t border-border"
     >
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(circle at 30% 45%, rgba(104,179,47,.05), transparent 34%)'
+          background: 'radial-gradient(circle at 30% 45%, rgba(37,99,235,0.05), transparent 34%)'
         }}
       />
       
@@ -131,7 +131,7 @@ export function IntelligenceSharingSection() {
                  </div>
 
                  <motion.div 
-                   className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#F4F9F1] border border-brand/20 text-[#356515] text-[11px] font-semibold tracking-wide"
+                   className="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-blue border border-brand/20 text-brand-strong text-[11px] font-semibold tracking-wide"
                    initial={{ opacity: 0, y: 5 }}
                    animate={isInView && hookScore > 60 ? { opacity: 1, y: 0 } : { opacity: 0, y: 5 }}
                    transition={{ delay: 0.8, duration: 0.3 }}
@@ -164,7 +164,7 @@ export function IntelligenceSharingSection() {
             <div className="max-w-[340px]">
               <span className="block text-[12px] font-semibold text-text-muted uppercase tracking-wider mb-2">Visibility</span>
               
-              <div className="flex p-[3px] bg-surface-subtle border border-line rounded-[10px] mb-3">
+              <div className="flex p-[3px] bg-slate-100 border border-line rounded-[10px] mb-3">
                 <button 
                   onClick={() => setShareMode('public')}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[13px] font-medium rounded-[7px] transition-all duration-200 ${shareMode === 'public' ? 'bg-white text-text-primary shadow-sm border border-border/50' : 'text-text-muted hover:text-text-primary border border-transparent'}`}
@@ -190,7 +190,7 @@ export function IntelligenceSharingSection() {
                 </div>
                 <button 
                   onClick={handleCopy}
-                  className={`flex-shrink-0 flex items-center justify-center gap-1.5 h-[40px] px-3.5 rounded-[12px] border shadow-sm text-[13px] font-medium transition-colors w-[85px] ${isCopied ? 'bg-[#F4F9F1] border-brand/30 text-brand' : 'bg-white border-border text-text-primary hover:bg-surface'}`}
+                  className={`flex-shrink-0 flex items-center justify-center gap-1.5 h-[40px] px-3.5 rounded-[12px] border shadow-sm text-[13px] font-medium transition-colors w-[85px] ${isCopied ? 'bg-surface-blue border-brand/30 text-brand' : 'bg-white border-border text-text-primary hover:bg-surface'}`}
                 >
                   {isCopied ? <><Check size={14} /> Copied</> : <><Copy size={13} className="text-text-muted"/> Copy</>}
                 </button>

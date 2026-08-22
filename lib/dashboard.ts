@@ -50,7 +50,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   ]);
 
   const catalogueAds = catalogue.map(dbAdToNormalized);
-  const trending = catalogueAds.sort((a: NormalizedAd, b: NormalizedAd) => (b.variants * 10 + b.winnerScore) - (a.variants * 10 + a.winnerScore)).slice(0, 5);
+  const trending = catalogueAds.sort((a: NormalizedAd, b: NormalizedAd) => ((b.variants || 1) * 10 + (b.intelligence?.winnerScore || 0)) - ((a.variants || 1) * 10 + (a.intelligence?.winnerScore || 0))).slice(0, 5);
   const tracked = await Promise.all(competitorRows.map(async (competitor) => {
     const activeAds = await countRows("Home.competitorActiveAds", () => supabase.from("ads").select("*", { count: "exact", head: true }).eq("advertiser_id", competitor.advertiser_id).eq("status", "active"));
     return { name: competitor.advertiser_name, advertiserId: competitor.advertiser_id, activeAds: activeAds ?? 0 };

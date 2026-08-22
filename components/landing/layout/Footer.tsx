@@ -13,7 +13,7 @@ export function Footer() {
           <div className="col-span-2 md:col-span-3 lg:col-span-1 flex flex-col items-start min-w-0">
             <Link
               href="/"
-              className="font-bold text-xl tracking-tight text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-[#68B32F] rounded-sm"
+              className="font-bold text-xl tracking-tight text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm"
             >
               AdsHunting
             </Link>
@@ -30,7 +30,7 @@ export function Footer() {
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    className="text-[14px] text-text-secondary hover:text-[#5a9c29] transition-colors py-1 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#68B32F] rounded-sm"
+                    className="text-[14px] text-text-secondary hover:text-brand-strong transition-colors py-1 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm"
                   >
                     {item.name}
                   </Link>
@@ -40,7 +40,7 @@ export function Footer() {
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    className="text-[14px] text-text-secondary hover:text-[#5a9c29] transition-colors py-1 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#68B32F] rounded-sm"
+                    className="text-[14px] text-text-secondary hover:text-brand-strong transition-colors py-1 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm"
                   >
                     {item.name}
                   </Link>
@@ -57,7 +57,7 @@ export function Footer() {
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    className="text-[14px] text-text-secondary hover:text-[#5a9c29] transition-colors py-1 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#68B32F] rounded-sm"
+                    className="text-[14px] text-text-secondary hover:text-brand-strong transition-colors py-1 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm"
                   >
                     {item.name}
                   </Link>
@@ -73,7 +73,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/about"
-                  className="text-[14px] text-text-secondary hover:text-[#5a9c29] transition-colors py-1 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#68B32F] rounded-sm"
+                  className="text-[14px] text-text-secondary hover:text-brand-strong transition-colors py-1 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm"
                 >
                   About
                 </Link>
@@ -81,7 +81,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/contact"
-                  className="text-[14px] text-text-secondary hover:text-[#5a9c29] transition-colors py-1 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#68B32F] rounded-sm"
+                  className="text-[14px] text-text-secondary hover:text-brand-strong transition-colors py-1 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm"
                 >
                   Contact
                 </Link>
@@ -97,7 +97,7 @@ export function Footer() {
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    className="text-[14px] text-text-secondary hover:text-[#5a9c29] transition-colors py-1 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#68B32F] rounded-sm"
+                    className="text-[14px] text-text-secondary hover:text-brand-strong transition-colors py-1 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm"
                   >
                     {item.name}
                   </Link>
@@ -118,7 +118,7 @@ export function Footer() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-[13px] text-text-muted hover:text-[#5a9c29] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#68B32F] rounded-sm"
+                className="text-[13px] text-text-muted hover:text-brand-strong transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm"
               >
                 {item.name}
               </Link>
@@ -133,14 +133,12 @@ export function Footer() {
         aria-hidden="true"
       >
         <div
-          className="font-extrabold text-center tracking-[-0.055em] leading-[0.78]"
+          className="font-extrabold text-center tracking-[-0.055em] leading-[0.78] bg-clip-text text-transparent"
           style={{
             fontSize: 'clamp(4.5rem, 19.5vw, 22rem)',
-            background: 'linear-gradient(180deg, #68B32F 0%, rgba(104,179,47,0.72) 45%, rgba(104,179,47,0.15) 85%, transparent 100%)',
+            backgroundImage: 'linear-gradient(180deg, #2563EB 0%, rgba(37,99,235,0.72) 45%, rgba(37,99,235,0.15) 85%, transparent 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            color: 'transparent',
           }}
         >
           AdsHunting

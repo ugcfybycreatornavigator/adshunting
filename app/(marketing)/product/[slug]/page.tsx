@@ -128,7 +128,7 @@ export default async function ProductSeoPage({ params }: Props) {
                 </div>
                 <div className="p-5">
                   <div className="mb-5 flex items-center gap-3">
-                    <div className="grid size-11 place-items-center rounded-xl bg-surface-green text-brand">
+                    <div className="grid size-11 place-items-center rounded-xl bg-surface-blue text-brand">
                       <Icon size={20} />
                     </div>
                     <div>
@@ -196,7 +196,7 @@ export default async function ProductSeoPage({ params }: Props) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="inline-flex items-center justify-between gap-5 rounded-xl border border-border bg-[#fcfcfa] px-5 py-4 text-[15px] font-semibold text-text-primary transition-colors hover:border-[#d2dfcb] hover:bg-surface-green"
+                  className="inline-flex items-center justify-between gap-5 rounded-xl border border-border bg-[#fcfcfa] px-5 py-4 text-[15px] font-semibold text-text-primary transition-colors hover:border-[#d2dfcb] hover:bg-surface-blue"
                 >
                   {item.text}
                   <ArrowRight size={17} className="text-brand" />
@@ -227,7 +227,7 @@ function InfoBlock({
       <List className="mt-5 space-y-4">
         {items.map((item, index) => (
           <li key={item} className="flex gap-3 text-[15px] leading-relaxed text-text-secondary">
-            <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-surface-green text-[12px] font-bold text-brand-strong">
+            <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-surface-blue text-[12px] font-bold text-brand-strong">
               {ordered ? index + 1 : <Check size={14} aria-hidden="true" />}
             </span>
             <span>{item}</span>

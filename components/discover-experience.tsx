@@ -65,8 +65,9 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
         const ids = new Set<string>();
         const collectionMap: Record<string, string[]> = {};
         for (const item of savedItems as { ad: NormalizedAd; collectionIds?: string[] }[]) {
-          ids.add(item.ad.externalAdId);
-          collectionMap[item.ad.externalAdId] = item.collectionIds ?? [];
+          const id = item.ad.externalId || item.ad.id;
+          ids.add(id);
+          collectionMap[id] = item.collectionIds ?? [];
         }
         setSavedAdIds(ids);
         setAdCollectionIds(collectionMap);
@@ -109,7 +110,7 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
         setFilters({ brand: result.resolvedIntent.advertiserId, query: result.resolvedIntent.advertiserName });
       }
 
-      setAds(current => append ? [...current, ...result.ads.filter(ad => !current.some(existing => existing.externalAdId === ad.externalAdId))] : result.ads);
+      setAds(current => append ? [...current, ...result.ads.filter(ad => !current.some(existing => (existing.externalId || existing.id) === (ad.externalId || ad.id)))] : result.ads);
       setCursor(result.nextCursor);
       setTotal(result.total);
 
@@ -189,7 +190,7 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
 
   useEffect(() => {
     if (!deepLinkedAdId || details) return;
-    const local = ads.find((ad) => ad.externalAdId === deepLinkedAdId || ad.id === deepLinkedAdId);
+    const local = ads.find((ad) => (ad.externalId || ad.id) === deepLinkedAdId);
     if (local) {
       setDetails(local);
       return;
@@ -300,15 +301,15 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
       const response = await fetch("/api/swipe-files/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adId: ad.id, externalAdId: ad.externalAdId }),
+        body: JSON.stringify({ adId: ad.id, externalAdId: (ad.externalId || ad.id) }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      setSavedAdIds((current) => new Set([...current, ad.externalAdId]));
+      setSavedAdIds((current) => new Set([...current, (ad.externalId || ad.id)]));
       if (data.swipeFileId) {
         setAdCollectionIds((current) => ({
           ...current,
-          [ad.externalAdId]: [...new Set([...(current[ad.externalAdId] ?? []), data.swipeFileId])],
+          [(ad.externalId || ad.id)]: [...new Set([...(current[(ad.externalId || ad.id)] ?? []), data.swipeFileId])],
         }));
       }
       setToast({ message: "Saved to Saved Ads" });
@@ -323,10 +324,10 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
   }
 
   function handleSwipeFileAdded(ad: NormalizedAd, result: SwipeFileResult) {
-    setSavedAdIds((current) => new Set([...current, ad.externalAdId]));
+    setSavedAdIds((current) => new Set([...current, (ad.externalId || ad.id)]));
     setAdCollectionIds((current) => ({
       ...current,
-      [ad.externalAdId]: [...new Set([...(current[ad.externalAdId] ?? []), ...result.collectionIds])],
+      [(ad.externalId || ad.id)]: [...new Set([...(current[(ad.externalId || ad.id)] ?? []), ...result.collectionIds])],
     }));
     setToast({ message: result.collectionNames.length > 1 ? `Added to ${result.collectionNames.length} Swipe Files` : `Added to ${result.collectionNames[0] || "Swipe File"}` });
   }
@@ -470,11 +471,11 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
             <div className={cn(gridClass(), loading && !loadingMore && "opacity-60 transition-opacity")}>
               {displayedAds.map(ad => (
                 <AdCard
-                  key={`${ad.externalAdId}-${ad.id}`}
+                  key={`${(ad.externalId || ad.id)}-${ad.id}`}
                   ad={ad}
-                  saved={savedAdIds.has(ad.externalAdId)}
-                  swipeFileCount={adCollectionIds[ad.externalAdId]?.length ?? 0}
-                  initialCollectionIds={adCollectionIds[ad.externalAdId] ?? []}
+                  saved={savedAdIds.has((ad.externalId || ad.id))}
+                  swipeFileCount={adCollectionIds[(ad.externalId || ad.id)]?.length ?? 0}
+                  initialCollectionIds={adCollectionIds[(ad.externalId || ad.id)] ?? []}
                   onOpen={() => setDetails(ad)}
                   onSave={() => saveAd(ad)}
                   onSwipeFileAdded={(result) => handleSwipeFileAdded(ad, result)}
@@ -498,7 +499,7 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
       {details && (
         <AdDetailDrawer
           ad={details}
-          saved={savedAdIds.has(details.externalAdId)}
+          saved={savedAdIds.has(details.externalId ?? details.id)}
           onClose={() => setDetails(null)}
           onSave={() => saveAd(details)}
         />
@@ -588,10 +589,10 @@ function title(value: string) {
 }
 
 function sortAds(ads: NormalizedAd[], sort?: string) {
-  if (sort === "newest") return [...ads].sort((a, b) => new Date(b.startDate || 0).getTime() - new Date(a.startDate || 0).getTime());
-  if (sort === "oldest") return [...ads].sort((a, b) => new Date(a.startDate || 0).getTime() - new Date(b.startDate || 0).getTime());
-  if (sort === "longest") return [...ads].sort((a, b) => (b.runningDays || 0) - (a.runningDays || 0));
-  if (sort === "variations") return [...ads].sort((a, b) => b.variants - a.variants);
+  if (sort === "newest") return [...ads].sort((a, b) => new Date(b.delivery.startedAt || 0).getTime() - new Date(a.delivery.startedAt || 0).getTime());
+  if (sort === "oldest") return [...ads].sort((a, b) => new Date(a.delivery.startedAt || 0).getTime() - new Date(b.delivery.startedAt || 0).getTime());
+  if (sort === "longest") return [...ads].sort((a, b) => (b.delivery.daysRunning || 0) - (a.delivery.daysRunning || 0));
+  if (sort === "variations") return [...ads].sort((a, b) => (b.variants || 1) - (a.variants || 1));
   return ads;
 }
 

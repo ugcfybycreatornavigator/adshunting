@@ -37,12 +37,12 @@ function PricingSection() {
   return (
     <section 
       id="pricing" 
-      className="py-[72px] md:py-[100px] lg:py-[120px] bg-[#FCFDFB] border-t border-border relative overflow-hidden"
+      className="py-[72px] md:py-[100px] lg:py-[120px] bg-slate-50/50 border-t border-border relative overflow-hidden"
     >
       <div 
         className="absolute inset-0 pointer-events-none" 
         style={{
-          background: 'radial-gradient(circle at 50% 35%, rgba(104,179,47,.045), transparent 38%)'
+          background: 'radial-gradient(ellipse at 50% 0%, rgba(37,99,235,0.08), transparent 70%)'
         }}
       />
       
@@ -66,13 +66,13 @@ function PricingSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-[1200px] mx-auto items-start relative">
           
           {/* Scout Plan - Rendered First in DOM for mobile accessibility */}
-          <div className="flex flex-col rounded-[24px] p-7 md:p-9 border-[1.5px] border-brand shadow-[0_18px_50px_rgba(45,80,20,0.06),0_4px_14px_rgba(0,0,0,0.03)] order-first md:order-none lg:order-2 relative z-10 transition-transform duration-300 hover:-translate-y-1 bg-white"
-               style={{ background: 'linear-gradient(180deg, rgba(104,179,47,.06), #FFFFFF 28%)' }}>
+          <div className="flex flex-col rounded-[24px] p-7 md:p-9 border-[1.5px] border-brand shadow-[0_18px_50px_rgba(30,58,138,0.06),0_4px_14px_rgba(0,0,0,0.03)] order-first md:order-none lg:order-2 relative z-10 transition-transform duration-300 hover:-translate-y-1 bg-white"
+               style={{ background: 'linear-gradient(180deg, rgba(37,99,235,.06), #FFFFFF 28%)' }}>
             
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-[24px] font-bold text-text-primary">SCOUT</h3>
-              <span className="inline-flex items-center rounded-full bg-[#E8F3E1] px-3 py-1.5 text-[11px] font-bold tracking-wider text-[#356515] uppercase">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#529124] mr-2"></span>
+              <span className="inline-flex items-center rounded-full bg-brand-soft px-3 py-1.5 text-[11px] font-bold tracking-wider text-brand-strong uppercase">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand mr-2"></span>
                 LAUNCH OFFER
               </span>
             </div>
@@ -127,7 +127,7 @@ function PricingSection() {
             </p>
 
             <div className="flex-grow border-t border-border pt-8 flex items-center justify-center min-h-[220px]">
-               <span className="inline-flex items-center rounded-full bg-surface-subtle px-4 py-2 text-[12px] font-bold tracking-widest text-text-muted border border-border uppercase">
+               <span className="inline-flex items-center rounded-full bg-slate-100 px-4 py-2 text-[12px] font-bold tracking-widest text-text-muted border border-border uppercase">
                  Coming Soon
                </span>
             </div>
@@ -142,7 +142,7 @@ function PricingSection() {
             </p>
 
             <div className="flex-grow border-t border-border pt-8 flex items-center justify-center min-h-[220px]">
-               <span className="inline-flex items-center rounded-full bg-surface-subtle px-4 py-2 text-[12px] font-bold tracking-widest text-text-muted border border-border uppercase">
+               <span className="inline-flex items-center rounded-full bg-slate-100 px-4 py-2 text-[12px] font-bold tracking-widest text-text-muted border border-border uppercase">
                  Coming Soon
                </span>
             </div>

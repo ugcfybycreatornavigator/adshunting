@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Menu, X, ChevronDown, Plus, Minus } from 'lucide-react';
-import { LandingContainer } from './LandingContainer';
 import { CTAButton } from '../ui/CTAButton';
 import { navigationConfig, authLinks } from '@/data/landing/config';
 import { cn } from '@/lib/utils';
@@ -55,9 +54,10 @@ export function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <LandingContainer>
-        <div className="flex h-16 items-center justify-between">
+    <header className="fixed top-2 md:top-5 inset-x-0 z-50 transition-all duration-300 px-4 md:px-6">
+      <div className="w-full max-w-[1200px] mx-auto bg-white/70 backdrop-blur-xl border border-black/[0.05] shadow-[0_8px_30px_rgba(37,99,235,0.08),0_1px_3px_rgba(0,0,0,0.02)] rounded-[20px] md:rounded-full">
+        <div className="px-5 md:px-8">
+          <div className="flex h-14 md:h-16 items-center justify-between">
           <Link href="/" className="font-bold text-xl tracking-tight text-text-primary" onClick={closeMenus}>
             AdsHunting
           </Link>
@@ -86,7 +86,7 @@ export function Navbar() {
                         onClick={closeMenus}
                         className="flex items-start gap-3 p-3 rounded-xl hover:bg-surface-subtle transition-colors"
                       >
-                        <div className="mt-0.5 bg-surface-green text-brand-strong p-1.5 rounded-lg">
+                        <div className="mt-0.5 bg-surface-blue text-brand-strong p-1.5 rounded-lg">
                           <item.icon size={16} />
                         </div>
                         <div>
@@ -159,7 +159,8 @@ export function Navbar() {
             {isMobileOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
-      </LandingContainer>
+      </div>
+      </div>
 
       {/* Mobile Menu */}
       {isMobileOpen && (

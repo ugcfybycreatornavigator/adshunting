@@ -39,50 +39,89 @@ export interface NormalizedCarouselCard {
 }
 
 
-export interface NormalizedAd {
+export type RefinedAd = {
   id: string;
-  externalAdId: string; // The primary raw ID from the provider
-  canonicalAdId: string;
-  creativeFingerprint: string;
-  creativeGroupId: string;
-  observationCount: number;
-  providerAdIds: string[];
-  advertiserId: string;
-  advertiserName: string;
-  advertiserAvatarUrl: string | null;
-  advertiserProfileUrl: string | null;
-  body: string | null;
-  caption: string | null;
-  headline: string | null;
-  description: string | null;
-  hashtags: string[];
-  cta: string | null;
-  landingPageUrl: string | null;
-  sourceMediaUrl: string | null;
-  thumbnailUrl: string | null;
-  carouselAssets: string[];
-  carouselCards?: NormalizedCarouselCard[];
-  storedMediaPath: string | null;
-  archiveStatus: "not_requested" | "archived" | "failed" | "unavailable";
-  mediaType: MediaType;
-  status: AdStatus;
-  startDate: string | null;
-  stopDate: string | null;
-  firstSeenAt: string;
-  lastSeenAt: string;
-  runningDays: number | null;
-  country: string | null;
-  platforms: string[];
-  demographics: NormalizedDemographics | null;
-  snapshotUrl: string | null;
-  source: "searchapi" | "meta" | "foreplay" | "catalog";
-  variants: number;
-  creativeRepetition: number;
-  brandActiveAds: number | null;
-  winnerScore: number;
-  intelligenceLabels: string[];
-  rawData?: Record<string, unknown>;
-}
+  externalId: string | null;
+
+  provider: {
+    discoveryProvider: "searchapi" | "metaapi_io" | "meta_official" | "foreplay" | "catalog";
+    fetchedAt: string;
+  };
+
+  advertiser: {
+    id: string | null;
+    name: string | null;
+    normalizedName: string | null;
+    pageUrl: string | null;
+    logoUrl: string | null;
+    domain: string | null;
+    social: {
+      facebook: string | null;
+      instagram: string | null;
+      linkedin: string | null;
+    };
+  };
+
+  copy: {
+    primaryText: string | null;
+    headline: string | null;
+    description: string | null;
+    cta: string | null;
+  };
+
+  creative: {
+    type: MediaType;
+    imageUrl: string | null;
+    videoUrl: string | null;
+    thumbnailUrl: string | null;
+    carouselItems: Array<{
+      imageUrl?: string;
+      videoUrl?: string;
+      headline?: string;
+      destinationUrl?: string;
+    }>;
+  };
+
+  delivery: {
+    status: AdStatus;
+    startedAt: string | null;
+    endedAt: string | null;
+    daysRunning: number | null;
+    platforms: string[];
+    countries: string[];
+  };
+
+  destination: {
+    url: string | null;
+    resolvedUrl: string | null;
+    domain: string | null;
+    title: string | null;
+    productName: string | null;
+  };
+
+  intelligence: {
+    category: string | null;
+    creativeFormat: string | null;
+    hookType: string | null;
+    offerType: string | null;
+    winnerScore: number | null;
+    labels: string[];
+  };
+
+  enrichment: {
+    archiveStatus: "not_requested" | "pending" | "archived" | "failed" | "unavailable";
+    status: "pending" | "processing" | "complete" | "partial" | "failed";
+    qualityScore: number;
+    lastEnrichedAt: string | null;
+  };
+  
+  variants?: number;
+  creativeRepetition?: number;
+  brandActiveAds?: number | null;
+  rawData?: Record<string, unknown> | null;
+};
+
+export type NormalizedAd = RefinedAd;
 
 export interface AdSearchFilters {
   query?: string;

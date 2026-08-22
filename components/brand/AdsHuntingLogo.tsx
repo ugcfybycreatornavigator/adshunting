@@ -28,7 +28,7 @@ export function AdsHuntingLogo({
   // Using explicit variables instead of text color utility classes to ensure it doesn't get overridden by a parent container's arbitrary text-foreground.
   const isDarkSurface = surface === "dark";
   const primaryColor = isDarkSurface ? "#FFFFFF" : "#0F172A"; // White for dark surface, Slate-900 for light surface
-  const accentColor = "#68B32F"; // Brand Green
+  const accentColor = "#2563EB"; // Brand Blue
 
   const markSvg = (
     <svg

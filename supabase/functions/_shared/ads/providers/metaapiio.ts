@@ -1,4 +1,4 @@
-import type { AdProvider, AdSearchFilters, AdSearchResult, ProviderCapabilities } from "./types.ts";
+import type { AdProvider, AdSearchFilters, AdSearchResult, ProviderCapabilities } from "../types.ts";
 import { ProviderError } from "./errors.ts";
 
 export class MetaApiIoProvider implements AdProvider {

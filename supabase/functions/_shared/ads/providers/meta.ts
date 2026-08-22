@@ -1,8 +1,9 @@
-import type { AdProvider, AdSearchFilters, AdSearchResult, NormalizedAd, ProviderCapabilities } from "./types.ts";
+import type { AdProvider, AdSearchFilters, AdSearchResult, NormalizedAd, ProviderCapabilities, RefinedAd } from "./types.ts";
 import { daysBetween, safeExternalUrl, sanitizeAdCopy } from "../utils.ts";
 import { ProviderError, providerErrorFromStatus } from "./errors.ts";
 import { computeAdIntelligence } from "../intelligence.ts";
 import { computeAdFingerprints } from "../fingerprint.ts";
+import { refineAd } from "../refinement/index.ts";
 
 type MetaRawAd = {
   id: string;
@@ -183,77 +184,70 @@ function normalizeMetaAd(raw: MetaRawAd, country: string): NormalizedAd {
   const stopDate = raw.ad_delivery_stop_time || null;
   const status = stopDate ? ("inactive" as const) : ("active" as const);
   const runningDays = daysBetween(startDate, stopDate);
-  const variants = 1;
-  const repetition = 0;
   const safeSnapshot = `https://www.facebook.com/ads/library/?id=${encodeURIComponent(raw.id)}`;
-  const sanitizedRaw: Record<string, unknown> = { ...raw, ad_snapshot_url: safeSnapshot };
   const platformsList = (raw.publisher_platforms ?? []).map((value) => value.toLowerCase());
-  const bodyText = sanitizeAdCopy(raw.ad_creative_bodies?.[0] || null);
-  const headlineText = sanitizeAdCopy(raw.ad_creative_link_titles?.[0] || null);
+  const bodyText = raw.ad_creative_bodies?.[0] || null;
+  const headlineText = raw.ad_creative_link_titles?.[0] || null;
 
-  const intel = computeAdIntelligence({
-    startDate,
-    stopDate,
-    status,
-    lastSeenAt: new Date().toISOString(),
-    variants,
-    creativeRepetition: repetition,
-    platforms: platformsList,
-    mediaType: "unknown",
-    headline: headlineText,
-    body: bodyText,
-    advertiserId: raw.page_id,
-  });
-
-  const baseAd = {
+  const baseAd: RefinedAd = {
     id: raw.id,
-    externalAdId: raw.id,
-    advertiserId: raw.page_id || "unknown",
-    advertiserName: raw.page_name || "Unknown advertiser",
-    advertiserAvatarUrl: null,
-    advertiserProfileUrl: null,
-    body: bodyText,
-    caption: bodyText,
-    headline: headlineText,
-    description: sanitizeAdCopy(raw.ad_creative_link_descriptions?.[0] || raw.ad_creative_link_captions?.[0] || null),
-    hashtags: extractHashtags(bodyText),
-    cta: null,
-    landingPageUrl: null,
-    sourceMediaUrl: null,
-    thumbnailUrl: null,
-    carouselAssets: [],
-    storedMediaPath: null,
-    archiveStatus: "not_requested",
-    mediaType: "unknown",
-    status,
-    startDate,
-    stopDate,
-    firstSeenAt: new Date().toISOString(),
-    lastSeenAt: new Date().toISOString(),
-    runningDays,
-    country,
-    platforms: platformsList,
-    demographics: null,
-    snapshotUrl: safeExternalUrl(safeSnapshot),
-    source: "meta",
-    variants,
-    creativeRepetition: repetition,
-    brandActiveAds: null,
-    winnerScore: intel.adjustedWinnerScore,
-    intelligenceLabels: [intel.badgeCategory, intel.longevityLabel.split(" ")[0]],
-    rawData: sanitizedRaw,
+    externalId: raw.id,
+    provider: {
+      discoveryProvider: "meta_official",
+      fetchedAt: new Date().toISOString(),
+    },
+    advertiser: {
+      id: raw.page_id || null,
+      name: raw.page_name || null,
+      normalizedName: null,
+      pageUrl: null,
+      logoUrl: null,
+      domain: null,
+      social: { facebook: null, instagram: null, linkedin: null },
+    },
+    copy: {
+      primaryText: bodyText,
+      headline: headlineText,
+      description: raw.ad_creative_link_descriptions?.[0] || raw.ad_creative_link_captions?.[0] || null,
+      cta: null,
+    },
+    creative: {
+      type: "unknown",
+      imageUrl: null,
+      videoUrl: null,
+      thumbnailUrl: null,
+      carouselItems: [],
+    },
+    delivery: {
+      status,
+      startedAt: startDate,
+      endedAt: stopDate,
+      daysRunning: runningDays,
+      platforms: platformsList,
+      countries: country ? [country] : [],
+    },
+    destination: {
+      url: safeSnapshot,
+      resolvedUrl: null,
+      domain: null,
+      title: null,
+      productName: null,
+    },
+    intelligence: {
+      category: null,
+      creativeFormat: null,
+      hookType: null,
+      offerType: null,
+      winnerScore: null,
+    },
+    enrichment: {
+      status: "pending",
+      qualityScore: 0,
+      lastEnrichedAt: null,
+    }
   };
 
-  const fps = computeAdFingerprints(baseAd as unknown as NormalizedAd);
-
-  return {
-    ...(baseAd as unknown as NormalizedAd),
-    canonicalAdId: fps.canonicalAdId,
-    creativeFingerprint: fps.creativeFingerprint,
-    creativeGroupId: fps.creativeGroupId,
-    observationCount: 1,
-    providerAdIds: [baseAd.externalAdId],
-  };
+  return refineAd(baseAd);
 }
 
 function extractHashtags(value: string | null) {

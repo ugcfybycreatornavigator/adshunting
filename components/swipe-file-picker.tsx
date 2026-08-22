@@ -163,7 +163,7 @@ export function SwipeFilePicker({
       const response = await fetch("/api/swipe-files/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ externalAdId: ad.externalAdId, swipeFileId: justToggledId }),
+        body: JSON.stringify({ externalAdId: ad.externalId || ad.id, swipeFileId: justToggledId }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);

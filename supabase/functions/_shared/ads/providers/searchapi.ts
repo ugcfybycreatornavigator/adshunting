@@ -1,8 +1,9 @@
-import type { AdProvider, AdSearchFilters, AdSearchResult, Advertiser, MediaType, NormalizedAd, ProviderCapabilities } from "./types.ts";
+import type { AdProvider, AdSearchFilters, AdSearchResult, Advertiser, MediaType, NormalizedAd, ProviderCapabilities, RefinedAd } from "./types.ts";
 import { daysBetween, safeExternalUrl, sanitizeAdCopy } from "../utils.ts";
 import { ProviderError, providerErrorFromStatus } from "./errors.ts";
 import { computeAdIntelligence } from "../intelligence.ts";
 import { computeAdFingerprints } from "../fingerprint.ts";
+import { refineAd } from "../refinement/index.ts";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -149,24 +150,23 @@ export function normalizeSearchApiAd(input: UnknownRecord, country?: string): No
   const variants = Math.max(1, Number(input.collation_count) || 1);
   const repetition = Math.max(0, variants - 1);
   
-  const bodyText = sanitizeAdCopy(firstNonEmpty(
+  const bodyText = firstNonEmpty(
     input.body, input.ad_creative_body, snapshot.body, creative.firstCard.body, input.text, input.caption, snapshot.caption
-  ));
-  const captionText = sanitizeAdCopy(firstNonEmpty(input.caption, snapshot.caption)) || bodyText;
+  );
   
-  const headlineText = sanitizeAdCopy(firstNonEmpty(
+  const headlineText = firstNonEmpty(
     input.headline, input.title, input.link_title, snapshot.headline, snapshot.title, snapshot.link_title, creative.firstCard.headline, creative.firstCard.title, creative.firstCard.link_title, input.ad_creative_link_title
-  ));
+  );
   
-  const ctaText = normalizeCta(firstNonEmpty(
+  const ctaText = firstNonEmpty(
     input.cta, input.cta_text, input.cta_type, snapshot.cta, snapshot.cta_text, snapshot.cta_type, creative.firstCard.cta_text, creative.firstCard.cta_type, creative.firstCard.cta
-  ));
+  );
   
-  const landingUrl = safeExternalUrl(firstNonEmpty(input.link_url, snapshot.link_url, creative.firstCard.link_url, input.destination_url));
+  const landingUrl = firstNonEmpty(input.link_url, snapshot.link_url, creative.firstCard.link_url, input.destination_url);
   
-  const descText = sanitizeAdCopy(firstNonEmpty(
+  const descText = firstNonEmpty(
     input.description, input.link_description, snapshot.description, snapshot.link_description, creative.firstCard.description, creative.firstCard.link_description, input.ad_creative_link_description
-  ));
+  );
   
   const rawPlatforms = Array.isArray(input.publisher_platform) ? input.publisher_platform
     : Array.isArray(input.platforms) ? input.platforms
@@ -178,84 +178,74 @@ export function normalizeSearchApiAd(input: UnknownRecord, country?: string): No
                  : Array.isArray(snapshot.cards) ? snapshot.cards.map(record) : [];
                  
   const carouselCards = rawCards.map(c => ({
-    headline: firstNonEmpty(c.title, c.headline, c.link_title),
-    description: firstNonEmpty(c.description, c.link_description),
-    body: firstNonEmpty(c.body, c.caption),
-    callToAction: normalizeCta(firstNonEmpty(c.cta_text, c.cta_type, c.cta)),
-    imageUrl: safeExternalUrl(firstNonEmpty(c.original_image_url, c.resized_image_url, c.image_url)),
-    videoUrl: safeExternalUrl(firstNonEmpty(c.video_hd_url, c.video_sd_url, c.video_url)),
-    destinationUrl: safeExternalUrl(firstNonEmpty(c.link_url, c.destination_url)),
+    headline: firstNonEmpty(c.title, c.headline, c.link_title) || undefined,
+    description: firstNonEmpty(c.description, c.link_description) || undefined,
+    body: firstNonEmpty(c.body, c.caption) || undefined,
+    callToAction: firstNonEmpty(c.cta_text, c.cta_type, c.cta) || undefined,
+    imageUrl: firstNonEmpty(c.original_image_url, c.resized_image_url, c.image_url) || undefined,
+    videoUrl: firstNonEmpty(c.video_hd_url, c.video_sd_url, c.video_url) || undefined,
+    destinationUrl: firstNonEmpty(c.link_url, c.destination_url) || undefined,
   }));
 
-  const intel = computeAdIntelligence({
-    startDate,
-    stopDate,
-    status: active ? "active" : "inactive",
-    lastSeenAt: new Date().toISOString(),
-    variants,
-    creativeRepetition: repetition,
-    platforms: platformsList,
-    mediaType: creative.mediaType,
-    headline: headlineText,
-    body: bodyText,
-    cta: ctaText,
-    landingPageUrl: landingUrl,
-    sourceMediaUrl: creative.sourceMediaUrl,
-    advertiserId: text(input.page_id) || text(snapshot.page_id) || undefined,
-  });
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const baseAd: any = {
+  const baseAd: RefinedAd = {
     id: String(input.ad_archive_id),
-    externalAdId: String(input.ad_archive_id),
-    advertiserId: text(input.page_id) || text(snapshot.page_id) || "unknown",
-    advertiserName:
-      text(input.page_name) || text(snapshot.page_name) || text(snapshot.current_page_name) || "Unknown advertiser",
-    advertiserAvatarUrl: safeExternalUrl(text(snapshot.page_profile_picture_url)),
-    advertiserProfileUrl: safeExternalUrl(text(snapshot.page_profile_uri)),
-    body: bodyText,
-    caption: captionText,
-    headline: headlineText,
-    description: descText,
-    hashtags: extractHashtags([bodyText, captionText].filter(Boolean).join(" ")),
-    cta: ctaText,
-    landingPageUrl: landingUrl,
-    sourceMediaUrl: creative.sourceMediaUrl,
-    thumbnailUrl: creative.thumbnailUrl,
-    carouselAssets: creative.carouselAssets,
-    carouselCards: carouselCards.length > 0 ? carouselCards : undefined,
-    storedMediaPath: null,
-    archiveStatus: "not_requested",
-    mediaType: creative.mediaType,
-    status: active ? "active" : "inactive",
-    startDate,
-    stopDate,
-    firstSeenAt: new Date().toISOString(),
-    lastSeenAt: new Date().toISOString(),
-    runningDays,
-    country: country || null,
-    platforms: platformsList,
-    demographics: normalizeDemographics(input),
-    snapshotUrl: safeExternalUrl(text(input.snapshot_url)),
-    source: "searchapi",
-    variants,
-    creativeRepetition: repetition,
-    brandActiveAds: null,
-    winnerScore: intel.adjustedWinnerScore,
-    intelligenceLabels: [intel.badgeCategory, intel.longevityLabel.split(" ")[0]],
-    rawData: input,
+    externalId: String(input.ad_archive_id),
+    provider: {
+      discoveryProvider: "searchapi",
+      fetchedAt: new Date().toISOString(),
+    },
+    advertiser: {
+      id: text(input.page_id) || text(snapshot.page_id) || null,
+      name: text(input.page_name) || text(snapshot.page_name) || text(snapshot.current_page_name) || null,
+      normalizedName: null,
+      pageUrl: text(snapshot.page_profile_uri) || null,
+      logoUrl: text(snapshot.page_profile_picture_url) || null,
+      domain: null,
+      social: { facebook: null, instagram: null, linkedin: null },
+    },
+    copy: {
+      primaryText: bodyText,
+      headline: headlineText,
+      description: descText,
+      cta: ctaText,
+    },
+    creative: {
+      type: creative.mediaType,
+      imageUrl: creative.sourceMediaUrl,
+      videoUrl: creative.sourceMediaUrl,
+      thumbnailUrl: creative.thumbnailUrl,
+      carouselItems: carouselCards,
+    },
+    delivery: {
+      status: active ? "active" : "inactive",
+      startedAt: startDate,
+      endedAt: stopDate,
+      daysRunning: runningDays,
+      platforms: platformsList,
+      countries: country ? [country] : [],
+    },
+    destination: {
+      url: landingUrl,
+      resolvedUrl: null,
+      domain: null,
+      title: null,
+      productName: null,
+    },
+    intelligence: {
+      category: null,
+      creativeFormat: null,
+      hookType: null,
+      offerType: null,
+      winnerScore: null,
+    },
+    enrichment: {
+      status: "pending",
+      qualityScore: 0,
+      lastEnrichedAt: null,
+    }
   };
   
-  const fps = computeAdFingerprints(baseAd as NormalizedAd);
-  
-  return {
-    ...baseAd,
-    canonicalAdId: fps.canonicalAdId,
-    creativeFingerprint: fps.creativeFingerprint,
-    creativeGroupId: fps.creativeGroupId,
-    observationCount: 1,
-    providerAdIds: [baseAd.externalAdId],
-  };
+  return refineAd(baseAd);
 }
 
 export class SearchApiProvider implements AdProvider {

@@ -8,8 +8,14 @@ export function ReviewResearchSection() {
   const sampleAd2 = workflowAds[1]; // Veda Botanics (Video)
 
   return (
-    <section className="py-24 md:py-32 bg-surface-subtle border-t border-border overflow-hidden">
-      <LandingContainer className="flex flex-col gap-32">
+    <section className="py-24 md:py-32 bg-slate-50 border-t border-border overflow-hidden relative">
+      <div 
+        className="absolute inset-0 pointer-events-none" 
+        style={{
+          background: 'radial-gradient(circle at 50% 50%, rgba(37,99,235,0.04), transparent 70%)'
+        }}
+      />
+      <LandingContainer className="flex flex-col gap-32 relative z-10">
         
         {/* Review Section */}
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
@@ -20,16 +26,16 @@ export function ReviewResearchSection() {
                  <img src={sampleAd1.thumbnail} alt={sampleAd1.brand} className="w-full h-full object-cover" />
               </div>
             </div>
-            <div className="w-full sm:w-[55%] p-6 md:p-8 flex flex-col bg-[#FCFDFB] border-l border-border overflow-y-auto">
+            <div className="w-full sm:w-[55%] p-6 md:p-8 flex flex-col bg-slate-50 border-l border-border overflow-y-auto">
                <div className="flex items-center gap-3 mb-6">
-                 <div className="w-12 h-12 rounded-xl bg-surface-subtle border border-border flex items-center justify-center font-bold text-text-primary shadow-sm">{sampleAd1.brand.charAt(0)}</div>
+                 <div className="w-12 h-12 rounded-xl bg-slate-100 border border-border flex items-center justify-center font-bold text-text-primary shadow-sm">{sampleAd1.brand.charAt(0)}</div>
                  <div>
                    <h3 className="font-bold text-[18px] text-text-primary leading-none mb-1">{sampleAd1.brand}</h3>
                    <span className="text-[12px] text-text-muted">Active Ad • Format: Image</span>
                  </div>
                </div>
                
-               <div className="bg-surface-subtle p-4 rounded-xl border border-border mb-6">
+               <div className="bg-slate-100 p-4 rounded-xl border border-border mb-6">
                  <p className="text-[14px] text-text-primary leading-relaxed">
                    {sampleAd1.primaryText}
                  </p>
@@ -50,7 +56,7 @@ export function ReviewResearchSection() {
                  <button className="flex-1 h-10 bg-brand text-white rounded-lg font-medium text-[14px] hover:bg-brand-strong transition-colors flex items-center justify-center gap-2 shadow-sm">
                    <Heart size={16} /> Save
                  </button>
-                 <button className="w-10 h-10 bg-white border border-border text-text-primary rounded-lg flex items-center justify-center hover:bg-surface-subtle transition-colors shadow-sm">
+                 <button className="w-10 h-10 bg-white border border-border text-text-primary rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors shadow-sm">
                    <Share size={16} />
                  </button>
                </div>
@@ -70,8 +76,8 @@ export function ReviewResearchSection() {
         <div className="flex flex-col lg:flex-row-reverse items-center gap-12 lg:gap-20">
           <div className="w-full lg:w-[50%] rounded-2xl bg-white border border-border shadow-[0_20px_50px_rgba(0,0,0,0.04)] p-8">
             <div className="flex items-center justify-between mb-8">
-               <div className="w-16 h-16 bg-surface-subtle border border-border rounded-xl text-text-primary font-bold flex items-center justify-center text-xl shadow-sm">V</div>
-               <div className="h-8 px-3 bg-surface-green text-brand-strong border border-brand/20 font-medium text-[13px] rounded-full flex items-center">Veda Botanics Overview</div>
+               <div className="w-16 h-16 bg-slate-100 border border-border rounded-xl text-text-primary font-bold flex items-center justify-center text-xl shadow-sm">V</div>
+               <div className="h-8 px-3 bg-surface-blue text-brand-strong border border-brand/20 font-medium text-[13px] rounded-full flex items-center">Veda Botanics Overview</div>
             </div>
             
             <div className="space-y-6">
@@ -80,7 +86,7 @@ export function ReviewResearchSection() {
                   <span>Image Formats</span>
                   <span>60%</span>
                 </div>
-                <div className="h-3 w-full bg-surface-subtle border border-border/50 rounded-full overflow-hidden">
+                <div className="h-3 w-full bg-slate-100 border border-border/50 rounded-full overflow-hidden">
                   <div className="h-full bg-brand w-[60%]"></div>
                 </div>
               </div>
@@ -90,7 +96,7 @@ export function ReviewResearchSection() {
                   <span>Video Formats</span>
                   <span>30%</span>
                 </div>
-                <div className="h-3 w-full bg-surface-subtle border border-border/50 rounded-full overflow-hidden">
+                <div className="h-3 w-full bg-slate-100 border border-border/50 rounded-full overflow-hidden">
                   <div className="h-full bg-brand w-[30%] opacity-80"></div>
                 </div>
               </div>
@@ -100,7 +106,7 @@ export function ReviewResearchSection() {
                   <span>Carousel Formats</span>
                   <span>10%</span>
                 </div>
-                <div className="h-3 w-full bg-surface-subtle border border-border/50 rounded-full overflow-hidden">
+                <div className="h-3 w-full bg-slate-100 border border-border/50 rounded-full overflow-hidden">
                   <div className="h-full bg-brand w-[10%] opacity-50"></div>
                 </div>
               </div>
@@ -114,7 +120,7 @@ export function ReviewResearchSection() {
                   <img src={sampleAd1.thumbnail} alt={`${sampleAd1.brand} video ad preview`} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/20"><Play size={12} className="text-white fill-white" /></div>
                </div>
-               <div className="w-20 h-24 bg-surface-subtle border border-border rounded-lg flex items-center justify-center text-[12px] font-medium text-text-muted">
+               <div className="w-20 h-24 bg-slate-100 border border-border rounded-lg flex items-center justify-center text-[12px] font-medium text-text-muted">
                  +12 more
                </div>
             </div>

@@ -57,7 +57,7 @@ export default function PricingPage() {
                   }`}
                 >
                   <div className="mb-7 flex items-center justify-between gap-4">
-                    <div className="grid size-11 place-items-center rounded-xl bg-surface-green text-brand">
+                    <div className="grid size-11 place-items-center rounded-xl bg-surface-blue text-brand">
                       <Icon size={21} />
                     </div>
                     <span className="rounded-full bg-surface-subtle px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-text-secondary">

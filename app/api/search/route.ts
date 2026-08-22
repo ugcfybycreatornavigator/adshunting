@@ -198,19 +198,19 @@ export async function POST(request: NextRequest) {
           if (!filters.sort || filters.sort === "relevant") {
             ranked = rankDiscoveryFeed(ads, !hasActiveFilters && !filters.query);
           } else if (filters.sort === "newest") {
-            ranked.sort((a, b) => new Date(b.startDate || 0).getTime() - new Date(a.startDate || 0).getTime());
+            ranked.sort((a, b) => new Date(b.delivery.startedAt || 0).getTime() - new Date(a.delivery.startedAt || 0).getTime());
           } else if (filters.sort === "oldest") {
-            ranked.sort((a, b) => new Date(a.startDate || 0).getTime() - new Date(b.startDate || 0).getTime());
+            ranked.sort((a, b) => new Date(a.delivery.startedAt || 0).getTime() - new Date(b.delivery.startedAt || 0).getTime());
           } else if (filters.sort === "longest") {
-            ranked.sort((a, b) => (b.runningDays || 0) - (a.runningDays || 0));
+            ranked.sort((a, b) => (b.delivery.daysRunning || 0) - (a.delivery.daysRunning || 0));
           } else if (filters.sort === "variations") {
-            ranked.sort((a, b) => b.variants - a.variants);
+            ranked.sort((a, b) => (b.variants ?? 0) - (a.variants ?? 0));
           }
           
           // Deduplicate into variant groups (pick representative)
           const variantGroups = new Map<string, NormalizedAd>();
           for (const ad of ranked) {
-            const groupId = ad.creativeGroupId || ad.id;
+            const groupId = ad.id;
             if (!variantGroups.has(groupId)) {
               variantGroups.set(groupId, ad);
             } else {
@@ -326,8 +326,8 @@ export async function POST(request: NextRequest) {
 function rankDiscoveryFeed(ads: NormalizedAd[], applyDiversityLimit: boolean) {
   const ranked = [...ads].sort((a, b) => {
     // Relevance score proxies
-    const aScore = a.winnerScore + (a.status === "active" ? 10 : 0) + Math.min(a.runningDays || 0, 120) / 6 + Math.min(a.variants, 10) * 2;
-    const bScore = b.winnerScore + (b.status === "active" ? 10 : 0) + Math.min(b.runningDays || 0, 120) / 6 + Math.min(b.variants, 10) * 2;
+    const aScore = (a.intelligence.winnerScore ?? 0) + (a.delivery.status === "active" ? 10 : 0) + Math.min(a.delivery.daysRunning || 0, 120) / 6 + Math.min(a.variants ?? 0, 10) * 2;
+    const bScore = (b.intelligence.winnerScore ?? 0) + (b.delivery.status === "active" ? 10 : 0) + Math.min(b.delivery.daysRunning || 0, 120) / 6 + Math.min(b.variants ?? 0, 10) * 2;
     return bScore - aScore;
   });
   
@@ -338,8 +338,8 @@ function rankDiscoveryFeed(ads: NormalizedAd[], applyDiversityLimit: boolean) {
     // We group by advertiser ID to ensure diversity
     
     // We also roughly check for Frido domain variations so Frido doesn't bypass the limit using 5 different IDs
-    const isFrido = ad.advertiserName.toLowerCase().includes("frido");
-    const key = isFrido ? "global_frido_group" : ad.advertiserId;
+    const isFrido = (ad.advertiser.name ?? "").toLowerCase().includes("frido");
+    const key = isFrido ? "global_frido_group" : (ad.advertiser.id ?? ad.id);
     
     const currentCount = advertiserCounts.get(key) || 0;
     if (currentCount >= 3) return false;

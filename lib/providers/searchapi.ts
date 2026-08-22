@@ -448,23 +448,23 @@ export class SearchApiProvider implements AdProvider {
     // Deduplicate cross-region ads
     const seen = new Set<string>();
     allAds = allAds.filter((ad) => {
-      if (seen.has(ad.externalAdId)) return false;
-      seen.add(ad.externalAdId);
+      if (seen.has(ad.externalId || ad.id)) return false;
+      seen.add(ad.externalId || ad.id);
       return true;
     });
 
-    if (filters.cta) allAds = allAds.filter((ad: NormalizedAd) => ad.cta?.toLowerCase() === filters.cta?.toLowerCase());
+    if (filters.cta) allAds = allAds.filter((ad: NormalizedAd) => ad.copy.cta?.toLowerCase() === filters.cta?.toLowerCase());
     
     // Support advanced runtime filter
     if (filters.runtime) {
       allAds = allAds.filter((ad: NormalizedAd) => {
-        if (ad.runningDays === null) return false;
-        if (filters.runtime!.minDays !== undefined && ad.runningDays < filters.runtime!.minDays) return false;
-        if (filters.runtime!.maxDays !== undefined && ad.runningDays > filters.runtime!.maxDays) return false;
+        if (ad.delivery.daysRunning === null) return false;
+        if (filters.runtime!.minDays !== undefined && ad.delivery.daysRunning! < filters.runtime!.minDays) return false;
+        if (filters.runtime!.maxDays !== undefined && ad.delivery.daysRunning! > filters.runtime!.maxDays) return false;
         return true;
       });
     } else if (filters.duration) {
-      allAds = allAds.filter((ad: NormalizedAd) => durationMatches(ad.runningDays, filters.duration!));
+      allAds = allAds.filter((ad: NormalizedAd) => durationMatches(ad.delivery.daysRunning, filters.duration!));
     }
     
     allAds = sortNormalizedAds(allAds, filters.sort);
@@ -479,7 +479,7 @@ export class SearchApiProvider implements AdProvider {
 
   async getAd(id: string) {
     const result = await this.searchAds({ query: `"${id}"`, status: "all" });
-    return result.ads.find((ad) => ad.externalAdId === id) ?? null;
+    return result.ads.find((ad) => (ad.externalId || ad.id) === id) ?? null;
   }
 
   async getAdvertiser(id: string): Promise<Advertiser | null> {
@@ -545,16 +545,16 @@ function durationMatches(days: number | null, filter: string): boolean {
 function sortNormalizedAds(ads: NormalizedAd[], sort?: string): NormalizedAd[] {
   if (sort === "newest") {
     return [...ads].sort(
-      (a, b) => new Date(b.startDate || 0).getTime() - new Date(a.startDate || 0).getTime()
+      (a, b) => new Date(b.delivery.startedAt || 0).getTime() - new Date(a.delivery.startedAt || 0).getTime()
     );
   }
   if (sort === "oldest") {
     return [...ads].sort(
-      (a, b) => new Date(a.startDate || 0).getTime() - new Date(b.startDate || 0).getTime()
+      (a, b) => new Date(a.delivery.startedAt || 0).getTime() - new Date(b.delivery.startedAt || 0).getTime()
     );
   }
   if (sort === "longest") {
-    return [...ads].sort((a, b) => (b.runningDays || 0) - (a.runningDays || 0));
+    return [...ads].sort((a, b) => (b.delivery.daysRunning || 0) - (a.delivery.daysRunning || 0));
   }
   return ads;
 }
