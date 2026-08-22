@@ -1,8 +1,8 @@
-import crypto from "crypto";
+import { createHash } from "node:crypto";
 import type { NormalizedAd } from "./types";
 
 function sha256(content: string) {
-  return crypto.createHash("sha256").update(content).digest("hex");
+  return createHash("sha256").update(content).digest("hex");
 }
 
 export function normalizeText(text: string | null | undefined): string {

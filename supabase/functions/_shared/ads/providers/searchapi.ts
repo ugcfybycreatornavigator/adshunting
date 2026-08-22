@@ -1,8 +1,8 @@
 import type { AdProvider, AdSearchFilters, AdSearchResult, Advertiser, MediaType, NormalizedAd, ProviderCapabilities } from "./types.ts";
-import { daysBetween, safeExternalUrl, sanitizeAdCopy } from "./utils.ts";
-import { ProviderError, providerErrorFromStatus } from "./providers/errors.ts";
-import { computeAdIntelligence } from "./intelligence.ts";
-import { computeAdFingerprints } from "./fingerprint.ts";
+import { daysBetween, safeExternalUrl, sanitizeAdCopy } from "../utils.ts";
+import { ProviderError, providerErrorFromStatus } from "./errors.ts";
+import { computeAdIntelligence } from "../intelligence.ts";
+import { computeAdFingerprints } from "../fingerprint.ts";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -259,6 +259,7 @@ export function normalizeSearchApiAd(input: UnknownRecord, country?: string): No
 }
 
 export class SearchApiProvider implements AdProvider {
+  readonly name = "searchapi";
   readonly capabilities: ProviderCapabilities = {
     keywordSearch: true, advertiserSearch: true, commercialAds: true,
     pagination: true, demographics: true, copy: true, landingPage: true,
@@ -274,11 +275,12 @@ export class SearchApiProvider implements AdProvider {
   private endpoint = "https://www.searchapi.io/api/v1/search";
   private apiKeys: string[];
 
-  constructor(apiKeys: string | string[]) {
-    this.apiKeys = [...new Set((Array.isArray(apiKeys) ? apiKeys : [apiKeys]).map((key) => key.trim()).filter(Boolean))];
-    if (!this.apiKeys.length) {
-      throw new ProviderError("PROVIDER_NOT_CONFIGURED", "At least one SearchAPI key is required.", 503);
-    }
+  constructor(apiKeys?: string | string[] | null) {
+    this.apiKeys = apiKeys ? [...new Set((Array.isArray(apiKeys) ? apiKeys : [apiKeys]).map((key) => key.trim()).filter(Boolean))] : [];
+  }
+
+  isConfigured(): boolean {
+    return this.apiKeys.length > 0;
   }
 
   private async request(body: UnknownRecord): Promise<UnknownRecord> {

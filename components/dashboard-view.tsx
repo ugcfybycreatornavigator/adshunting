@@ -70,12 +70,12 @@ export function DashboardView({ data }: { data: DashboardData }) {
       </section>
 
       {/* 4 Primary Actions */}
-      <section className="mb-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mb-12 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {actionCards.map((card) => (
           <Link
             key={card.title}
             href={card.href}
-            className="group flex flex-col justify-between rounded-[20px] border border-line bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all duration-150 hover:-translate-y-[1px] hover:border-zinc-300 hover:shadow-[0_4px_16px_rgba(0,0,0,0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2"
+            className="group flex flex-col justify-between rounded-[20px] border border-line bg-white p-4 sm:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all duration-150 hover:-translate-y-[1px] hover:border-zinc-300 hover:shadow-[0_4px_16px_rgba(0,0,0,0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2"
           >
             <div className="flex items-start justify-between">
               <span className="flex size-10 items-center justify-center rounded-xl bg-surface text-ink transition-colors group-hover:bg-zinc-100">
@@ -83,12 +83,12 @@ export function DashboardView({ data }: { data: DashboardData }) {
               </span>
               <ArrowUpRight size={18} className="text-zinc-400 transition-all duration-150 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-signal" />
             </div>
-            <div className="mt-8">
-              <p className="text-4xl font-bold tracking-tight text-ink">
+            <div className="mt-6 sm:mt-8">
+              <p className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
                 {card.count == null ? "—" : card.count.toLocaleString()}
               </p>
-              <h3 className="mt-2 text-base font-semibold text-ink">{card.title}</h3>
-              <p className="mt-1 text-[13px] leading-relaxed text-muted">
+              <h3 className="mt-1 sm:mt-2 text-sm sm:text-base font-semibold text-ink">{card.title}</h3>
+              <p className="mt-1 text-[11px] sm:text-[13px] leading-relaxed text-muted line-clamp-2 sm:line-clamp-none">
                 {card.description}
               </p>
             </div>

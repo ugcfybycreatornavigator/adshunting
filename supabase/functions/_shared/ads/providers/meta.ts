@@ -1,8 +1,8 @@
 import type { AdProvider, AdSearchFilters, AdSearchResult, NormalizedAd, ProviderCapabilities } from "./types.ts";
-import { daysBetween, safeExternalUrl, sanitizeAdCopy } from "./utils.ts";
-import { ProviderError, providerErrorFromStatus } from "./providers/errors.ts";
-import { computeAdIntelligence } from "./intelligence.ts";
-import { computeAdFingerprints } from "./fingerprint.ts";
+import { daysBetween, safeExternalUrl, sanitizeAdCopy } from "../utils.ts";
+import { ProviderError, providerErrorFromStatus } from "./errors.ts";
+import { computeAdIntelligence } from "../intelligence.ts";
+import { computeAdFingerprints } from "../fingerprint.ts";
 
 type MetaRawAd = {
   id: string;
@@ -43,6 +43,7 @@ const fields = [
 ].join(",");
 
 export class MetaProvider implements AdProvider {
+  readonly name = "meta";
   readonly capabilities: ProviderCapabilities = {
     keywordSearch: true, advertiserSearch: true, commercialAds: true,
     pagination: true, demographics: false, copy: true, landingPage: false,
@@ -55,10 +56,10 @@ export class MetaProvider implements AdProvider {
     runtime: "POST_FILTER",
     videoLength: "UNSUPPORTED",
   };
-  constructor(private config: { accessToken: string; apiVersion: string; defaultCountry?: string; timeoutMs?: number }) {
-    if (!/^v\d+\.\d+$/.test(config.apiVersion)) {
-      throw new ProviderError("PROVIDER_NOT_CONFIGURED", "META_API_VERSION must look like v25.0.", 503);
-    }
+  constructor(private config: { accessToken?: string; apiVersion: string; defaultCountry?: string; timeoutMs?: number }) {}
+
+  isConfigured(): boolean {
+    return Boolean(this.config.accessToken && /^v\d+\.\d+$/.test(this.config.apiVersion));
   }
 
   async healthCheck(): Promise<void> {

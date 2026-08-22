@@ -74,7 +74,7 @@ export interface NormalizedAd {
   platforms: string[];
   demographics: NormalizedDemographics | null;
   snapshotUrl: string | null;
-  source: "searchapi" | "meta" | "foreplay" | "catalog";
+  source: "searchapi" | "meta" | "foreplay" | "catalog" | "metaapi_io";
   variants: number;
   creativeRepetition: number;
   brandActiveAds: number | null;
@@ -120,7 +120,7 @@ export interface AdSearchFilters {
   };
 }
 
-export type ProviderName = "meta" | "searchapi" | "foreplay";
+export type ProviderName = "meta" | "searchapi" | "foreplay" | "metaapi_io";
 
 export interface AdSearchResult {
   ads: NormalizedAd[];
@@ -130,5 +130,7 @@ export interface AdSearchResult {
 }
 
 export interface AdProvider {
+  readonly name: ProviderName;
+  isConfigured(): boolean;
   searchAds(filters: AdSearchFilters): Promise<AdSearchResult>;
 }

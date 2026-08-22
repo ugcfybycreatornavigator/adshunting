@@ -63,17 +63,23 @@ serve(async (req: Request) => {
     });
 
   } catch (error: unknown) {
-    console.error("AdsSearch Function Error:", error);
+    const isProviderError = error instanceof ProviderError;
+    const code = isProviderError ? error.code : "UNKNOWN";
+    const status = isProviderError ? error.status : 502;
     
-    if (error instanceof ProviderError) {
-      return new Response(JSON.stringify({ success: false, code: error.code, message: error.message }), {
-        status: error.status || 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    return new Response(JSON.stringify({ success: false, code: "SEARCH_UNAVAILABLE", message: "Search is temporarily unavailable." }), {
-      status: 502,
+    console.error(JSON.stringify({
+      event: "ads_search_function_error",
+      code,
+      message: (error as Error).message,
+      status
+    }));
+    
+    return new Response(JSON.stringify({ 
+      success: false, 
+      code: "SEARCH_UNAVAILABLE", 
+      message: "Search is temporarily unavailable." 
+    }), {
+      status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
