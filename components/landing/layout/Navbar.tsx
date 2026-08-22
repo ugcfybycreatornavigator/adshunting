@@ -12,7 +12,7 @@ export function Navbar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<'product' | 'resources' | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState<'product' | 'resources' | null>(null);
-  
+
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on click outside or escape key
@@ -22,18 +22,18 @@ export function Navbar() {
         setActiveDropdown(null);
       }
     }
-    
+
     function handleEscape(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         setActiveDropdown(null);
       }
     }
-    
+
     if (activeDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleEscape);
     }
-    
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
@@ -64,10 +64,10 @@ export function Navbar() {
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-6" ref={dropdownRef}>
-            
+
             {/* Product Dropdown */}
             <div className="relative">
-              <button 
+              <button
                 onClick={() => toggleDropdown('product')}
                 aria-expanded={activeDropdown === 'product'}
                 className="flex items-center gap-1 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors focus:outline-none"
@@ -75,13 +75,13 @@ export function Navbar() {
                 Product
                 <ChevronDown size={14} className={cn("transition-transform duration-200", activeDropdown === 'product' && "rotate-180")} />
               </button>
-              
+
               {activeDropdown === 'product' && (
                 <div className="absolute top-full left-0 mt-2 w-80 bg-surface border border-border shadow-lg rounded-2xl p-2 animate-in fade-in slide-in-from-top-2">
                   <div className="flex flex-col gap-1">
                     {navigationConfig.product.map((item) => (
-                      <Link 
-                        key={item.name} 
+                      <Link
+                        key={item.name}
                         href={item.href}
                         onClick={closeMenus}
                         className="flex items-start gap-3 p-3 rounded-xl hover:bg-surface-subtle transition-colors"
@@ -102,7 +102,7 @@ export function Navbar() {
 
             {/* Resources Dropdown */}
             <div className="relative">
-              <button 
+              <button
                 onClick={() => toggleDropdown('resources')}
                 aria-expanded={activeDropdown === 'resources'}
                 className="flex items-center gap-1 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors focus:outline-none"
@@ -110,13 +110,13 @@ export function Navbar() {
                 Resources
                 <ChevronDown size={14} className={cn("transition-transform duration-200", activeDropdown === 'resources' && "rotate-180")} />
               </button>
-              
+
               {activeDropdown === 'resources' && (
                 <div className="absolute top-full left-0 mt-2 w-80 bg-surface border border-border shadow-lg rounded-2xl p-2 animate-in fade-in slide-in-from-top-2">
                   <div className="flex flex-col gap-1">
                     {navigationConfig.resources.map((item) => (
-                      <Link 
-                        key={item.name} 
+                      <Link
+                        key={item.name}
                         href={item.href}
                         onClick={closeMenus}
                         className="flex items-start gap-3 p-3 rounded-xl hover:bg-surface-subtle transition-colors"
@@ -164,10 +164,10 @@ export function Navbar() {
       {/* Mobile Menu */}
       {isMobileOpen && (
         <div className="md:hidden border-t border-border bg-surface px-4 py-6 flex flex-col max-h-[calc(100vh-4rem)] overflow-y-auto">
-          
+
           {/* Mobile Product Accordion */}
           <div className="border-b border-border/50">
-            <button 
+            <button
               onClick={() => toggleMobileAccordion('product')}
               aria-expanded={mobileExpanded === 'product'}
               className="flex items-center justify-between w-full py-4 text-lg font-medium text-text-primary focus:outline-none"
@@ -188,7 +188,7 @@ export function Navbar() {
 
           {/* Mobile Resources Accordion */}
           <div className="border-b border-border/50">
-            <button 
+            <button
               onClick={() => toggleMobileAccordion('resources')}
               aria-expanded={mobileExpanded === 'resources'}
               className="flex items-center justify-between w-full py-4 text-lg font-medium text-text-primary focus:outline-none"
@@ -218,10 +218,10 @@ export function Navbar() {
               {item.name}
             </Link>
           ))}
-          
+
           <div className="mt-6 flex flex-col gap-4">
-            <Link 
-              href={authLinks.signIn} 
+            <Link
+              href={authLinks.signIn}
               onClick={closeMenus}
               className="flex items-center justify-center w-full h-[52px] rounded-[14px] border border-[#e4e8e2] text-text-primary font-bold text-[16px] mb-3"
             >
