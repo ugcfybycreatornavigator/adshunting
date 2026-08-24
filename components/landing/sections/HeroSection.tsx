@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useRef, useEffect, useCallback } from 'react';
-import { motion, useScroll, useTransform, useMotionValue, useSpring } from 'framer-motion';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
+import { motion, useScroll, useTransform, useMotionValue, useSpring, AnimatePresence } from 'framer-motion';
 import { LandingContainer } from '../layout/LandingContainer';
 import { HeroOpticalBackground } from './HeroOpticalBackground';
 import { HeroProductPreview } from './HeroProductPreview';
 import { authLinks } from '@/data/landing/config';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, PlayCircle, X } from 'lucide-react';
 import Link from 'next/link';
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -33,6 +33,7 @@ const fadeUpVariant = {
    ───────────────────────────────────────────────────────────────────── */
 
 export function HeroSection() {
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const bgRef = useRef<HTMLDivElement>(null);
 
@@ -199,8 +200,8 @@ export function HeroSection() {
               </Link>
 
               {/* Secondary CTA */}
-              <Link
-                href="/product/discover-ads"
+              <button
+                onClick={() => setIsVideoModalOpen(true)}
                 className="inline-flex items-center justify-center h-[48px] md:h-[52px] px-7 md:px-8 text-[15px] md:text-[16px] font-semibold transition-all duration-200 w-full sm:w-auto"
                 style={{
                   borderRadius: '12px',
@@ -217,8 +218,9 @@ export function HeroSection() {
                   e.currentTarget.style.borderColor = 'rgba(10,10,10,0.12)';
                 }}
               >
-                See How It Works
-              </Link>
+                <PlayCircle size={18} className="mr-2 text-text-primary" />
+                See how it works
+              </button>
             </motion.div>
           </div>
 
@@ -234,6 +236,44 @@ export function HeroSection() {
           </motion.div>
         </LandingContainer>
       </div>
+
+      {/* Video Modal */}
+      <AnimatePresence>
+        {isVideoModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 md:p-12">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              onClick={() => setIsVideoModalOpen(false)}
+              className="absolute inset-0 bg-slate-950/70 backdrop-blur-2xl"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', damping: 30, stiffness: 400, mass: 0.8 }}
+              className="relative w-full max-w-5xl aspect-video bg-black rounded-[24px] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5),0_0_40px_rgba(37,99,235,0.15)] ring-1 ring-white/10 z-10"
+            >
+              <button
+                onClick={() => setIsVideoModalOpen(false)}
+                className="absolute top-6 right-6 z-20 p-2.5 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-white/90 hover:text-white transition-all duration-200 border border-white/10 hover:scale-105"
+              >
+                <X size={20} strokeWidth={2.5} />
+              </button>
+              <video
+                src="/videos/demo.mp4"
+                controls
+                autoPlay
+                className="w-full h-full object-cover rounded-[24px]"
+              >
+                Your browser does not support the video tag.
+              </video>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
