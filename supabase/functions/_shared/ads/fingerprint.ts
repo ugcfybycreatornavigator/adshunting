@@ -46,8 +46,21 @@ export function computeAdFingerprints(ad: NormalizedAd) {
 
   const normHeadline = normalizeText(ad.headline);
   const normBody = normalizeText(ad.body);
+  const landingUrl = normalizeUrl(ad.landingUrl);
+  
+  // Use externalAdId as the primary stable identifier if available, fallback to a deep fingerprint
+  const stableId = ad.externalAdId || "";
+  
+  let creativePayload = "";
+  if (stableId) {
+    // If the provider gives us a distinct ad_archive_id, use it directly!
+    // But mix in advertiser just to namespace it securely.
+    creativePayload = `id::${normAdvertiser}::${stableId}`;
+  } else {
+    // Fallback fingerprint using all available identity signals
+    creativePayload = `fallback::${normAdvertiser}::${mediaIdentity}::${normHeadline}::${normBody}::${landingUrl}`;
+  }
 
-  const creativePayload = `${normAdvertiser}::${mediaIdentity}::${normHeadline}::${normBody}`;
   const groupPayload = `${normAdvertiser}::${mediaIdentity}`;
 
   const creativeFingerprint = sha256(creativePayload);

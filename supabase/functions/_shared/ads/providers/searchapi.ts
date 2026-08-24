@@ -4,6 +4,7 @@ import { ProviderError, providerErrorFromStatus } from "./errors.ts";
 import { computeAdIntelligence } from "../intelligence.ts";
 import { computeAdFingerprints } from "../fingerprint.ts";
 import { refineAd } from "../refinement/index.ts";
+import { getMinimumRelevanceScore, scoreRelevance } from "../refinement/relevance.ts";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -31,15 +32,25 @@ function text(value: unknown): string | null {
   return null;
 }
 
+function isTemplatePlaceholder(value: string): boolean {
+  return typeof value === "string" && /^\{\{[^{}]+\}\}$/.test(value.trim());
+}
+
 function firstNonEmpty(...values: unknown[]): string | null {
   for (const value of values) {
-    if (typeof value === "string" && value.trim() && value.trim() !== "[object Object]") {
-      return value.trim();
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed && trimmed !== "[object Object]" && !isTemplatePlaceholder(trimmed)) {
+        return trimmed;
+      }
     }
     if (value && typeof value === "object") {
       const rec = value as Record<string, unknown>;
-      if (typeof rec.text === "string" && rec.text.trim()) {
-        return rec.text.trim();
+      if (typeof rec.text === "string") {
+        const trimmed = rec.text.trim();
+        if (trimmed && !isTemplatePlaceholder(trimmed)) {
+          return trimmed;
+        }
       }
     }
   }
@@ -77,33 +88,40 @@ function normalizeCta(value: string | null): string | null {
 
 function creativeFromSnapshot(snapshot: UnknownRecord) {
   const cards = Array.isArray(snapshot.cards) ? snapshot.cards.map(record) : [];
-  const firstCard = record(cards[0]);
   
   // Videos array
   const videos = Array.isArray(snapshot.videos) ? snapshot.videos.map(record) : [];
-  const firstVideo = record(videos[0] || firstCard.video || firstCard);
   
   // Images array
   const images = Array.isArray(snapshot.images) ? snapshot.images.map(record) : [];
-  const firstImage = record(images[0] || firstCard);
+
+  let firstValidVideo: UnknownRecord | null = videos[0] || null;
+  let firstValidImage: UnknownRecord | null = images[0] || null;
+  let firstValidCard: UnknownRecord | null = cards[0] || null;
+
+  if (!firstValidVideo && !firstValidImage && cards.length > 0) {
+    for (const card of cards) {
+      if (card.original_image_url || card.resized_image_url || card.video_hd_url || card.video_sd_url) {
+        firstValidCard = card;
+        break;
+      }
+    }
+  }
+
+  const v = record(firstValidVideo || firstValidCard?.video || firstValidCard || {});
+  const img = record(firstValidImage || firstValidCard || {});
 
   const sourceMediaUrl = safeExternalUrl(
-    text(firstVideo.video_hd_url) ||
-    text(firstVideo.video_sd_url) ||
-    text(snapshot.video_hd_url) ||
-    text(snapshot.video_sd_url) ||
-    text(firstImage.original_image_url) ||
-    text(firstImage.resized_image_url) ||
-    text(snapshot.original_image_url) ||
-    text(snapshot.resized_image_url)
+    text(v.video_hd_url) || text(v.video_sd_url) ||
+    text(snapshot.video_hd_url) || text(snapshot.video_sd_url) ||
+    text(img.original_image_url) || text(img.resized_image_url) ||
+    text(snapshot.original_image_url) || text(snapshot.resized_image_url)
   );
 
   const thumbnailUrl = safeExternalUrl(
-    text(firstVideo.video_preview_image_url) ||
-    text(firstImage.resized_image_url) ||
-    text(firstImage.original_image_url) ||
-    text(snapshot.resized_image_url) ||
-    text(snapshot.original_image_url) ||
+    text(v.video_preview_image_url) ||
+    text(img.resized_image_url) || text(img.original_image_url) ||
+    text(snapshot.resized_image_url) || text(snapshot.original_image_url) ||
     sourceMediaUrl
   );
 
@@ -127,12 +145,12 @@ function creativeFromSnapshot(snapshot: UnknownRecord) {
       .map(safeExternalUrl).filter((value): value is string => Boolean(value));
   }
   
-  const hasVideo = text(firstVideo.video_hd_url) || text(firstVideo.video_sd_url) || display.includes("video");
-  const isCarousel = cards.length > 1 || images.length > 1 || videos.length > 1;
-
+  const isCarousel = cards.length > 1;
+  const hasVideo = videos.length > 0 || String(v.video_hd_url || "").length > 0;
   const mediaType: MediaType = 
     isCarousel ? "carousel" : hasVideo ? "video" : sourceMediaUrl ? "image" : "unknown";
 
+  const firstCard = firstValidCard || record(cards[0]) || {};
   return { firstCard, sourceMediaUrl, thumbnailUrl, mediaType, carouselAssets: [...new Set(carouselAssets)] };
 }
 
@@ -275,7 +293,6 @@ export class SearchApiProvider implements AdProvider {
 
   private async request(body: UnknownRecord): Promise<UnknownRecord> {
     const keys = this.availableKeys();
-    const serializedBody = JSON.stringify(body);
     const deadline = Date.now() + REQUEST_BUDGET_MS;
     let lastError: ProviderError | null = null;
 
@@ -283,11 +300,20 @@ export class SearchApiProvider implements AdProvider {
       const remainingMs = deadline - Date.now();
       if (remainingMs <= 0) break;
       let response: Response;
+      
+      const queryParams = new URLSearchParams();
+      queryParams.set("api_key", apiKey);
+      for (const [k, v] of Object.entries(body)) {
+        if (v !== undefined && v !== null) {
+          queryParams.set(k, String(v));
+        }
+      }
+      
+      const url = `${this.endpoint}?${queryParams.toString()}`;
+      
       try {
-        response = await fetch(this.endpoint, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-          body: serializedBody,
+        response = await fetch(url, {
+          method: "GET",
           signal: AbortSignal.timeout(Math.min(PER_KEY_TIMEOUT_MS, remainingMs)),
           cache: "no-store",
         });
@@ -399,74 +425,106 @@ export class SearchApiProvider implements AdProvider {
     // SearchAPI only supports one country at a time, so we iterate for multi-market selections
     // We limit to 3 markets to prevent quota exhaustion in a single search, or just run them.
     const marketsToFetch = markets.slice(0, 3); 
+    const TARGET_RESULTS = 24;
+    const MAX_PAGES = 3;
+    const searchIntent = filters.brand ? "BRAND" : "GENERIC_TEXT";
+    const minScore = getMinimumRelevanceScore(searchIntent);
 
     for (const country of marketsToFetch) {
-      const body: UnknownRecord = {
-        engine: "meta_ad_library",
-        q: searchQuery,
-        country: country,
-        active_status: activeStatus,
-        media_type: mediaType,
-        platforms: filters.platforms?.length ? filters.platforms.join(",") : undefined,
-        content_languages: contentLanguages,
-        start_date: filters.startDate || undefined,
-        end_date: filters.endDate || undefined,
-        sort_by: filters.sort === "newest" ? "most_recent" : "impressions_high_to_low",
-        page_id: filters.brand || undefined,
-        next_page_token: filters.cursor || undefined,
-      };
-      Object.keys(body).forEach((key) => body[key] === undefined && delete body[key]);
-      
-      const payload = await this.request(body);
-      const parsedAds = Array.isArray(payload.ads)
-        ? payload.ads.map((ad) => normalizeSearchApiAd(record(ad), country))
-        : [];
-      
-      allAds = [...allAds, ...parsedAds];
-      
-      const pagination = record(payload.pagination);
-      const information = record(payload.search_information);
-      
-      // If we are doing multi-market, pagination gets tricky. We'll only return the cursor of the first market.
-      // This is a known limitation of multi-region searches without a unified provider cursor.
-      if (!nextCursor && text(pagination.next_page_token)) {
-        nextCursor = text(pagination.next_page_token);
-      }
-      if (typeof information.total_results === "number") {
-        total = (total || 0) + information.total_results;
+      let pageCount = 0;
+      let currentToken = filters.cursor || undefined;
+
+      while (pageCount < MAX_PAGES) {
+        pageCount++;
+        const body: UnknownRecord = {
+          engine: "meta_ad_library",
+          q: searchQuery,
+          country: country,
+          active_status: activeStatus,
+          media_type: mediaType,
+          platforms: filters.platforms?.length ? filters.platforms.join(",") : undefined,
+          content_languages: contentLanguages,
+          start_date: filters.startDate || undefined,
+          end_date: filters.endDate || undefined,
+          sort_by: filters.sort === "newest" ? "most_recent" : "impressions_high_to_low",
+          page_id: filters.brand || undefined,
+          next_page_token: currentToken,
+        };
+        Object.keys(body).forEach((key) => body[key] === undefined && delete body[key]);
+        
+        const payload = await this.request(body);
+        let parsedAds = Array.isArray(payload.ads)
+          ? payload.ads.map((ad) => normalizeSearchApiAd(record(ad), country))
+          : [];
+        
+        // 1. Score Relevance
+        if (filters.query) {
+          parsedAds = parsedAds.map((ad) => {
+            ad.enrichment.qualityScore = scoreRelevance(ad, filters.query!, searchIntent);
+            return ad;
+          });
+        } else {
+          // If no query, skip relevance drop
+          parsedAds.forEach((ad) => ad.enrichment.qualityScore = 100);
+        }
+
+        // 2. Minimum Relevance Filter
+        parsedAds = parsedAds.filter((ad) => ad.enrichment.qualityScore >= minScore);
+
+        allAds = [...allAds, ...parsedAds];
+        
+        const pagination = record(payload.pagination);
+        const information = record(payload.search_information);
+        
+        currentToken = text(pagination.next_page_token) || undefined;
+        nextCursor = currentToken || null;
+
+        if (typeof information.total_results === "number") {
+          total = information.total_results;
+        }
+
+        // Stop fetching pages if we hit our target OR if there's no next page
+        if (!currentToken || allAds.length >= TARGET_RESULTS) {
+          break;
+        }
       }
     }
 
-    // Deduplicate cross-region ads
+    // Deduplicate cross-region and cross-page ads
     const seen = new Set<string>();
     allAds = allAds.filter((ad) => {
-      if (seen.has(ad.externalAdId)) return false;
-      seen.add(ad.externalAdId);
+      if (seen.has(ad.id)) return false;
+      seen.add(ad.id);
       return true;
     });
 
-    if (filters.cta) allAds = allAds.filter((ad: NormalizedAd) => ad.cta?.toLowerCase() === filters.cta?.toLowerCase());
+    if (filters.cta) allAds = allAds.filter((ad: NormalizedAd) => ad.copy.cta?.toLowerCase() === filters.cta?.toLowerCase());
     
     // Support advanced runtime filter
     if (filters.runtime) {
       allAds = allAds.filter((ad: NormalizedAd) => {
-        if (ad.runningDays === null) return false;
-        if (filters.runtime!.minDays !== undefined && ad.runningDays < filters.runtime!.minDays) return false;
-        if (filters.runtime!.maxDays !== undefined && ad.runningDays > filters.runtime!.maxDays) return false;
+        if (ad.delivery.daysRunning === null) return false;
+        if (filters.runtime!.minDays !== undefined && ad.delivery.daysRunning < filters.runtime!.minDays) return false;
+        if (filters.runtime!.maxDays !== undefined && ad.delivery.daysRunning > filters.runtime!.maxDays) return false;
         return true;
       });
     } else if (filters.duration) {
-      allAds = allAds.filter((ad: NormalizedAd) => durationMatches(ad.runningDays, filters.duration!));
+      allAds = allAds.filter((ad: NormalizedAd) => durationMatches(ad.delivery.daysRunning, filters.duration!));
     }
     
-    allAds = sortNormalizedAds(allAds, filters.sort);
+    // Apply sorting
+    if (!filters.sort || filters.sort === "relevant") {
+      allAds = allAds.sort((a, b) => b.enrichment.qualityScore - a.enrichment.qualityScore);
+    } else {
+      allAds = sortNormalizedAds(allAds, filters.sort);
+    }
 
-    return {
-      ads: allAds,
-      nextCursor,
-      total,
-      source: "provider",
-    };
+    // Slice to target size if we over-fetched
+    if (allAds.length > TARGET_RESULTS) {
+      allAds = allAds.slice(0, TARGET_RESULTS);
+    }
+
+    return { ads: allAds, nextCursor, total, source: "provider" };
   }
 
   async getAd(id: string) {
