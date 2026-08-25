@@ -11,7 +11,7 @@ import { useState } from "react";
 interface SettingsTeamProps {
   limits: PlanEntitlements;
   usage: WorkspaceUsage;
-  planKey: PlanKey;
+  planKey: PlanKey | null;
   members: {
     id: string;
     name: string;

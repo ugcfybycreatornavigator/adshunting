@@ -25,7 +25,7 @@ export async function inviteTeamMember(email: string) {
   const planKey = resolvePlanKey(sub?.plan_key as string);
   
   // 2. Resolve access limits
-  const planLimits = resolveWorkspaceAccess(entitlement, planKey);
+  const planLimits = resolveWorkspaceAccess(entitlement, planKey || "scout");
   
   // 3. Enforce Invite Capability
   if (!planLimits.canInviteMembers) {

@@ -1,8 +1,12 @@
+import { requirePaidWorkspaceAccess } from "@/lib/billing/entitlement";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(req: NextRequest) {
+  const accessError = await requirePaidWorkspaceAccess();
+  if (accessError) return accessError;
+
   try {
     const { userId, orgId } = await auth();
     if (!userId) {

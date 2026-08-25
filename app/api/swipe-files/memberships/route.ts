@@ -1,3 +1,4 @@
+import { requirePaidWorkspaceAccess } from "@/lib/billing/entitlement";
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { getAdSwipeFileMemberships } from "@/lib/swipe-files";
@@ -5,6 +6,9 @@ import { getAdSwipeFileMemberships } from "@/lib/swipe-files";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function GET(req: NextRequest) {
+  const accessError = await requirePaidWorkspaceAccess();
+  if (accessError) return accessError;
+
   const auth = await requireUser();
   if (auth.error || !auth.userId) return auth.error || NextResponse.json({error: "Unauthorized"}, {status: 401});
 

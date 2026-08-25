@@ -3,7 +3,7 @@
 import { Card } from "@/components/ui";
 import { BILLING_CONFIG, PlanKey } from "@/lib/billing/billing-config";
 
-export function ExplorePlans({ currentPlanKey }: { currentPlanKey: PlanKey }) {
+export function ExplorePlans({ currentPlanKey }: { currentPlanKey: PlanKey | null }) {
   const plans = Object.values(BILLING_CONFIG);
 
   return (

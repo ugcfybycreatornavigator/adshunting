@@ -1,9 +1,13 @@
+import { requirePaidWorkspaceAccess } from "@/lib/billing/entitlement";
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { dbAdToNormalized } from "@/lib/catalog";
 import { adsForClient } from "@/lib/ads-persistence";
 
 export async function GET(req: NextRequest) {
+  const accessError = await requirePaidWorkspaceAccess();
+  if (accessError) return accessError;
+
   const auth = await requireUser();
   if (auth.error || !auth.userId) return auth.error || NextResponse.json({error: "Unauthorized"}, {status: 401});
 
@@ -51,6 +55,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const accessError = await requirePaidWorkspaceAccess();
+  if (accessError) return accessError;
+
   const auth = await requireUser();
   if (auth.error) return auth.error;
 
@@ -67,6 +74,9 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const accessError = await requirePaidWorkspaceAccess();
+  if (accessError) return accessError;
+
   const auth = await requireUser();
   if (auth.error) return auth.error;
 

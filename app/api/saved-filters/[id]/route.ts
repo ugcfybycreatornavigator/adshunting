@@ -1,3 +1,4 @@
+import { requirePaidWorkspaceAccess } from "@/lib/billing/entitlement";
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { z } from "zod";
@@ -10,6 +11,9 @@ const updateSchema = z.object({
 });
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const accessError = await requirePaidWorkspaceAccess();
+  if (accessError) return accessError;
+
   const auth = await requireUser();
   if (auth.error) return auth.error;
 
@@ -53,6 +57,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const accessError = await requirePaidWorkspaceAccess();
+  if (accessError) return accessError;
+
   const auth = await requireUser();
   if (auth.error) return auth.error;
 

@@ -28,7 +28,7 @@ export async function BillingOverview() {
 
   // Resolve the actual plan key (defaults to scout, maps legacy "pro" to "scout", etc.)
   const currentPlanKey = resolvePlanKey(sub?.plan_key);
-  const currentPlanConfig = BILLING_CONFIG[currentPlanKey];
+  const currentPlanConfig = currentPlanKey ? BILLING_CONFIG[currentPlanKey] : BILLING_CONFIG["scout"];
 
   return (
     <div className="space-y-12 max-w-4xl">

@@ -1,8 +1,12 @@
+import { requirePaidWorkspaceAccess } from "@/lib/billing/entitlement";
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import crypto from "crypto";
 
 export async function GET() {
+  const accessError = await requirePaidWorkspaceAccess();
+  if (accessError) return accessError;
+
   const auth = await requireUser();
   if (auth.error || !auth.userId) return auth.error || NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -61,6 +65,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const accessError = await requirePaidWorkspaceAccess();
+  if (accessError) return accessError;
+
   const auth = await requireUser();
   if (auth.error || !auth.userId) return auth.error || NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

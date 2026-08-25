@@ -1,3 +1,4 @@
+import { requirePaidWorkspaceAccess } from "@/lib/billing/entitlement";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -12,6 +13,9 @@ const schema = z.object({ query: z.string().trim().min(2).max(160), cursor: z.st
 const cache = new Map<string, { expires: number; payload: unknown }>();
 
 export async function POST(request: NextRequest) {
+  const accessError = await requirePaidWorkspaceAccess();
+  if (accessError) return accessError;
+
   if (isSupabaseConfigured && !isPreviewMode) { const auth = await requireUser(); if (auth.error) return auth.error; }
   if (!isGoogleSearchConfigured) return NextResponse.json({ success: false, code: "GOOGLE_NOT_CONFIGURED", message: "Google Search is not configured." }, { status: 503 });
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "local";

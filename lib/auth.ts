@@ -33,8 +33,28 @@ export async function requireUser() {
     };
   }
 
-  // Active Session Enforcement
+  // Idempotent profile fallback for local dev / runtime assurance
   const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("*")
+    .eq("id", authObj.userId)
+    .maybeSingle();
+
+  if (!profile) {
+    const user = await currentUser();
+    const primaryEmail = user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || "";
+    await admin.from("profiles").upsert({
+      id: authObj.userId,
+      clerk_user_id: authObj.userId,
+      email: primaryEmail,
+      full_name: [user?.firstName, user?.lastName].filter(Boolean).join(" ") || null,
+      avatar_url: user?.imageUrl || null,
+      last_login_at: new Date().toISOString(),
+    }, { onConflict: "id" });
+  }
+
+  // Active Session Enforcement
   const sessionId = authObj.sessionId;
   
   if (sessionId) {
@@ -59,26 +79,6 @@ export async function requireUser() {
         };
       }
     }
-  }
-
-  // Idempotent profile fallback for local dev / runtime assurance
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("*")
-    .eq("id", authObj.userId)
-    .maybeSingle();
-
-  if (!profile) {
-    const user = await currentUser();
-    const primaryEmail = user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || "";
-    await admin.from("profiles").upsert({
-      id: authObj.userId,
-      clerk_user_id: authObj.userId,
-      email: primaryEmail,
-      full_name: [user?.firstName, user?.lastName].filter(Boolean).join(" ") || null,
-      avatar_url: user?.imageUrl || null,
-      last_login_at: new Date().toISOString(),
-    }, { onConflict: "id" });
   }
 
   const supabase = await createClerkSupabaseServerClient();

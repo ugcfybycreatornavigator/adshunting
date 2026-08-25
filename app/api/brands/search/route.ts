@@ -1,3 +1,4 @@
+import { requirePaidWorkspaceAccess } from "@/lib/billing/entitlement";
 import { NextResponse } from "next/server";
 import { getBrands, BrandSummary } from "@/lib/brand-data";
 import { requireUser } from "@/lib/auth";
@@ -5,6 +6,9 @@ import { getServerEnv, isSearchConfigured } from "@/lib/env/server";
 import { SearchApiProvider } from "@/lib/providers/searchapi";
 
 export async function POST(request: Request) {
+  const accessError = await requirePaidWorkspaceAccess();
+  if (accessError) return accessError;
+
   try {
     await requireUser();
 

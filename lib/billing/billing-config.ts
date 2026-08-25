@@ -78,10 +78,10 @@ export const LEGACY_PLAN_MAP: Record<string, keyof typeof BILLING_CONFIG> = {
   basic: "scout",
 };
 
-export function resolvePlanKey(rawKey?: string | null): PlanKey {
-  if (!rawKey) return "scout"; // Default fallback if missing
+export function resolvePlanKey(rawKey?: string | null): PlanKey | null {
+  if (!rawKey) return null;
   const mapped = LEGACY_PLAN_MAP[rawKey.toLowerCase()];
   if (mapped) return mapped;
   if (BILLING_CONFIG[rawKey as PlanKey]) return rawKey as PlanKey;
-  return "scout"; // ultimate fallback
+  return null;
 }

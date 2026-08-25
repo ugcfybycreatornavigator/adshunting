@@ -1,3 +1,4 @@
+import { requirePaidWorkspaceAccess } from "@/lib/billing/entitlement";
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -16,6 +17,9 @@ export type SearchSuggestion = {
 };
 
 export async function GET(request: NextRequest) {
+  const accessError = await requirePaidWorkspaceAccess();
+  if (accessError) return accessError;
+
   const auth = await requireUser();
   if (auth.error) return auth.error;
 

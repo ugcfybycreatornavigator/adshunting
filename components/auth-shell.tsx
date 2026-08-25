@@ -3,51 +3,49 @@
 import type { ReactNode } from "react";
 import { BrandMark } from "@/components/brand-mark";
 import { BRAND } from "@/lib/brand";
+import { AnimatedProductCanvas } from "@/components/auth/animated-product-canvas";
 
 export function AuthShell({ children, mode }: { children: ReactNode; mode: "sign-in" | "sign-up" }) {
   const title = mode === "sign-in" ? "Welcome back" : "Create your AdsHunting account";
   const body =
     mode === "sign-in"
-      ? `Sign in to continue to ${BRAND.name}.`
+      ? "Continue exploring winning ads, competitors, and creative signals."
       : "Start building your creative intelligence library.";
 
   return (
     <main className="min-h-screen bg-white text-ink lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(420px,2fr)]">
       {/* 60% Visual Side (Desktop/Tablet) */}
-      <section className="relative hidden flex-col justify-between overflow-hidden bg-[#090B10] px-12 pb-12 pt-14 lg:flex border-r border-line">
-        <div className="relative z-10">
+      <section className="relative hidden flex-col justify-between overflow-hidden bg-[#080B12] px-12 pb-12 pt-14 lg:flex border-r border-line">
+        
+        {/* Animated Product Canvas */}
+        <AnimatedProductCanvas />
+
+        {/* Header Logo */}
+        <div className="relative z-20">
           <BrandMark inverted compact href="/" />
         </div>
-        
-        {/* Animated Visual Asset */}
-        <div className="absolute inset-0 flex items-center justify-center p-12 overflow-hidden pointer-events-none">
-          <img 
-            src="/brand/adshunting-auth-visual.svg" 
-            alt="AdsHunting Creative Intelligence" 
-            className="w-full h-full object-cover object-center mix-blend-lighten motion-safe:animate-[auth-float_12s_ease-in-out_infinite]"
-          />
-        </div>
 
-        <div className="relative z-10 max-w-xl">
-          <h1 className="text-3xl font-semibold leading-snug tracking-tight text-white mb-4">
-            Find the creative patterns<br />worth saving.
+        {/* Product Messaging */}
+        <div className="relative z-20 max-w-xl motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 motion-safe:duration-1000 motion-safe:delay-500 fill-mode-backwards">
+          <h1 className="text-3xl font-bold leading-snug tracking-tight text-white mb-4">
+            Find the ads worth studying.
           </h1>
-          <p className="text-[15px] leading-relaxed text-[#A1A1AA] max-w-md">
-            Discover competitor ads, understand observable signals, and organize winning creative research.
+          <p className="text-[16px] leading-relaxed text-white/60 max-w-md font-medium">
+            Discover competitor creatives, understand the signals behind them, and save ideas that deserve a second look.
           </p>
-          <div className="mt-8 flex items-center gap-3 text-[11px] font-bold uppercase tracking-[.15em] text-[#6F7380]">
-            <span>Discover</span>
-            <span className="text-brand opacity-60">→</span>
-            <span>Analyze</span>
-            <span className="text-brand opacity-60">→</span>
-            <span>Save</span>
-            <span className="text-brand opacity-60">→</span>
-            <span>Organize</span>
+          <div className="mt-8 flex items-center gap-3 text-[12px] font-bold uppercase tracking-[.15em] text-white/40">
+            <span className="text-white/80">Discover</span>
+            <span className="text-brand">·</span>
+            <span className="text-white/80">Analyze</span>
+            <span className="text-brand">·</span>
+            <span className="text-white/80">Save</span>
+            <span className="text-brand">·</span>
+            <span className="text-white/80">Research</span>
           </div>
         </div>
         
         {/* Subtle noise/gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#090B10] via-transparent to-transparent opacity-80 pointer-events-none" />
+        <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[#080B12] via-[#080B12]/80 to-transparent pointer-events-none z-10" />
       </section>
 
       {/* 40% Form Side */}

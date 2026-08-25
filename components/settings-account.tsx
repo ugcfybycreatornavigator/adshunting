@@ -40,7 +40,7 @@ export function SettingsAccount({
 
   // Determine Plan Details
   const planKey = resolvePlanKey(subscription?.plan_key as string);
-  const planInfo = BILLING_CONFIG[planKey];
+  const planInfo = planKey ? BILLING_CONFIG[planKey] : null;
   
   const displayPlanName = planInfo?.name || "No active plan";
   const displayInitial = displayPlanName[0]?.toUpperCase() || "S";

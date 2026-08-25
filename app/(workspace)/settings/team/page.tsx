@@ -25,7 +25,7 @@ export default async function TeamSettingsPage() {
     .maybeSingle();
     
   const planKey = resolvePlanKey(sub?.plan_key as string);
-  const limits = resolveWorkspaceAccess(entitlement, planKey);
+  const limits = resolveWorkspaceAccess(entitlement, planKey || "scout");
   const usage = await getWorkspaceUsage(userId);
   
   const members = [

@@ -55,6 +55,32 @@ serve(async (req: Request) => {
       });
     }
 
+    let reqBody;
+    try {
+      reqBody = await req.json();
+    } catch {
+      reqBody = {};
+    }
+    const { checkoutType, planKey } = reqBody;
+
+    if (!planKey) {
+      return new Response(JSON.stringify({ ok: false, code: "INVALID_PLAN", message: "A valid plan key must be provided.", requestId }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+
+    // Only allow known plans
+    if (planKey !== 'scout' && planKey !== 'pro') {
+      return new Response(JSON.stringify({ ok: false, code: "INVALID_PLAN", message: "The requested plan is invalid or not available.", requestId }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+
+    // Use scout as the canonical plan key internally
+    const canonicalPlanKey = planKey === 'pro' ? 'scout' : planKey;
+
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -70,8 +96,25 @@ serve(async (req: Request) => {
       .maybeSingle();
 
     let subscriptionId = existingSub?.razorpay_subscription_id;
+    let needsNewSubscription = !subscriptionId;
 
-    if (!subscriptionId) {
+    // Check if the user is changing intent or the existing subscription is dead
+    if (existingSub) {
+      if (existingSub.status === 'cancelled' || existingSub.status === 'expired' || existingSub.status === 'halted') {
+        needsNewSubscription = true;
+      } else if (existingSub.status === 'not_started') {
+         // It's safe to overwrite a not_started subscription.
+         // Let's just create a new one to guarantee the trial/plan intent matches.
+         needsNewSubscription = true;
+      } else if (existingSub.status === 'active' || existingSub.status === 'trialing') {
+         return new Response(JSON.stringify({ ok: false, code: "SUBSCRIPTION_ALREADY_EXISTS", message: "You already have an active subscription.", requestId }), {
+           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+           status: 409,
+         });
+      }
+    }
+
+    if (needsNewSubscription) {
       const razorpay = getRazorpayClient();
       
       try {
@@ -91,10 +134,20 @@ serve(async (req: Request) => {
         .maybeSingle();
 
       let startAt: number | undefined = undefined;
-      if (!trialUsage) {
-        startAt = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60; // 7 days trial
+      
+      if (checkoutType === 'trial') {
+        if (!trialUsage) {
+          startAt = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60; // 7 days trial
+        } else {
+          console.log(`[${requestId}] trial_already_used: REJECTED`);
+          return new Response(JSON.stringify({ ok: false, code: "TRIAL_ALREADY_USED", message: "Your introductory trial has already been used. Please choose a regular subscription.", requestId }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 409,
+          });
+        }
       } else {
-        console.log(`[${requestId}] trial_already_used: NO START_AT DELAY`);
+        // Paid checkout - no trial delay
+        console.log(`[${requestId}] direct_subscription: NO START_AT DELAY`);
       }
 
       const subscriptionPayload: Record<string, unknown> = {
@@ -102,6 +155,7 @@ serve(async (req: Request) => {
         total_count: 120,
         notes: {
           workspace_id: userId,
+          checkout_type: checkoutType || 'subscription'
         },
       };
 
@@ -125,21 +179,23 @@ serve(async (req: Request) => {
 
       subscriptionId = subscription.id;
 
-      const { error: insertError } = await supabaseAdmin
-        .from('billing_subscriptions')
-        .insert({
-          workspace_id: userId,
-          owner_user_id: userId,
-          provider: 'razorpay',
-          razorpay_subscription_id: subscriptionId,
-          razorpay_plan_id: planIdEnv,
-          plan_key: 'pro',
-          status: 'not_started',
-          amount_paise: 49900,
-        });
+      const subData = {
+        workspace_id: userId,
+        owner_user_id: userId,
+        provider: 'razorpay',
+        razorpay_subscription_id: subscriptionId,
+        razorpay_plan_id: planIdEnv,
+        plan_key: canonicalPlanKey,
+        status: 'not_started',
+        amount_paise: 49900,
+      };
 
-      if (insertError) {
-        console.error(`[${requestId}] database_persisted: FAILED`, insertError.message);
+      const { error: upsertError } = await supabaseAdmin
+        .from('billing_subscriptions')
+        .upsert(subData, { onConflict: 'workspace_id' });
+
+      if (upsertError) {
+        console.error(`[${requestId}] database_persisted: FAILED`, upsertError.message);
         return new Response(JSON.stringify({ ok: false, code: "SUBSCRIPTION_PERSIST_FAILED", message: "Failed to persist subscription.", requestId }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 500,
