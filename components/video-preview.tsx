@@ -106,10 +106,8 @@ export function VideoPreview({
         }}
         onError={(event) => {
           if (currentSrcIndex < sources.length - 1) {
-            console.warn(`Video failed to load: ${currentSrc}. Trying next source...`, event.currentTarget.error);
             setCurrentSrcIndex(prev => prev + 1);
           } else {
-            console.error(`All video sources failed to load. Last tried: ${currentSrc}`, event.currentTarget.error);
             setFailed(true);
           }
         }}
