@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { isPreviewMode } from "@/lib/preview";
 import type { Metadata } from "next";
 import { createMetadata } from "@/lib/seo";
+import { SessionBoundary } from "@/components/session-boundary";
 
 export const metadata: Metadata = createMetadata({
   title: "AdsHunting Workspace",
@@ -16,5 +17,10 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   if (!isPreviewMode) await auth.protect();
   const authState = await auth();
   if (!authState.userId && !isPreviewMode) redirect("/sign-in");
-  return <AppShell>{children}</AppShell>;
+  return (
+    <>
+      <SessionBoundary />
+      <AppShell>{children}</AppShell>
+    </>
+  );
 }

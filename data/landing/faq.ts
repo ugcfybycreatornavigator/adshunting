@@ -2,7 +2,7 @@ export const homepageFaqs = [
   {
     question: "What is AdsHunting?",
     answer:
-      "AdsHunting is an ad intelligence and creative research workspace. It helps you search competitor creatives, review the details that matter, save useful inspiration, and share your research from one organized workspace.",
+      "AdsHunting is an ad intelligence and creative research workspace. It helps you Search competitor creatives, review the details that matter, save useful inspiration, and share your research from one organized workspace.",
   },
   {
     question: "What information does AdsHunting provide?",

@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api-client";
 
 import { useState, useEffect } from "react";
 import { Link2, Copy, Trash2, Calendar, FileText, Ban, Eye, Globe, FolderHeart } from "lucide-react";
@@ -17,7 +18,7 @@ export function SharedAdsManager() {
   async function fetchSharedLinks() {
     setLoading(true);
     try {
-      const response = await fetch("/api/shared-ads");
+      const response = await apiFetch("/api/shared-ads");
       if (!response.ok) throw new Error("Failed to load shared ads.");
       const data = await response.json();
       setLinks(data.links);
@@ -39,7 +40,7 @@ export function SharedAdsManager() {
     const originalLinks = [...links];
     setLinks(links.map(l => l.id === id ? { ...l, status: "disabled", revokedAt: new Date().toISOString() } : l));
     try {
-      const res = await fetch(`/api/shared-ads/${id}/revoke`, { method: "POST" });
+      const res = await apiFetch(`/api/shared-ads/${id}/revoke`, { method: "POST" });
       if (!res.ok) throw new Error("Failed to revoke");
     } catch (e) {
       console.error(e);
@@ -51,7 +52,7 @@ export function SharedAdsManager() {
     const originalLinks = [...links];
     setLinks(links.map(l => l.id === id ? { ...l, status: "active", revokedAt: undefined } : l));
     try {
-      const res = await fetch(`/api/shared-ads/${id}/enable`, { method: "POST" });
+      const res = await apiFetch(`/api/shared-ads/${id}/enable`, { method: "POST" });
       if (!res.ok) throw new Error("Failed to enable");
     } catch (e) {
       console.error(e);
@@ -64,7 +65,7 @@ export function SharedAdsManager() {
     const originalLinks = [...links];
     setLinks(links.filter(l => l.id !== id));
     try {
-      const res = await fetch(`/api/shared-ads/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/shared-ads/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
     } catch (e) {
       console.error(e);
@@ -77,7 +78,7 @@ export function SharedAdsManager() {
     const originalLinks = [...links];
     setLinks(links.map(l => l.id === id ? { ...l, visibility: newVisibility } : l));
     try {
-      const res = await fetch(`/api/shared-ads/${id}/visibility`, { 
+      const res = await apiFetch(`/api/shared-ads/${id}/visibility`, { 
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ visibility: newVisibility })

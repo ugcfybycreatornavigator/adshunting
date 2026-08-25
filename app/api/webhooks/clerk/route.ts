@@ -67,6 +67,27 @@ export async function POST(req: NextRequest) {
   } else if (eventType === "user.deleted") {
     const { id } = evt.data;
     console.log(`Clerk user deleted event received for user_id: ${id}`);
+    // user_active_sessions is cleaned up via ON DELETE CASCADE
+  } else if (eventType === "session.created") {
+    const { user_id, id, created_at } = evt.data;
+    if (user_id && id && created_at) {
+      const { verifyAndActivateSession } = await import("@/lib/auth-session");
+      await verifyAndActivateSession(user_id, id, admin);
+    }
+  } else if (eventType === "session.ended" || eventType === "session.revoked" || eventType === "session.removed") {
+    const { user_id, id } = evt.data;
+    if (user_id && id) {
+      // Only clear if it's currently the active session
+      const { data: activeSession } = await admin
+        .from("user_active_sessions")
+        .select("active_session_id")
+        .eq("user_id", user_id)
+        .maybeSingle();
+
+      if (activeSession && activeSession.active_session_id === id) {
+        await admin.from("user_active_sessions").delete().eq("user_id", user_id).eq("active_session_id", id);
+      }
+    }
   }
 
   return NextResponse.json({ success: true });

@@ -300,14 +300,24 @@ export type BrandSummary = {
   name: string;
   avatar: string | null;
   platforms: string[];
-  totalUnique: number;
-  activeUnique: number;
+  totalUnique: number | null;
+  activeUnique: number | null;
   previewMedia: string[];
   previewThumbs: string[];
 };
 
-export async function getBrands(query?: string): Promise<BrandSummary[]> {
-  if (!isSupabaseConfigured) return [];
+export async function getBrandStats(advertiserIds: string[]) {
+  if (!isSupabaseConfigured || advertiserIds.length === 0) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_brand_ad_stats", {
+    p_advertiser_ids: advertiserIds
+  });
+  if (error || !data) return [];
+  return data as { advertiser_id: string; total_ads: number; active_ads: number; latest_activity_at: string }[];
+}
+
+export async function getBrands(query?: string, externalCandidates: BrandSummary[] = []): Promise<BrandSummary[]> {
+  if (!isSupabaseConfigured) return externalCandidates;
   const supabase = await createClient();
 
   const { data, error } = await supabase.rpc("search_brands", {
@@ -315,20 +325,58 @@ export async function getBrands(query?: string): Promise<BrandSummary[]> {
     max_results: 40
   });
 
-  if (error || !data) {
-    return [];
+  let catalogBrands: BrandSummary[] = [];
+  if (!error && data) {
+    catalogBrands = data.map((row: Record<string, unknown>) => ({
+      id: row.advertiser_id as string,
+      name: row.advertiser_name as string,
+      avatar: row.advertiser_avatar_url as string | null,
+      platforms: (row.platforms as string[]) || [],
+      totalUnique: null, // Will be overridden
+      activeUnique: null, // Will be overridden
+      previewMedia: (row.preview_media as string[]) || [],
+      previewThumbs: (row.preview_thumbs as string[]) || []
+    }));
   }
 
-  return data.map((row: Record<string, unknown>) => ({
-    id: row.advertiser_id as string,
-    name: row.advertiser_name as string,
-    avatar: row.advertiser_avatar_url as string | null,
-    platforms: (row.platforms as string[]) || [],
-    totalUnique: Number(row.unique_ads) || 0,
-    activeUnique: Number(row.active_ads) || 0,
-    previewMedia: (row.preview_media as string[]) || [],
-    previewThumbs: (row.preview_thumbs as string[]) || []
-  }));
+  // Merge external candidates and catalog brands (prefer catalog metadata)
+  const mergedMap = new Map<string, BrandSummary>();
+  for (const b of externalCandidates) mergedMap.set(b.id, b);
+  for (const b of catalogBrands) {
+    const existing = mergedMap.get(b.id);
+    if (existing) {
+      // Merge previews if catalog is empty
+      if (b.previewMedia.length === 0) b.previewMedia = existing.previewMedia;
+      if (b.previewThumbs.length === 0) b.previewThumbs = existing.previewThumbs;
+      // Merge platforms
+      b.platforms = Array.from(new Set([...b.platforms, ...existing.platforms]));
+    }
+    mergedMap.set(b.id, b);
+  }
+
+  const merged = Array.from(mergedMap.values());
+  const advertiserIds = merged.map(b => b.id);
+  
+  if (advertiserIds.length > 0) {
+    const stats = await getBrandStats(advertiserIds);
+    const statsMap = new Map(stats.map(s => [s.advertiser_id, s]));
+    
+    for (const b of merged) {
+      const stat = statsMap.get(b.id);
+      if (stat && stat.total_ads > 0) {
+        b.totalUnique = Number(stat.total_ads);
+        b.activeUnique = Number(stat.active_ads);
+      } else {
+        b.totalUnique = null;
+        b.activeUnique = null;
+      }
+    }
+  }
+
+  // Sort by total unique ads
+  merged.sort((a, b) => (b.totalUnique || 0) - (a.totalUnique || 0));
+
+  return merged;
 }
 
 export async function getBrandData(id: string): Promise<BrandData> {

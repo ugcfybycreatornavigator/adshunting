@@ -1,31 +1,20 @@
 "use client";
+import { apiFetch } from "@/lib/api-client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { ArrowRight, Folder, FolderPlus, Loader2, Trash2, X, Bookmark } from "lucide-react";
 import { Button, Skeleton } from "@/components/ui";
 import type { SwipeFile } from "@/lib/types";
 
-export function SwipeFilesManager() {
-  const [files, setFiles] = useState<SwipeFile[]>([]);
-  const [loading, setLoading] = useState(true);
+import { useSwipeFiles } from "@/hooks/use-swipe-files";
+
+export function SwipeFilesManager({ initialData }: { initialData?: SwipeFile[] }) {
+  const { data: files, isLoading: loading, mutate } = useSwipeFiles(initialData);
   const [error, setError] = useState("");
   const [modal, setModal] = useState<SwipeFile | "new" | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch("/api/swipe-files");
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      setFiles(data);
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Unable to load folders.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-  useEffect(() => { load(); }, [load]);
+
 
   async function remove(event: React.MouseEvent, file: SwipeFile) {
     event.preventDefault();
@@ -35,19 +24,33 @@ export function SwipeFilesManager() {
       return;
     }
     if (!confirm(`Delete “${file.name}”?`)) return;
-    const response = await fetch(`/api/swipe-files/${file.id}`, { method: "DELETE" });
-    if (response.ok) setFiles((current) => current.filter((item) => item.id !== file.id));
+    try {
+      await mutate(
+        (current) => current?.filter((f) => f.id !== file.id) || [],
+        { revalidate: false }
+      );
+      const response = await apiFetch(`/api/swipe-files/${file.id}`, { method: "DELETE" });
+      const data = await response.json();
+      if (!response.ok) {
+         // Revert on error
+         mutate();
+         throw new Error(data.error);
+      }
+      mutate();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to delete folder.");
+    }
   }
 
-  if (loading) return (
-    <div className="grid gap-[14px] grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
-      {Array.from({ length: 6 }).map((_, index) => (
+  if (loading && (!files || files.length === 0)) return (
+    <div className="grid gap-[14px] grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {Array.from({ length: 4 }).map((_, index) => (
         <div key={index} className="flex flex-col h-[155px] overflow-hidden rounded-[14px] border border-[#E5E7EB] bg-white shadow-sm">
           <Skeleton className="h-[72px] w-full rounded-none" />
-          <div className="p-[14px] flex flex-col">
+          <div className="p-[14px] flex flex-col h-full">
             <Skeleton className="h-4 w-3/4" />
             <Skeleton className="mt-[4px] h-3 w-1/2" />
-            <div className="mt-[14px] flex justify-between">
+            <div className="mt-auto pt-[12px] flex justify-between">
               <Skeleton className="h-3 w-1/4" />
               <Skeleton className="h-3 w-1/4" />
             </div>
@@ -129,7 +132,21 @@ export function SwipeFilesManager() {
         </Link>
       ))}
     </div>
-    {modal && <SwipeFileModal file={modal === "new" ? null : modal} onClose={() => setModal(null)} onSaved={() => { setModal(null); load(); }} />}
+    {files.length === 0 && !loading && (
+      <div className="mt-8 flex flex-col items-center justify-center rounded-[16px] border border-dashed border-[#E5E7EB] bg-white p-12 text-center">
+        <div className="flex size-12 items-center justify-center rounded-full bg-[#F4F4F5] text-[#A1A1AA]">
+          <Folder size={24} />
+        </div>
+        <h3 className="mt-4 text-base font-semibold text-[#18181B]">No Swipe Files yet</h3>
+        <p className="mt-2 max-w-sm text-sm text-[#71717A]">
+          Organize saved ads into collections for campaigns, competitors, hooks, formats, or inspiration.
+        </p>
+        <Button onClick={() => setModal("new")} variant="secondary" className="mt-6">
+          <FolderPlus size={14} className="mr-2" /> Create Swipe File
+        </Button>
+      </div>
+    )}
+    {modal && <SwipeFileModal file={modal === "new" ? null : modal} onClose={() => setModal(null)} onSaved={() => { setModal(null); mutate(); }} />}
   </>;
 }
 
@@ -210,7 +227,7 @@ function SwipeFileModal({ file, onClose, onSaved }: { file: SwipeFile | null; on
   async function submit(event: FormEvent) {
     event.preventDefault(); 
     setBusy(true);
-    const response = await fetch("/api/swipe-files", { 
+    const response = await apiFetch("/api/swipe-files", { 
       method: "POST", // only create is supported right now, no update endpoint implemented yet
       headers: { "Content-Type": "application/json" }, 
       body: JSON.stringify({ name }) 

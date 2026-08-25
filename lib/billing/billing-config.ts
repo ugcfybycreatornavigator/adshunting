@@ -8,6 +8,11 @@ export type PlanConfig = {
   status: "available" | "coming_soon";
   razorpayPlanId?: string | null;
   features: string[];
+  limits: {
+    teamMembers: number | "unlimited";
+    swipeFiles: number | "unlimited";
+    sharedAds: number | "unlimited";
+  };
 };
 
 export const BILLING_CONFIG: Record<string, PlanConfig> = {
@@ -26,6 +31,11 @@ export const BILLING_CONFIG: Record<string, PlanConfig> = {
       "Swipe Files",
       "Shared Ads",
     ],
+    limits: {
+      teamMembers: 1,
+      swipeFiles: 5,
+      sharedAds: 10,
+    }
   },
   hunter: {
     id: "hunter",
@@ -36,6 +46,11 @@ export const BILLING_CONFIG: Record<string, PlanConfig> = {
     priceLabel: "Pricing to be announced",
     status: "coming_soon",
     features: ["Built for growing team workflows.", "Plan details coming soon."],
+    limits: {
+      teamMembers: 5,
+      swipeFiles: "unlimited",
+      sharedAds: "unlimited",
+    }
   },
   agency: {
     id: "agency",
@@ -46,6 +61,11 @@ export const BILLING_CONFIG: Record<string, PlanConfig> = {
     priceLabel: "Pricing to be announced",
     status: "coming_soon",
     features: ["Designed for larger agency research workflows.", "Plan details coming soon."],
+    limits: {
+      teamMembers: 20,
+      swipeFiles: "unlimited",
+      sharedAds: "unlimited",
+    }
   },
 } as const;
 

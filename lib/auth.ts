@@ -19,6 +19,7 @@ export async function requireUser() {
       user: null,
       supabase: null,
       error: NextResponse.json({ error: "Authentication required." }, { status: 401 }),
+      sessionReplaced: false,
     };
   }
 
@@ -28,11 +29,39 @@ export async function requireUser() {
       user: null,
       supabase: null,
       error: NextResponse.json({ error: "Supabase is not configured." }, { status: 503 }),
+      sessionReplaced: false,
     };
   }
 
-  // Idempotent profile fallback for local dev / runtime assurance
+  // Active Session Enforcement
   const admin = createAdminClient();
+  const sessionId = authObj.sessionId;
+  
+  if (sessionId) {
+    const { data: activeSessionData } = await admin
+      .from("user_active_sessions")
+      .select("active_session_id")
+      .eq("user_id", authObj.userId)
+      .maybeSingle();
+
+    if (!activeSessionData || activeSessionData.active_session_id !== sessionId) {
+      // Need to activate this session if it's newer, otherwise reject
+      const { verifyAndActivateSession } = await import("./auth-session");
+      const activated = await verifyAndActivateSession(authObj.userId, sessionId, admin);
+      
+      if (!activated) {
+        return {
+          userId: authObj.userId,
+          user: null,
+          supabase: null,
+          error: NextResponse.json({ error: "This session is no longer active.", code: "SESSION_REPLACED" }, { status: 401 }),
+          sessionReplaced: true,
+        };
+      }
+    }
+  }
+
+  // Idempotent profile fallback for local dev / runtime assurance
   const { data: profile } = await admin
     .from("profiles")
     .select("*")
@@ -53,5 +82,5 @@ export async function requireUser() {
   }
 
   const supabase = await createClerkSupabaseServerClient();
-  return { userId: authObj.userId, user: await currentUser(), supabase, error: null };
+  return { userId: authObj.userId, user: await currentUser(), supabase, error: null, sessionReplaced: false };
 }

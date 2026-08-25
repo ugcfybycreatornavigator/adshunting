@@ -2,10 +2,13 @@ import { Sidebar, MobileHeader } from "@/components/sidebar";
 import { isSupabaseConfigured } from "@/lib/env";
 import { isAnyAdsProviderConfigured } from "@/lib/env/server";
 import { isPreviewMode } from "@/lib/preview";
+import { SupportProvider } from "@/components/support/support-context";
+import { SupportModal } from "@/components/support/SupportModal";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#FFFFFF] text-ink">
+    <SupportProvider>
+      <div className="min-h-screen bg-[#FFFFFF] text-ink">
       <Sidebar />
       <MobileHeader />
       <main className="min-h-screen lg:pl-[252px]">
@@ -20,6 +23,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
         <div className="mx-auto w-full max-w-[1680px] p-4 sm:p-6 lg:p-8">{children}</div>
       </main>
+      <SupportModal />
     </div>
+    </SupportProvider>
   );
 }

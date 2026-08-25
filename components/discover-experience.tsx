@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api-client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Filter, History, Loader2, RefreshCw, Search, X } from "lucide-react";
@@ -54,7 +55,7 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
 
   useEffect(() => {
     let active = true;
-    fetch("/api/swipe-files/ads")
+    apiFetch("/api/swipe-files/ads")
       .then(async (response) => {
         if (!response.ok) return null;
         return response.json();
@@ -94,7 +95,7 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
     setError(null);
 
     try {
-      const response = await fetch("/api/ads/search", {
+      const response = await apiFetch("/api/ads/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(nextFilters),
@@ -106,6 +107,10 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
       }
       const result = data as AdSearchResult;
       
+      if (result.stale || result.source === "cache") {
+        setToast({ message: "Showing recently fetched results while live search reconnects.", tone: "error" });
+      }
+
       if (result.resolvedIntent?.type === "advertiser" && nextFilters.brand !== result.resolvedIntent.advertiserId) {
         setFilters({ brand: result.resolvedIntent.advertiserId, query: result.resolvedIntent.advertiserName });
       }
@@ -149,7 +154,7 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
     setBrandsLoading(true);
     setBrandsError(null);
     try {
-      const response = await fetch("/api/brands/search", {
+      const response = await apiFetch("/api/brands/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query }),
@@ -196,7 +201,7 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
       return;
     }
     let active = true;
-    fetch(`/api/ads/${encodeURIComponent(deepLinkedAdId)}`)
+    apiFetch(`/api/ads/${encodeURIComponent(deepLinkedAdId)}`)
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || data.error);
@@ -298,7 +303,7 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
 
   async function saveAd(ad: NormalizedAd) {
     try {
-      const response = await fetch("/api/swipe-files/items", {
+      const response = await apiFetch("/api/swipe-files/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ adId: ad.id, externalAdId: (ad.externalId || ad.id) }),
@@ -340,7 +345,7 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
         <h1 className="text-[28px] font-bold tracking-tight text-ink flex items-center justify-between">
           Discover {isBrandsView ? "Brands" : "Ads"}
           <span className="text-[14px] font-normal text-muted">
-             {loading || brandsLoading ? "Searching..." : isBrandsView ? `${brands.length} brands` : total != null ? `${total.toLocaleString()} unique ads` : `${ads.length.toLocaleString()} unique ads`}
+            {loading || brandsLoading ? "Searching..." : isBrandsView ? `${brands.length} brand${brands.length === 1 ? "" : "s"}` : total != null ? `${total.toLocaleString()} unique ads` : `${ads.length.toLocaleString()} unique ads`}
           </span>
         </h1>
         <p className="mt-1 text-[14px] text-muted">{isBrandsView ? "Discover the top brands and advertisers." : "Search competitor ads, brands and creative patterns."}</p>
@@ -561,22 +566,34 @@ function gridClass() {
 }
 
 function brandGridClass() {
-  return "grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-5";
+  return "grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4";
 }
 
 function BrandGridSkeleton() {
   return (
     <div className={brandGridClass()}>
       {Array.from({ length: 12 }).map((_, index) => (
-        <div key={index} className="flex flex-col w-full overflow-hidden rounded-[14px] border border-line bg-white shadow-sm h-[240px]">
-          <div className="flex p-4 items-center gap-3 border-b border-line">
-             <Skeleton className="size-10 rounded-full shrink-0" />
+        <div key={index} className="flex flex-col w-full overflow-hidden rounded-[12px] border border-[#E5E7EB] bg-white p-[16px]">
+          <div className="flex items-center gap-[12px] mb-[14px]">
+             <Skeleton className="size-[38px] rounded-[10px] shrink-0" />
              <div className="flex flex-col gap-1.5 flex-1">
                <Skeleton className="h-4 w-3/4" />
-               <Skeleton className="h-3 w-1/2" />
+               <Skeleton className="h-3 w-1/3" />
              </div>
           </div>
-          <div className="flex-1" />
+          <div className="flex items-center gap-[16px] mb-[16px]">
+             <Skeleton className="h-4 w-[60px]" />
+             <Skeleton className="h-4 w-[60px]" />
+          </div>
+          <div className="flex gap-[6px] mb-[16px]">
+             <Skeleton className="flex-1 aspect-[4/5] rounded-lg" />
+             <Skeleton className="flex-1 aspect-[4/5] rounded-lg" />
+             <Skeleton className="flex-1 aspect-[4/5] rounded-lg" />
+          </div>
+          <div className="mt-auto pt-[4px] flex justify-between">
+             <Skeleton className="h-4 w-[120px]" />
+             <Skeleton className="h-4 w-[60px]" />
+          </div>
         </div>
       ))}
     </div>

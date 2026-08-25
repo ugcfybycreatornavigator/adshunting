@@ -171,8 +171,10 @@ export interface AdSearchResult {
   ads: NormalizedAd[];
   nextCursor: string | null;
   total: number | null;
-  source: "provider" | "catalog";
+  source: "provider" | "catalog" | "cache";
   resolvedIntent?: SearchIntent;
+  requestId?: string;
+  stale?: boolean;
 }
 
 export interface Advertiser {

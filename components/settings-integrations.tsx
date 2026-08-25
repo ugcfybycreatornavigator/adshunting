@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api-client";
 
 import { useEffect, useState } from "react";
 import { CheckCircle2, CircleDashed, Database, Globe2, KeyRound, Loader2, RefreshCw, Search, ShieldCheck, XCircle } from "lucide-react";
@@ -14,13 +15,13 @@ export function SettingsIntegrations({configured}:{configured:Configured}){
   const[testing,setTesting]=useState(false);
   const[testError,setTestError]=useState("");
 
-  useEffect(()=>{fetch("/api/integrations/status").then(response=>response.json()).then(setStatus).catch(()=>undefined)},[]);
+  useEffect(()=>{apiFetch("/api/integrations/status").then(response=>response.json()).then(setStatus).catch(()=>undefined)},[]);
   
   async function testConnections(){
     setTesting(true);
     setTestError("");
     try{
-      const response=await fetch("/api/integrations/status",{method:"POST"});
+      const response=await apiFetch("/api/integrations/status",{method:"POST"});
       const data=await response.json();
       if(!response.ok)throw new Error(data.message||"Connection test failed.");
       setStatus(data);

@@ -11,7 +11,7 @@ export function VideoPreview({
   objectFit = "cover",
   onMetadata,
 }: {
-  src: string;
+  src: string | string[];
   poster?: string | null;
   className?: string;
   controls?: boolean;
@@ -24,6 +24,10 @@ export function VideoPreview({
   const [playing, setPlaying] = useState(false);
   const [nearby, setNearby] = useState(controls);
   const [failed, setFailed] = useState(false);
+  
+  const sources = Array.isArray(src) ? src : [src];
+  const [currentSrcIndex, setCurrentSrcIndex] = useState(0);
+  const currentSrc = sources[currentSrcIndex] || "";
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -48,7 +52,15 @@ export function VideoPreview({
     if (!video) return;
     video.load();
     void video.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
-  }, [nearby, src]);
+  }, [nearby, currentSrc]);
+
+  const srcString = JSON.stringify(sources);
+
+  useEffect(() => {
+    // Reset state if `src` array changes
+    setCurrentSrcIndex(0);
+    setFailed(false);
+  }, [srcString]);
 
   async function toggle(event: React.MouseEvent) {
     event.stopPropagation();
@@ -75,16 +87,16 @@ export function VideoPreview({
   }
 
   return (
-    <div ref={wrapperRef} className={`group relative overflow-hidden bg-zinc-100 ${className}`}>
+    <div ref={wrapperRef} className={`group relative overflow-hidden bg-zinc-100 flex items-center justify-center ${className}`}>
       <video
         ref={ref}
-        src={src}
+        src={currentSrc}
         poster={poster || undefined}
         muted
         playsInline
         preload={controls ? "metadata" : "none"}
         controls={controls && !failed}
-        className={`h-full w-full ${objectFit === "contain" ? "object-contain" : "object-cover"} ${failed && poster ? "opacity-50" : ""}`}
+        className={`w-auto h-auto max-w-full max-h-full ${objectFit === "contain" ? "object-contain" : "object-cover"}`}
         onLoadedMetadata={(event) => {
           setFailed(false);
           const video = event.currentTarget;
@@ -92,12 +104,25 @@ export function VideoPreview({
             onMetadata?.({ width: video.videoWidth, height: video.videoHeight });
           }
         }}
-        onError={() => setFailed(true)}
+        onError={(event) => {
+          if (currentSrcIndex < sources.length - 1) {
+            console.warn(`Video failed to load: ${currentSrc}. Trying next source...`, event.currentTarget.error);
+            setCurrentSrcIndex(prev => prev + 1);
+          } else {
+            console.error(`All video sources failed to load. Last tried: ${currentSrc}`, event.currentTarget.error);
+            setFailed(true);
+          }
+        }}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
       />
-      {failed && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-black/40 text-white backdrop-blur-[2px]">
+      {failed && poster && (
+        <div className="absolute top-3 right-3 z-10 rounded-[6px] bg-black/60 backdrop-blur px-2.5 py-1.5 border border-white/10 shadow-sm text-white flex items-center gap-2 pointer-events-none">
+          <span className="text-[11px] font-[550] tracking-wide">Video preview &middot; Playback unavailable</span>
+        </div>
+      )}
+      {failed && !poster && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-zinc-100 text-muted">
           <span className="text-xs font-semibold">Video unavailable</span>
         </div>
       )}

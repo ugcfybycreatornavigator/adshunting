@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api-client";
 
 import { useEffect, useMemo, useState, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -44,7 +45,7 @@ export function SwipeFilePicker({
     setMounted(true);
     let active = true;
     setLoading(true);
-    fetch("/api/swipe-files")
+    apiFetch("/api/swipe-files")
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Unable to load Swipe Files.");
@@ -122,7 +123,7 @@ export function SwipeFilePicker({
     setBusy(true);
     setError("");
     try {
-      const response = await fetch("/api/swipe-files", {
+      const response = await apiFetch("/api/swipe-files", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
@@ -160,7 +161,7 @@ export function SwipeFilePicker({
     setBusy(true);
     setError("");
     try {
-      const response = await fetch("/api/swipe-files/items", {
+      const response = await apiFetch("/api/swipe-files/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ externalAdId: ad.externalId || ad.id, swipeFileId: justToggledId }),

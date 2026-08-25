@@ -1,14 +1,132 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { BarChart3, Bookmark, Check, ExternalLink, ImageIcon, Info, Loader2, MousePointerClick, Target, Users, X } from "lucide-react";
+import { 
+  Bookmark, Check, ExternalLink, ImageIcon, Info, Loader2, 
+  Copy, ArrowRight, Globe, Share, LayoutTemplate, X, Download, 
+  ChevronLeft, ChevronRight, MoreHorizontal
+} from "lucide-react";
 import { VideoPreview } from "@/components/video-preview";
-import { CarouselPreview } from "@/components/carousel-preview";
+import { SwipeFilePicker } from "@/components/swipe-file-picker";
+import { ShareModal } from "@/components/share-modal";
 import type { NormalizedAd } from "@/lib/types";
 import { cn, formatDate, safeExternalUrl } from "@/lib/utils";
 import { computeAdIntelligence } from "@/lib/intelligence";
-import { BRAND } from "@/lib/brand";
+
+// --------------------------------------------------------------------------------
+// Data Normalization Helpers
+// --------------------------------------------------------------------------------
+
+function titleCase(value: string) { 
+  return value.replaceAll("_", " ").replace(/\b\w/g, char => char.toUpperCase()); 
+}
+
+function cleanUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname.replace('www.', '');
+  } catch {
+    return url;
+  }
+}
+
+function normalizePlatform(p: string) {
+  const lowered = p.toLowerCase();
+  if (lowered === "facebook" || lowered === "fb") return "Facebook";
+  if (lowered === "instagram" || lowered === "ig") return "Instagram";
+  if (lowered === "messenger") return "Messenger";
+  if (lowered === "audience_network") return "Audience Network";
+  if (lowered === "threads") return "Threads";
+  return titleCase(p);
+}
+
+// normalizePlacement removed (unused)
+
+function getScoreTheme(rawScore: number) {
+  const score = Math.max(0, Math.min(100, isNaN(rawScore) ? 0 : rawScore));
+  if (score < 50) {
+    return {
+      text: "text-red-600",
+      bg: "bg-red-50",
+      border: "border-red-200",
+      bar: "bg-red-500",
+      label: score < 30 ? "Very Low" : "Low Potential"
+    };
+  }
+  return {
+    text: "text-blue-600",
+    bg: "bg-blue-50",
+    border: "border-blue-200",
+    bar: "bg-blue-600",
+    label: score >= 85 ? "Excellent Potential" : score >= 70 ? "Strong Potential" : "Moderate Potential"
+  };
+}
+
+// --------------------------------------------------------------------------------
+// Popover Primitive
+// --------------------------------------------------------------------------------
+
+function MetadataPopover({ 
+  children, 
+  content,
+  align = "center"
+}: { 
+  children: React.ReactNode; 
+  content: React.ReactNode;
+  align?: "left" | "center" | "right";
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsOpen(false);
+        e.stopPropagation(); // Stop parent modal from closing
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape, true); // Use capture phase
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape, true);
+    };
+  }, [isOpen]);
+
+  const alignClass = align === "left" ? "left-0" : align === "right" ? "right-0" : "left-1/2 -translate-x-1/2";
+
+  return (
+    <div className="relative inline-block" ref={containerRef}>
+      <div 
+        onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); setIsOpen(!isOpen); } }}
+        role="button"
+        tabIndex={0}
+      >
+        {children}
+      </div>
+      {isOpen && (
+        <div 
+          className={cn("absolute top-[calc(100%+8px)] z-[70] bg-white rounded-xl shadow-lg border border-line/80 min-w-[260px] max-w-[340px] max-h-[400px] overflow-y-auto animate-in fade-in zoom-in-95 duration-100", alignClass)}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {content}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --------------------------------------------------------------------------------
+// Main Component
+// --------------------------------------------------------------------------------
 
 export function AdDetailDrawer({
   ad,
@@ -23,519 +141,912 @@ export function AdDetailDrawer({
 }) {
   const [optimisticSaved, setOptimisticSaved] = useState(saved);
   const [saving, setSaving] = useState(false);
-  const media = safeExternalUrl(ad.creative.videoUrl || ad.creative.imageUrl);
-  const intelligence = computeAdIntelligence({ startDate: ad.delivery.startedAt, stopDate: ad.delivery.endedAt, status: ad.delivery.status, lastSeenAt: ad.provider.fetchedAt, variants: ad.variants || 1, creativeRepetition: 0, platforms: ad.delivery.platforms, mediaType: ad.creative.type, headline: ad.copy.headline, body: ad.copy.primaryText, cta: ad.copy.cta, landingPageUrl: ad.destination.url, sourceMediaUrl: ad.creative.imageUrl || ad.creative.videoUrl, advertiserId: ad.advertiser.id });
+  const [activeTab, setActiveTab] = useState("Overview");
+  
+  // Modals
+  const [showShare, setShowShare] = useState(false);
+  const [showSwipePicker, setShowSwipePicker] = useState(false);
+  const swipeBtnRef = useRef<HTMLButtonElement>(null);
+  
+  // Download
+  const [downloading, setDownloading] = useState(false);
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+
+  const intelligence = computeAdIntelligence({ 
+    startDate: ad.delivery.startedAt, 
+    stopDate: ad.delivery.endedAt, 
+    status: ad.delivery.status, 
+    lastSeenAt: ad.provider.fetchedAt, 
+    variants: ad.variants || 1, 
+    creativeRepetition: 0, 
+    platforms: ad.delivery.platforms, 
+    mediaType: ad.creative.type, 
+    headline: ad.copy.headline, 
+    body: ad.copy.primaryText, 
+    cta: ad.copy.cta, 
+    landingPageUrl: ad.destination.url, 
+    sourceMediaUrl: ad.creative.imageUrl || ad.creative.videoUrl, 
+    advertiserId: ad.advertiser.id 
+  });
   const isSaved = saved || optimisticSaved;
+  
+  // Guard missing scores
+  const hasValidScore = intelligence.adjustedWinnerScore !== undefined && intelligence.adjustedWinnerScore !== null && !isNaN(intelligence.adjustedWinnerScore);
+  const clampedScore = hasValidScore ? Math.max(0, Math.min(100, intelligence.adjustedWinnerScore || 0)) : null;
+  const scoreTheme = clampedScore !== null ? getScoreTheme(clampedScore) : null;
+
+  // Insight Generator
+  const generateInsight = () => {
+    const insights = [];
+    if (ad.delivery.daysRunning && ad.delivery.daysRunning > 30) {
+      insights.push(`running for ${ad.delivery.daysRunning} days`);
+    }
+    if (ad.creative.carouselItems && ad.creative.carouselItems.length > 1) {
+      insights.push("multiple creative variants");
+    }
+    if (ad.delivery.platforms?.length && ad.delivery.platforms.length > 1) {
+      insights.push(`consistent delivery across ${ad.delivery.platforms.length} platforms`);
+    } else if (intelligence.brandCommitmentScore > 75) {
+      insights.push("consistent product-focused messaging");
+    }
+    
+    if (insights.length === 0) return null;
+    
+    const capitalizedFirst = insights[0].charAt(0).toUpperCase() + insights[0].slice(1);
+    const rest = insights.slice(1).join(" and ");
+    return rest ? `${capitalizedFirst} with ${rest}.` : `${capitalizedFirst}.`;
+  };
+  const insight = generateInsight();
 
   async function handleSave() {
     if (isSaved || saving) return;
-    setOptimisticSaved(true);
     setSaving(true);
     try {
       await onSave();
+      setOptimisticSaved(true);
     } catch {
-      setOptimisticSaved(false);
+      // Revert if failed
     } finally {
       setSaving(false);
     }
   }
 
+  async function handleDownload() {
+    let currentMediaUrl = safeExternalUrl(ad.creative.videoUrl || ad.creative.imageUrl);
+    
+    if (ad.creative.type === "carousel" && ad.creative.carouselItems?.length) {
+       const slide = ad.creative.carouselItems[activeSlideIndex];
+       if (slide) {
+         currentMediaUrl = safeExternalUrl(slide.imageUrl || slide.videoUrl);
+       }
+    }
+
+    if (!currentMediaUrl) return;
+
+    setDownloading(true);
+    try {
+      const res = await fetch(currentMediaUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `adshunting-creative-${ad.id || Date.now()}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download failed (may require server proxy due to CORS):", err);
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  // Body Scroll Lock & ESC listener
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't close if a nested modal is open
+      if (e.key === "Escape" && !showShare && !showSwipePicker) {
+         // Note: If a MetadataPopover is open, its capture-phase listener will stopPropagation,
+         // so this won't trigger.
+         onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose, showShare, showSwipePicker]);
+
+  const TABS = ["Overview", "Creative", "Copy", "Delivery", "Landing Page", "Advertiser"];
+  const hasDownload = !!(ad.creative.videoUrl || ad.creative.imageUrl || ad.creative.carouselItems?.length);
+
+  // Computed display values
+  const normalizedPlatforms = ad.delivery.platforms ? Array.from(new Set(ad.delivery.platforms.map(normalizePlatform))) : [];
+  const platformsDisplay = normalizedPlatforms.length > 0 
+    ? (normalizedPlatforms.length <= 2 ? normalizedPlatforms.join(" + ") : `${normalizedPlatforms[0]} +${normalizedPlatforms.length - 1}`)
+    : null;
+
   return (
-    <div className="fixed inset-0 z-[60] bg-black/25 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-label={`Ad details for ${ad.advertiser.name}`} onMouseDown={onClose}>
-      <div className="absolute inset-0 overflow-y-auto bg-white md:left-auto md:w-[min(94vw,1100px)] md:border-l md:border-line md:shadow-2xl" onMouseDown={event => event.stopPropagation()}>
-        
-        {/* Toolbar */}
-        <header className="sticky top-0 z-10 flex min-h-[64px] items-center justify-between border-b border-line/60 bg-white/95 px-4 backdrop-blur sm:px-6">
-          <div className="flex min-w-0 items-center gap-4">
-            <button onClick={onClose} className="grid size-10 shrink-0 place-items-center rounded-xl border border-line/80 text-ink transition-colors hover:bg-zinc-50" aria-label="Close details">
-              <X size={18} />
-            </button>
-            <div className="min-w-0 flex flex-col justify-center">
-              <p className="truncate text-[15px] font-[600] text-ink leading-snug">{ad.advertiser.name || "Unknown advertiser"}</p>
-              <p className="truncate text-[12px] text-muted leading-tight mt-0.5">Library ID {ad.externalId || ad.id}</p>
+    <div 
+      className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-[4px] flex items-center justify-center p-0 md:p-6 transition-all duration-200" 
+      role="dialog" 
+      aria-modal="true" 
+      aria-label={`Ad details for ${ad.advertiser.name}`} 
+      onMouseDown={() => {
+        if (!showShare && !showSwipePicker) onClose();
+      }}
+    >
+      <div 
+        className="relative flex flex-col bg-white overflow-hidden rounded-t-[24px] md:rounded-[20px] shadow-2xl border border-line/60 w-full md:max-w-[1440px] mt-12 md:mt-0 max-h-[calc(100dvh-32px)] h-auto"
+        onMouseDown={event => event.stopPropagation()}
+      >
+        {/* Sticky Header */}
+        <header className="shrink-0 flex items-center justify-between px-4 sm:px-6 py-4 border-b border-line/60 bg-white z-20">
+          
+          {/* Left: Advertiser */}
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-[1.5]">
+            {ad.advertiser.logoUrl ? (
+              <img src={ad.advertiser.logoUrl} alt="" className="size-9 sm:size-10 rounded-full border border-line/60 shrink-0 object-cover" />
+            ) : (
+              <span className="grid size-9 sm:size-10 shrink-0 place-items-center rounded-full bg-ink font-[600] text-white text-[15px]">
+                {ad.advertiser.name?.[0] || "U"}
+              </span>
+            )}
+            <div className="min-w-0">
+              <h2 className="truncate text-[16px] sm:text-[18px] font-[600] text-ink leading-tight">{ad.advertiser.name || "Unknown advertiser"}</h2>
+              <div className="hidden sm:flex items-center gap-2 mt-0.5 text-[12px] text-muted whitespace-nowrap overflow-hidden text-ellipsis">
+                <span>Sponsored Ad</span>
+              </div>
             </div>
           </div>
-          <button 
-            onClick={handleSave} 
-            disabled={isSaved || saving} 
-            aria-label={isSaved ? "Saved" : "Save to Saved Ads"}
-            className={cn(
-              "flex items-center justify-center gap-2 h-10 px-4 rounded-[12px] text-[14px] font-[600] transition-all duration-150 shadow-sm",
-              isSaved || saving 
-                ? "bg-zinc-100 text-muted cursor-not-allowed shadow-none" 
-                : "bg-brand text-white hover:bg-brand-strong"
+          
+          {/* Center: Interactive Metadata */}
+          <div className="hidden lg:flex items-center justify-center gap-2 flex-[2] px-4 flex-wrap">
+            
+            {/* Active Control */}
+            <MetadataPopover
+              content={
+                <div className="p-4 space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                     <span className={cn("size-2 rounded-full", ad.delivery.status === "active" ? "bg-blue-600" : "bg-zinc-400")} />
+                     <span className="text-[14px] font-[650] text-ink">{ad.delivery.status === "active" ? "Active" : "Inactive"}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-[11px] font-[650] uppercase tracking-wide text-muted mb-1">Started</p>
+                      <p className="text-[13px] font-[500] text-ink">{ad.delivery.startedAt ? formatDate(ad.delivery.startedAt) : "Unknown"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-[650] uppercase tracking-wide text-muted mb-1">Last Seen</p>
+                      <p className="text-[13px] font-[500] text-ink">{ad.provider.fetchedAt ? formatDate(ad.provider.fetchedAt) : "Unknown"}</p>
+                    </div>
+                    {ad.delivery.daysRunning && (
+                      <div className="col-span-2">
+                        <p className="text-[11px] font-[650] uppercase tracking-wide text-muted mb-1">Observed Lifespan</p>
+                        <p className="text-[13px] font-[500] text-ink">{ad.delivery.daysRunning} days</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              }
+            >
+              <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-[650] bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 transition-colors">
+                <span className="size-1.5 rounded-full bg-blue-600" /> {ad.delivery.status === "active" ? "Active" : "Inactive"}
+              </button>
+            </MetadataPopover>
+
+            {/* Platform Control */}
+            {platformsDisplay && (
+              <MetadataPopover
+                content={
+                  <div className="p-4">
+                    <p className="text-[12px] font-[650] uppercase tracking-wide text-muted mb-3">Running Platforms</p>
+                    <div className="space-y-2 mb-4">
+                      {normalizedPlatforms.map(p => (
+                        <div key={p} className="text-[14px] font-[500] text-ink">{p}</div>
+                      ))}
+                    </div>
+                  </div>
+                }
+              >
+                <button className="inline-flex items-center px-3 py-1.5 rounded-[8px] text-[12px] font-[650] border bg-zinc-50 text-ink border-line/80 hover:bg-zinc-100 transition-colors">
+                  {platformsDisplay}
+                </button>
+              </MetadataPopover>
             )}
-          >
-            {saving ? <Loader2 size={16} className="animate-spin" /> : isSaved ? <Check size={16} /> : <Bookmark size={16} />}
-            {saving ? "Saving" : isSaved ? "Saved" : "Save"}
-          </button>
+
+            {/* Creative Control */}
+            {ad.creative.type && (
+              <MetadataPopover
+                content={
+                  <div className="p-4 max-h-[300px] overflow-y-auto">
+                    <p className="text-[12px] font-[650] uppercase tracking-wide text-muted mb-3">Creative Type</p>
+                    <div className="text-[14px] font-[600] text-ink mb-4">{titleCase(ad.creative.type)}</div>
+                    
+                    {ad.creative.type === "carousel" && ad.creative.carouselItems && (
+                      <div className="space-y-3">
+                        <p className="text-[11px] font-[650] uppercase tracking-wide text-muted">Variations ({ad.creative.carouselItems.length})</p>
+                        {ad.creative.carouselItems.map((item, idx) => (
+                          <div 
+                            key={idx} 
+                            role="button"
+                            tabIndex={0}
+                            className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-50 transition-colors cursor-pointer group"
+                            onClick={() => setActiveSlideIndex(idx)}
+                            onKeyDown={(e) => { if(e.key==="Enter") setActiveSlideIndex(idx); }}
+                          >
+                             <div className="size-10 rounded-md bg-[#F8FAFC] border border-line flex items-center justify-center shrink-0 overflow-hidden">
+                               {item.imageUrl || item.videoUrl ? (
+                                 <img src={safeExternalUrl(item.imageUrl || item.videoUrl)!} alt="" className="w-full h-full object-cover" />
+                               ) : <ImageIcon size={14} className="text-muted/50" />}
+                             </div>
+                             <div className="flex-1 min-w-0">
+                               <p className="text-[13px] font-[500] text-ink line-clamp-1 group-hover:text-blue-600 transition-colors">
+                                 {String(idx + 1).padStart(2, '0')} · {item.headline || "Slide"}
+                               </p>
+                             </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                }
+              >
+                <button className="inline-flex items-center px-3 py-1.5 rounded-[8px] text-[12px] font-[650] border bg-zinc-50 text-ink border-line/80 hover:bg-zinc-100 transition-colors">
+                  {titleCase(ad.creative.type)} {ad.creative.type === "carousel" && ad.creative.carouselItems ? `· ${ad.creative.carouselItems.length}` : ""}
+                </button>
+              </MetadataPopover>
+            )}
+          </div>
+          
+          {/* Right: Actions */}
+          <div className="flex items-center justify-end gap-1.5 sm:gap-2 flex-[1.5]">
+            <div className="hidden sm:flex items-center gap-1.5 sm:gap-2">
+              <HeaderButton 
+                icon={downloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} 
+                label="Download" 
+                onClick={handleDownload}
+                disabled={!hasDownload || downloading}
+                title={!hasDownload ? "Download unavailable" : "Download media"}
+              />
+              <HeaderButton icon={<Share size={16} />} label="Share" onClick={() => setShowShare(true)} />
+              <HeaderButton 
+                ref={swipeBtnRef} 
+                icon={<LayoutTemplate size={16} />} 
+                label="Add to Swipe File" 
+                onClick={() => setShowSwipePicker(true)} 
+              />
+            </div>
+            
+            {/* Mobile Actions Menu */}
+            <div className="sm:hidden">
+              <MetadataPopover
+                align="right"
+                content={
+                  <div className="p-2 flex flex-col gap-1 min-w-[180px]">
+                    <MobileMenuButton icon={<Download size={16} />} label="Download" onClick={handleDownload} disabled={!hasDownload} />
+                    <MobileMenuButton icon={<Share size={16} />} label="Share" onClick={() => setShowShare(true)} />
+                    <MobileMenuButton icon={<LayoutTemplate size={16} />} label="Swipe File" onClick={() => setShowSwipePicker(true)} />
+                  </div>
+                }
+              >
+                <button className="grid size-9 place-items-center rounded-lg text-ink hover:bg-zinc-100 transition-colors">
+                  <MoreHorizontal size={18} />
+                </button>
+              </MetadataPopover>
+            </div>
+            
+            <button 
+              onClick={handleSave} 
+              disabled={isSaved || saving} 
+              className={cn(
+                "flex items-center gap-2 h-9 px-3 sm:px-4 rounded-[8px] text-[13px] font-[600] transition-colors ml-1 sm:ml-2 shadow-sm",
+                isSaved || saving 
+                  ? "bg-zinc-100 text-muted cursor-not-allowed border border-line" 
+                  : "bg-blue-600 text-white hover:bg-blue-700 border border-blue-700"
+              )}
+            >
+              {saving ? <Loader2 size={16} className="animate-spin" /> : isSaved ? <Check size={16} /> : <Bookmark size={16} />}
+              <span className="hidden sm:inline">{saving ? "Saving" : isSaved ? "Saved" : "Save"}</span>
+            </button>
+            <div className="w-px h-6 bg-line/60 mx-1 sm:mx-2" />
+            <button onClick={onClose} className="grid size-9 place-items-center rounded-lg text-muted hover:bg-zinc-100 transition-colors" aria-label="Close">
+              <X size={18} />
+            </button>
+          </div>
         </header>
 
-        {/* Main Content Grid */}
-        <div className="grid gap-[28px] p-4 sm:p-6 lg:p-8 xl:grid-cols-[minmax(0,1.35fr)_minmax(350px,1fr)] max-w-[1400px] mx-auto">
-          
-          {/* Left Column: Creative & Copy */}
-          <div className="flex flex-col gap-[28px]">
-            <section>
-              <SectionHeader number="01" title="Creative" />
-              <DetailCreativePreview ad={ad} media={media} />
-            </section>
-
-            <section>
-              <SectionHeader number="02" title="Copy" />
-              <div className="mt-4 rounded-[16px] border border-[#E8EAE7] bg-white divide-y divide-[#E8EAE7]">
-                <CopyMeta label="Body copy" value={ad.copy.primaryText} wide />
-                <CopyMeta label="Headline" value={ad.copy.headline} />
-                <CopyMeta label="Description" value={ad.copy.description} />
-                <CopyMeta label="Call to action" value={ad.copy.cta} />
-                <CopyMeta label="Hashtags" value={null} wide />
-              </div>
-            </section>
-
-            {ad.creative.carouselItems && ad.creative.carouselItems.length > 1 && (
-              <section>
-                <SectionHeader number="02b" title="Carousel Cards" />
-                <div className="mt-4 space-y-4">
-                  {ad.creative.carouselItems.map((card, i) => (
-                    <div key={i} className="rounded-[16px] border border-[#E8EAE7] bg-white divide-y divide-[#E8EAE7]">
-                      <div className="px-5 py-3 bg-zinc-50/50 rounded-t-[16px]">
-                        <p className="text-[13px] font-[650] text-ink uppercase tracking-wide">Card {i + 1}</p>
-                      </div>
-                      <CopyMeta label="Headline" value={card.headline} />
-                      <CopyMeta label="Destination" value={card.destinationUrl} wide />
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            <section>
-              <SectionHeader number="03" title="Landing page" />
-              <div className="mt-4 rounded-[16px] border border-[#E8EAE7] bg-white p-5">
-                {ad.destination.url ? (
-                  <a href={ad.destination.url} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-4 text-sm font-[500] text-ink hover:text-brand transition-colors">
-                    <span className="truncate">{ad.destination.url}</span>
-                    <ExternalLink className="shrink-0 text-muted" size={16} />
-                  </a>
-                ) : (
-                  <p className="text-[14px] text-muted">Not available from data provider</p>
-                )}
-              </div>
-            </section>
-          </div>
-
-          {/* Right Column: Intelligence & Delivery */}
-          <aside className="flex flex-col gap-[28px]">
-            <section>
-              <SectionHeader number="04" title={`${BRAND.name} Signals`} />
-              <div className="mt-4">
-                <AdsHuntingSignalsPanel ad={ad} intelligence={intelligence} />
-              </div>
-
-              {ad.intelligence.labels.length > 0 && (
-                <div className="mt-[16px] flex flex-wrap gap-[8px]">
-                  {ad.intelligence.labels.map((label: string) => (
-                    <span key={label} className="inline-flex items-center h-[28px] px-3 rounded-full bg-brand/10 border border-brand/20 text-[12px] font-[600] text-[#4F9625]">
-                      {displaySignalLabel(label, ad.intelligence.winnerScore ?? 0)}
-                    </span>
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto overflow-x-clip bg-white min-h-0">
+          {/* Hero Section */}
+          <div className="grid lg:grid-cols-[minmax(0,1.27fr)_minmax(340px,1fr)] max-w-[1440px] mx-auto p-4 sm:p-6 md:p-8 gap-8 md:gap-12 lg:items-start min-w-0">
+            
+            {/* Left: Creative Container */}
+            <div className="flex flex-col gap-4">
+              <AdCreativeViewer 
+                ad={ad} 
+                activeSlideIndex={activeSlideIndex} 
+                setActiveSlideIndex={setActiveSlideIndex} 
+              />
+              
+              {/* Carousel Thumbnail Strip */}
+              {ad.creative.type === "carousel" && ad.creative.carouselItems && ad.creative.carouselItems.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar px-1">
+                  {ad.creative.carouselItems.map((item, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveSlideIndex(idx)}
+                      className={cn(
+                        "relative shrink-0 h-16 w-16 md:h-18 md:w-18 rounded-[8px] overflow-hidden bg-[#F8FAFC] flex items-center justify-center transition-all",
+                        activeSlideIndex === idx 
+                          ? "border-[2px] border-blue-600 shadow-sm" 
+                          : "border border-line hover:border-zinc-300 opacity-80 hover:opacity-100"
+                      )}
+                    >
+                      {item.imageUrl || item.videoUrl ? (
+                         <img src={safeExternalUrl(item.imageUrl || item.videoUrl)!} alt={`Thumb ${idx+1}`} className="w-full h-full object-cover" />
+                      ) : <ImageIcon size={14} className="text-muted/50" />}
+                    </button>
                   ))}
                 </div>
               )}
-            </section>
-
-            <section>
-              <SectionHeader number="05" title="Delivery" />
-              <div className="mt-4 rounded-[16px] border border-[#E8EAE7] bg-white">
-                <DeliveryMeta label="Status" value={ad.delivery.status.toUpperCase()} />
-                <DeliveryMeta label="Started running" value={ad.delivery.startedAt ? formatDate(ad.delivery.startedAt) : null} />
-                <DeliveryMeta label="Stopped running" value={ad.delivery.endedAt ? formatDate(ad.delivery.endedAt) : ad.delivery.status === "active" ? "Still active" : null} />
-                <DeliveryMeta label="First seen" value={formatDate(ad.provider.fetchedAt)} />
-                <DeliveryMeta label="Last checked" value={formatDate(ad.provider.fetchedAt)} />
-                <DeliveryMeta label="Country" value={ad.delivery.countries[0]} />
-                <DeliveryMeta label="Platforms" value={ad.delivery.platforms?.length ? ad.delivery.platforms.map(titleCase).join(", ") : null} />
-                <DeliveryMeta label="Archive Status" value="Source Hosted" noBorder />
-              </div>
-            </section>
-
-            <section>
-              <SectionHeader number="06" title="Audience / Demographics" />
-              <DemographicsPanel demographics={null} />
-            </section>
-
-            <section>
-              <SectionHeader number="07" title="Advertiser" />
-              <div className="mt-4 rounded-[16px] border border-[#E8EAE7] bg-white p-5 flex items-center gap-4">
-                {ad.advertiser.logoUrl ? (
-                  <img src={ad.advertiser.logoUrl} alt="" className="size-[48px] rounded-full border border-line/60" />
-                ) : (
-                  <span className="grid size-[48px] place-items-center rounded-full bg-ink font-[600] text-white text-[18px]">
-                    {ad.advertiser.name?.[0] || "U"}
+            </div>
+            
+            {/* Right: Dense Intelligence Column */}
+            <div className="flex flex-col min-w-0 pb-6">
+              
+              {/* Score Group */}
+              <div>
+                <h3 className="text-[12px] font-[700] uppercase tracking-[0.08em] text-muted mb-3 flex items-center gap-1.5">
+                  AdsHunting Winning Score
+                  <span title="Calculated from observable creative and delivery signals. It is not Meta ROAS or conversion data.">
+                    <Info size={14} className="cursor-help text-muted/70 hover:text-ink transition-colors" />
                   </span>
+                </h3>
+                
+                {hasValidScore && scoreTheme ? (
+                  <div className="flex items-baseline gap-4 mb-4">
+                    <div className="flex items-baseline gap-1">
+                      <span className={cn("text-[48px] font-[700] leading-none tracking-tight", scoreTheme.text)}>{clampedScore}</span>
+                      <span className="text-[15px] font-[600] text-muted">/ 100</span>
+                    </div>
+                    <span className={cn("text-[14px] font-[600] px-3 py-1 rounded-[6px]", scoreTheme.bg, scoreTheme.text)}>
+                      {scoreTheme.label}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-[15px] font-[500] text-muted mb-4">Score unavailable</div>
                 )}
-                <div className="min-w-0">
-                  <Link href={`/brands/${encodeURIComponent(ad.advertiser.id || "unknown")}`} className="text-[15px] font-[600] text-ink transition-colors hover:text-brand">
-                    {ad.advertiser.name || "Unknown"}
-                  </Link>
-                  <p className="mt-1 text-[12px] text-muted">Page ID {ad.advertiser.id}</p>
+
+                <div className="space-y-4">
+                  <DenseSignalRow label="Creative Quality" score={intelligence.clickPropensityScore} />
+                  <DenseSignalRow label="Conversion Potential" score={intelligence.conversionPotentialScore} />
+                  <DenseSignalRow label="Confidence" score={intelligence.confidenceScore} value={`${intelligence.confidenceScore}%`} />
                 </div>
               </div>
-            </section>
-          </aside>
+              
+              <div className="w-full h-px bg-line/60 my-4" />
 
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --------------------------------------------------------------------------------
-// Layout Primitives
-// --------------------------------------------------------------------------------
-
-function SectionHeader({ number, title }: { number: string; title: string }) { 
-  return (
-    <div className="flex items-baseline gap-[12px]">
-      <span className="text-[11px] font-[700] tracking-[.08em] text-brand">{number}</span>
-      <h2 className="text-[19px] font-[600] tracking-tight text-ink">{title}</h2>
-    </div>
-  ); 
-}
-
-function CopyMeta({ label, value, wide }: { label: string; value?: string | null; wide?: boolean }) { 
-  return (
-    <div className={cn("p-5", !wide && "flex items-start justify-between gap-6")}>
-      <p className="text-[13px] font-[550] text-muted whitespace-nowrap">{label}</p>
-      <div className={cn(wide ? "mt-[8px]" : "text-right max-w-[65%]")}>
-        <p className="text-[14px] font-[400] text-ink leading-[1.6]">
-          {value || <span className="text-muted italic">Not provided by source</span>}
-        </p>
-      </div>
-    </div>
-  ); 
-}
-
-function DeliveryMeta({ label, value, noBorder }: { label: string; value?: string | null; noBorder?: boolean }) {
-  return (
-    <div className={cn("flex items-center justify-between gap-[16px] px-5 py-[14px]", !noBorder && "border-b border-[#E8EAE7]")}>
-      <p className="text-[13px] font-[550] text-muted">{label}</p>
-      <p className="text-[13px] font-[500] text-ink text-right max-w-[65%]">
-        {value || <span className="text-muted">—</span>}
-      </p>
-    </div>
-  );
-}
-
-function titleCase(value: string) { 
-  return value.replaceAll("_", " ").replace(/\b\w/g, char => char.toUpperCase()); 
-}
-
-// --------------------------------------------------------------------------------
-// Creative Viewer
-// --------------------------------------------------------------------------------
-
-function DetailCreativePreview({ ad, media }: { ad: NormalizedAd; media: string | null }) {
-  const [ratio, setRatio] = useState<number | null>(null);
-  const imageSource = media || safeExternalUrl(ad.creative.thumbnailUrl);
-  const orientation = orientationFromRatio(ratio);
-  
-  const mediaClass = cn(
-    "mt-[16px] overflow-hidden rounded-[16px] border border-[#E8EAE7] bg-[#F5F5F5]",
-    ad.creative.type === "video" && orientation === "portrait" && "mx-auto max-w-[460px] aspect-[9/16]",
-    ad.creative.type === "video" && orientation === "landscape" && "aspect-video",
-    ad.creative.type === "video" && orientation === "square" && "mx-auto max-w-[620px] aspect-square",
-    ad.creative.type === "carousel" && "aspect-[4/5] max-h-[760px]",
-    ad.creative.type !== "video" && ad.creative.type !== "carousel" && "max-h-[760px]"
-  );
-
-  if (ad.creative.type === "video" && media) {
-    return (
-      <div className={mediaClass} style={ratio ? { aspectRatio: `${ratio}` } : undefined}>
-        <VideoPreview
-          src={media}
-          poster={ad.creative.thumbnailUrl}
-          controls
-          objectFit="contain"
-          className="h-full w-full bg-black"
-          onMetadata={({ width, height }) => setRatio(width / height)}
-        />
-      </div>
-    );
-  }
-
-  if (ad.creative.type === "carousel" && ad.creative.carouselItems?.length) {
-    const assets = ad.creative.carouselItems.map(item => item.imageUrl || item.videoUrl).filter(Boolean) as string[];
-    return (
-      <div className={mediaClass}>
-        <CarouselPreview assets={assets} alt={`Creative from ${ad.advertiser?.name}`} className="h-full w-full" />
-      </div>
-    );
-  }
-
-  if (imageSource) {
-    return (
-      <div className={cn(mediaClass, "flex items-center justify-center")} style={{ aspectRatio: ratio ? `${ratio}` : "4 / 5" }}>
-        <img
-          src={imageSource}
-          alt={`Creative from ${ad.advertiser?.name}`}
-          className="h-full w-full object-contain"
-          onLoad={(event) => {
-            const image = event.currentTarget;
-            if (image.naturalWidth && image.naturalHeight) {
-              setRatio(image.naturalWidth / image.naturalHeight);
-            }
-          }}
-        />
-      </div>
-    );
-  }
-
-  return <div className="mt-[16px] grid aspect-[4/5] place-items-center rounded-[16px] border border-[#E8EAE7] bg-[#F5F5F5] text-muted"><ImageIcon size={32} /></div>;
-}
-
-function orientationFromRatio(ratio: number | null) {
-  if (!ratio) return "portrait";
-  if (ratio > 1.15) return "landscape";
-  if (ratio < 0.9) return "portrait";
-  return "square";
-}
-
-// --------------------------------------------------------------------------------
-// Intelligence Panels
-// --------------------------------------------------------------------------------
-
-function AdsHuntingSignalsPanel({
-  ad,
-  intelligence,
-}: {
-  ad: NormalizedAd;
-  intelligence: ReturnType<typeof computeAdIntelligence>;
-}) {
-  const winner = intelligence.adjustedWinnerScore;
-
-  return (
-    <div className="rounded-[18px] border border-[#E8EAE7] bg-white p-[24px] shadow-[0_1px_2px_rgba(0,0,0,0.03),0_8px_24px_rgba(0,0,0,0.035)]">
-      
-      {/* Header */}
-      <div className="flex items-start justify-between gap-[16px]">
-        <div className="flex-1">
-          <div className="flex items-center gap-[12px]">
-            <p className="text-[11px] font-[650] uppercase tracking-[.08em] text-ink">ADSHUNTING SIGNALS</p>
-            <span className="rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-[650] uppercase tracking-wide text-brand border border-brand/20">
-              Estimated
-            </span>
-          </div>
-          <p className="mt-[6px] text-[13px] text-muted">
-            Observable creative and delivery intelligence
-          </p>
-        </div>
-        <span
-          className="shrink-0 text-muted transition-colors hover:text-ink cursor-help"
-          title={`${BRAND.name} evaluates observable creative longevity, repetition, variants, recency, brand commitment, and creative quality. This is not private ad-account performance data.`}
-          aria-label={`${BRAND.name} Winner Score explanation`}
-        >
-          <Info size={18} />
-        </span>
-      </div>
-
-      {/* Winner Score Hero */}
-      <div className="mt-[32px]">
-        <div className="flex items-baseline gap-[4px]">
-          <span className="text-[48px] font-[650] leading-none text-ink tracking-tight">{winner}</span>
-          <span className="text-[16px] font-[500] text-muted">/ 100</span>
-        </div>
-        <div className="mt-[6px]">
-          <p className="text-[15px] font-[600] text-ink">AdsHunting Winner Score</p>
-          <p className="text-[13px] text-muted mt-[2px]">{scoreSignalLabel(winner)}</p>
-        </div>
-        <div className="mt-[16px] h-[7px] w-full overflow-hidden rounded-[999px] bg-[#EEF1EC]">
-          <div className="h-full rounded-[999px] bg-brand transition-all duration-500 ease-out" style={{ width: `${Math.min(100, Math.max(0, winner))}%` }} />
-        </div>
-      </div>
-
-      <div className="mt-[32px] h-px w-full bg-[#E8EAE7]" />
-
-      {/* Primary Signal Rows */}
-      <div className="mt-[24px] flex flex-col gap-[12px]">
-        <SignalRow
-          icon={<MousePointerClick size={20} />}
-          label="Hook Score"
-          value={`${intelligence.clickPropensityScore} / 100`}
-          score={intelligence.clickPropensityScore}
-          title={`${BRAND.name} estimate based on observable creative signals. This is not the advertisement's actual click-through data.`}
-        />
-        <SignalRow
-          icon={<Target size={20} />}
-          label="Conversion Potential"
-          value={`${intelligence.conversionPotentialScore} / 100`}
-          score={intelligence.conversionPotentialScore}
-          title="Modeled from observable creative and delivery signals. Not actual account conversion or sales performance."
-        />
-        <SignalRow
-          icon={<BarChart3 size={20} />}
-          label="Confidence"
-          value={`${intelligence.confidenceScore}%`}
-          score={intelligence.confidenceScore}
-          title="Confidence reflects completeness of public metadata such as dates, status, last seen, media, landing page, and related creative signals."
-        />
-      </div>
-
-      <div className="mt-[32px] h-px w-full bg-[#E8EAE7]" />
-
-      {/* Secondary Metrics Group */}
-      <div className="mt-[24px] grid grid-cols-1 sm:grid-cols-3 gap-[12px]">
-        <Fact label="Longevity" value={longevityDisplay(ad.delivery.daysRunning ?? null)} score={`${intelligence.longevityScore} / 100`} />
-        <Fact label="Creative Repetition" value={repetitionDisplay(ad.creativeRepetition ?? 0)} score={`${intelligence.repetitionScore} / 100`} />
-        <Fact label="Brand Commitment" value={scoreSignalLabel(intelligence.brandCommitmentScore)} score={`${intelligence.brandCommitmentScore} / 100`} />
-      </div>
-
-    </div>
-  );
-}
-
-function SignalRow({ icon, label, value, score, title }: { icon: React.ReactNode; label: string; value: string; score: number; title: string }) {
-  return (
-    <div 
-      className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-x-[16px] gap-y-[6px] rounded-[14px] border border-[#E8EAE7] bg-white p-[16px] transition-colors hover:bg-zinc-50/50" 
-      title={title}
-    >
-      {/* Icon Column (Fixed width) */}
-      <div className="flex h-full w-[28px] items-start justify-center pt-0.5 text-brand">
-        {icon}
-      </div>
-      
-      {/* Content Column (Flexible width) */}
-      <div className="min-w-0">
-        <p className="truncate text-[14px] font-[600] text-ink">{label}</p>
-        <div className="mt-[8px] h-[6px] w-full overflow-hidden rounded-[999px] bg-[#EEF1EC]">
-          <div className="h-full rounded-[999px] bg-brand" style={{ width: `${Math.min(100, Math.max(0, score))}%` }} />
-        </div>
-      </div>
-      
-      {/* Score Column (Fixed width) */}
-      <div className="text-right pt-[2px]">
-        <span className="text-[13px] font-[600] text-ink whitespace-nowrap">{value}</span>
-      </div>
-    </div>
-  );
-}
-
-function Fact({ label, value, score }: { label: string; value: string; score: string }) {
-  return (
-    <div className="rounded-[14px] border border-[#E8EAE7] bg-white p-[16px] flex flex-col justify-between h-full min-h-[96px]">
-      <p className="text-[13px] font-[550] text-muted">{label}</p>
-      <div className="mt-auto pt-[8px]">
-        <p className="text-[14px] font-[600] text-ink leading-tight">{value}</p>
-        <p className="mt-[4px] text-[12px] text-muted leading-none">{score}</p>
-      </div>
-    </div>
-  );
-}
-
-// --------------------------------------------------------------------------------
-// Demographics
-// --------------------------------------------------------------------------------
-
-function DemographicsPanel({ demographics }: { demographics: Record<string, Record<string, number>> | null }) {
-  const groups = Object.entries(demographics ?? {}).flatMap(([category, values]) => {
-    if (!values || !Object.keys(values).length) return [];
-    return [{ category, values }];
-  });
-
-  if (!groups.length) {
-    return (
-      <div className="mt-4 rounded-[16px] border border-[#E8EAE7] bg-white p-5">
-        <div className="flex items-start gap-[16px]">
-          <span className="grid size-[40px] shrink-0 place-items-center rounded-[12px] bg-zinc-50 text-muted">
-            <Users size={20} />
-          </span>
-          <div>
-            <p className="text-[14px] font-[600] text-ink">Demographics unavailable</p>
-            <p className="mt-[4px] text-[13px] leading-[1.6] text-muted">Meta does not expose audience demographic breakdown for this ad through the available public source.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-4 grid gap-[16px]">
-      {groups.map(({ category, values }) => {
-        const entries = Object.entries(values)
-          .flatMap(([label, amount]) => Number.isFinite(Number(amount)) ? [[label, Number(amount)] as const] : [])
-          .sort(([, a], [, b]) => b - a);
-        const max = Math.max(...entries.map(([, amount]) => amount), 0);
-        return (
-          <div key={category} className="rounded-[16px] border border-[#E8EAE7] bg-white p-[20px]">
-            <p className="text-[11px] font-[700] uppercase tracking-[.1em] text-muted">{demographicTitle(category)}</p>
-            <div className="mt-[16px] space-y-[12px]">
-              {entries.map(([label, amount]) => (
-                <div key={label}>
-                  <div className="flex items-center justify-between gap-[16px] text-[13px]">
-                    <span className="min-w-0 truncate font-[500] text-ink">{titleCase(label)}</span>
-                    <span className="shrink-0 font-[600] text-muted">{formatDemographicValue(amount)}</span>
-                  </div>
-                  {max > 0 && (
-                    <div className="mt-[8px] h-[6px] overflow-hidden rounded-[999px] bg-[#EEF1EC]">
-                      <div className="h-full rounded-[999px] bg-brand" style={{ width: `${Math.max(3, Math.min(100, (amount / max) * 100))}%` }} />
-                    </div>
-                  )}
+              {/* Delivery Group */}
+              <div>
+                <h3 className="text-[12px] font-[700] uppercase tracking-[0.08em] text-muted mb-3">Delivery</h3>
+                <div className="flex flex-col gap-2">
+                   <div className="flex items-center gap-2 text-[15px] font-[650] text-ink">
+                     <span className={cn("size-2 rounded-full", ad.delivery.status === "active" ? "bg-blue-600" : "bg-zinc-400")} />
+                     {ad.delivery.status === "active" ? "Active" : "Inactive"}
+                     {ad.delivery.daysRunning && <span className="text-muted font-[500]">· {ad.delivery.daysRunning} days</span>}
+                   </div>
+                   <div className="flex items-center gap-2 text-[14px] font-[500] text-muted">
+                     <span>{ad.delivery.startedAt ? formatDate(ad.delivery.startedAt) : "Unknown"}</span>
+                     <ArrowRight size={14} className="text-line" />
+                     <span>{ad.provider.fetchedAt ? formatDate(ad.provider.fetchedAt) : "Unknown"}</span>
+                   </div>
                 </div>
+              </div>
+
+              {/* Platforms Group */}
+              {normalizedPlatforms.length > 0 && (
+                <>
+                  <div className="w-full h-px bg-line/60 my-4" />
+                  <div>
+                    <h3 className="text-[12px] font-[700] uppercase tracking-[0.08em] text-muted mb-3">Running On</h3>
+                    <p className="text-[15px] font-[600] text-ink leading-relaxed">
+                      {normalizedPlatforms.length > 0 ? normalizedPlatforms.join(" · ") : "Unknown Platforms"}
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {/* Insight Group */}
+              {insight && (
+                <>
+                  <div className="w-full h-px bg-line/60 my-4" />
+                  <div>
+                    <h3 className="text-[12px] font-[700] uppercase tracking-[0.08em] text-blue-600 mb-2 flex items-center gap-1.5">
+                      ✦ Why this ad stands out
+                    </h3>
+                    <p className="text-[15px] text-ink leading-[1.6] font-[400] max-w-lg">
+                      {insight}
+                    </p>
+                  </div>
+                </>
+              )}
+              
+            </div>
+          </div>
+
+          {/* Sticky Tabs */}
+          <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md border-y border-line/80 px-4 sm:px-6 md:px-8 pt-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+            <div className="flex items-center gap-6 md:gap-8 max-w-[1440px] mx-auto overflow-x-auto no-scrollbar scroll-smooth">
+              {TABS.map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={cn(
+                    "pb-3.5 text-[14px] font-[550] transition-colors whitespace-nowrap border-b-[2px]",
+                    activeTab === tab 
+                      ? "text-blue-600 border-blue-600" 
+                      : "text-muted border-transparent hover:text-ink"
+                  )}
+                >
+                  {tab}
+                </button>
               ))}
             </div>
           </div>
-        );
-      })}
+
+          {/* Tab Content */}
+          <div className="max-w-[1440px] mx-auto p-4 sm:p-6 md:p-8">
+            {activeTab === "Overview" && <OverviewTab ad={ad} />}
+            {activeTab === "Creative" && <CreativeTab ad={ad} />}
+            {activeTab === "Copy" && <CopyTab ad={ad} />}
+            {activeTab === "Delivery" && <DeliveryTab ad={ad} />}
+            {activeTab === "Landing Page" && <LandingPageTab ad={ad} />}
+            {activeTab === "Advertiser" && <AdvertiserTab ad={ad} />}
+          </div>
+        </div>
+      </div>
+
+      {/* Nested Modals */}
+      <ShareModal 
+        isOpen={showShare} 
+        onClose={() => setShowShare(false)} 
+        adIds={[ad.id]} 
+        defaultName={`Ad from ${ad.advertiser.name}`} 
+      />
+      
+      {showSwipePicker && (
+        <SwipeFilePicker
+          ad={ad}
+          saved={isSaved}
+          anchorRef={swipeBtnRef}
+          onClose={() => setShowSwipePicker(false)}
+          onAdded={() => setShowSwipePicker(false)}
+        />
+      )}
     </div>
   );
 }
 
-function demographicTitle(value: string) {
-  if (value === "age") return "Age Distribution";
-  if (value === "gender") return "Gender";
-  if (value === "regions") return "Top Regions";
-  if (value === "reach") return "Reach Distribution";
-  return titleCase(value);
+// --------------------------------------------------------------------------------
+// Shared UI Components
+// --------------------------------------------------------------------------------
+
+const HeaderButton = React.forwardRef<HTMLButtonElement, { icon: React.ReactNode, label: string, onClick?: () => void, disabled?: boolean, title?: string }>(
+  ({ icon, label, onClick, disabled, title }, ref) => (
+    <button 
+      ref={ref}
+      onClick={onClick}
+      disabled={disabled}
+      title={title || label}
+      aria-label={label}
+      className="hidden sm:flex size-9 items-center justify-center rounded-[8px] text-ink bg-white border border-line hover:bg-zinc-50 hover:border-zinc-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+    >
+      {icon}
+    </button>
+  )
+);
+HeaderButton.displayName = "HeaderButton";
+
+function MobileMenuButton({ icon, label, onClick, disabled }: { icon: React.ReactNode, label: string, onClick: () => void, disabled?: boolean }) {
+  return (
+    <button 
+      onClick={onClick}
+      disabled={disabled}
+      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-[14px] font-[500] text-ink hover:bg-zinc-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left"
+    >
+      <span className="text-muted">{icon}</span> {label}
+    </button>
+  );
 }
 
-function formatDemographicValue(value: number) {
-  if (value > 0 && value <= 1) return `${Math.round(value * 100)}%`;
-  return Number.isInteger(value) ? value.toLocaleString() : value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+function DenseSignalRow({ label, score, value }: { label: string; score: number; value?: string }) {
+  return (
+    <div className="flex items-center gap-4">
+      <p className="w-[145px] shrink-0 text-[13px] font-[550] text-ink">{label}</p>
+      <div className="flex-1 h-[5px] rounded-full bg-zinc-100 overflow-hidden">
+        <div className="h-full rounded-full bg-blue-600 transition-all" style={{ width: `${Math.min(100, Math.max(0, score))}%` }} />
+      </div>
+      <span className="w-10 shrink-0 text-right text-[13px] font-[650] text-ink">{value || score}</span>
+    </div>
+  );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  
+  const handleCopy = () => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  
+  return (
+    <button onClick={handleCopy} className="text-muted hover:text-blue-600 transition-colors p-1.5 rounded-md hover:bg-blue-50" title="Copy text" aria-label="Copy">
+      {copied ? <Check size={14} className="text-blue-600" /> : <Copy size={14} />}
+    </button>
+  );
 }
 
 // --------------------------------------------------------------------------------
-// Label Helpers
+// Viewers & Tabs
 // --------------------------------------------------------------------------------
 
-function scoreSignalLabel(score: number) {
-  if (score >= 90) return "Exceptional Signal";
-  if (score >= 80) return "Strong Signal";
-  if (score >= 70) return "Promising";
-  if (score >= 55) return "Moderate";
-  return "Early / Weak Signal";
+function AdCreativeViewer({ 
+  ad, 
+  activeSlideIndex, 
+  setActiveSlideIndex 
+}: { 
+  ad: NormalizedAd; 
+  activeSlideIndex: number; 
+  setActiveSlideIndex: (i: number) => void; 
+}) {
+  const isCarousel = ad.creative.type === "carousel" && ad.creative.carouselItems?.length;
+  
+  // Adaptive responsive height container
+  const containerClass = "relative w-full bg-[#F8FAFC] rounded-[16px] border border-[#E4E4E7] flex items-center justify-center overflow-hidden transition-all duration-200 h-fit max-w-full min-w-0";
+  const containerStyle = { maxHeight: "min(58vh, 620px)" };
+  const mediaStyle = { maxHeight: "min(58vh, 620px)", objectFit: "contain" as const };
+
+  // Keyboard navigation for carousel
+  useEffect(() => {
+    if (!isCarousel) return;
+    const handleKey = (e: KeyboardEvent) => {
+      // Basic safeguard so we don't interfere with inputs
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === "ArrowLeft") setActiveSlideIndex(Math.max(0, activeSlideIndex - 1));
+      if (e.key === "ArrowRight") setActiveSlideIndex(Math.min((ad.creative.carouselItems?.length || 1) - 1, activeSlideIndex + 1));
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [isCarousel, activeSlideIndex, ad.creative.carouselItems?.length, setActiveSlideIndex]);
+
+  if (ad.creative.type === "video" && ad.creative.videoUrl) {
+    const videoSources: string[] = [];
+    if (ad.enrichment?.archiveStatus === "archived") {
+      const ext = ad.creative.videoUrl.includes(".webm") ? "webm" : "mp4";
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ctvmjxpblfdrxvvyjebw.supabase.co";
+      videoSources.push(`${supabaseUrl}/storage/v1/object/public/ad-creatives/${ad.provider.discoveryProvider}/${ad.id}/source.${ext}`);
+    }
+    const safeUrl = safeExternalUrl(ad.creative.videoUrl);
+    if (safeUrl) videoSources.push(safeUrl);
+    
+    return (
+      <div className={containerClass} style={containerStyle}>
+         <VideoPreview 
+           src={videoSources.length > 0 ? videoSources : [""]} 
+           poster={ad.creative.thumbnailUrl} 
+           controls 
+           objectFit="contain" 
+           className="w-full h-auto rounded-[16px] max-h-[min(58vh,620px)]" 
+         />
+      </div>
+    );
+  }
+
+  if (isCarousel) {
+    const slide = ad.creative.carouselItems![activeSlideIndex];
+    const media = safeExternalUrl(slide.imageUrl || slide.videoUrl);
+    const total = ad.creative.carouselItems!.length;
+    
+    return (
+      <div className={containerClass} style={containerStyle}>
+          <div className="w-full flex items-center justify-center relative group p-2">
+            {slide.videoUrl ? (() => {
+              const videoSources: string[] = [];
+              if (ad.enrichment?.archiveStatus === "archived") {
+                const ext = slide.videoUrl.includes(".webm") ? "webm" : "mp4";
+                const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ctvmjxpblfdrxvvyjebw.supabase.co";
+                videoSources.push(`${supabaseUrl}/storage/v1/object/public/ad-creatives/${ad.provider.discoveryProvider}/${ad.id}/carousel_${activeSlideIndex}.${ext}`);
+              }
+              const safeUrl = safeExternalUrl(slide.videoUrl);
+              if (safeUrl) videoSources.push(safeUrl);
+              
+              return (
+                <VideoPreview 
+                  src={videoSources.length > 0 ? videoSources : [""]} 
+                  poster={slide.imageUrl} 
+                  controls 
+                  objectFit="contain" 
+                  className="w-full h-auto rounded-[10px] max-h-[min(58vh,620px)]" 
+                />
+              );
+            })() : media ? (
+              <img 
+                src={media} 
+                alt={`Slide ${activeSlideIndex + 1}`} 
+                className="w-auto h-auto max-w-full rounded-[10px] transition-all duration-200" 
+                style={mediaStyle}
+              />
+            ) : (
+              <div className="py-24"><ImageIcon size={32} className="text-muted/50" /></div>
+            )}
+           
+           {/* Navigation Controls over media */}
+           {total > 1 && (
+             <>
+               <button 
+                 onClick={(e) => { e.stopPropagation(); setActiveSlideIndex(Math.max(0, activeSlideIndex - 1)); }}
+                 disabled={activeSlideIndex === 0}
+                 className="absolute left-4 top-1/2 -translate-y-1/2 size-9 bg-white/90 backdrop-blur border border-line rounded-full flex items-center justify-center shadow-md disabled:opacity-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-10"
+               >
+                 <ChevronLeft size={20} />
+               </button>
+               <button 
+                 onClick={(e) => { e.stopPropagation(); setActiveSlideIndex(Math.min(total - 1, activeSlideIndex + 1)); }}
+                 disabled={activeSlideIndex === total - 1}
+                 className="absolute right-4 top-1/2 -translate-y-1/2 size-9 bg-white/90 backdrop-blur border border-line rounded-full flex items-center justify-center shadow-md disabled:opacity-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-10"
+               >
+                 <ChevronRight size={20} />
+               </button>
+             </>
+           )}
+         </div>
+      </div>
+    );
+  }
+
+  const imageSource = safeExternalUrl(ad.creative.imageUrl || ad.creative.thumbnailUrl);
+  if (imageSource) {
+    return (
+      <div className={containerClass} style={containerStyle}>
+        <img 
+          src={imageSource} 
+          alt={`Creative`} 
+          className="w-auto h-auto max-w-full rounded-[16px] p-2" 
+          style={mediaStyle}
+        />
+      </div>
+    );
+  }
+
+  return <div className={containerClass} style={containerStyle}><div className="py-24"><ImageIcon size={32} className="text-muted/50" /></div></div>;
 }
 
-function longevityDisplay(days: number | null) {
-  if (days == null) return "Unknown";
-  if (days >= 90) return "Exceptional";
-  if (days >= 60) return "Strong Longevity";
-  if (days >= 30) return "Long Runner";
-  if (days >= 14) return "Promising";
-  if (days >= 7) return "Early Signal";
-  return "New Test";
+// --------------------------------------------------------------------------------
+// Tab Layouts
+// --------------------------------------------------------------------------------
+
+function OverviewTab({ ad }: { ad: NormalizedAd }) {
+  return (
+    <div className="grid lg:grid-cols-[64%_36%] gap-x-10 gap-y-12">
+      <div className="space-y-10">
+        <section>
+          <h3 className="text-[16px] font-[650] text-ink mb-5">Ad Copy</h3>
+          <div className="space-y-4">
+            <CopyBlock text={ad.copy.primaryText} label="Primary Text" />
+            {(ad.copy.headline || ad.copy.cta) && (
+              <div className="grid sm:grid-cols-2 gap-4 mt-2">
+                 <CopyBlock text={ad.copy.headline} label="Headline" />
+                 <CopyBlock text={ad.copy.cta} label="Call to Action" />
+              </div>
+            )}
+          </div>
+        </section>
+        
+        {ad.creative.carouselItems && ad.creative.carouselItems.length > 1 && (
+          <section>
+            <h3 className="text-[16px] font-[650] text-ink mb-5">Creative Variations</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+               {ad.creative.carouselItems.map((item, idx) => (
+                 <CarouselVariationCard key={idx} item={item} index={idx} advertiserName={ad.advertiser.name || "Unknown"} fullWidth />
+               ))}
+            </div>
+          </section>
+        )}
+      </div>
+      
+      <div className="space-y-10">
+        <section>
+          <h3 className="text-[16px] font-[650] text-ink mb-5">Advertiser</h3>
+          <AdvertiserCard ad={ad} />
+        </section>
+        
+        <section>
+          <h3 className="text-[16px] font-[650] text-ink mb-5">Landing Page</h3>
+          <WebsitePreviewCard url={ad.destination.url} title={ad.copy.headline} />
+        </section>
+      </div>
+    </div>
+  );
 }
 
-function repetitionDisplay(count: number) {
-  if (count >= 8) return "High";
-  if (count >= 4) return "Strong";
-  if (count >= 2) return "Moderate";
-  if (count >= 1) return "Observed";
-  return "Not observed";
+function CreativeTab({ ad }: { ad: NormalizedAd }) {
+  if (ad.creative.carouselItems && ad.creative.carouselItems.length > 1) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {ad.creative.carouselItems.map((item, idx) => (
+           <CarouselVariationCard key={idx} item={item} index={idx} advertiserName={ad.advertiser.name || "Unknown"} fullWidth />
+        ))}
+      </div>
+    );
+  }
+  return <div className="text-muted text-[14px] bg-white py-12 rounded-[16px] border border-line text-center">Standard creative view is available in the Overview tab.</div>;
 }
 
-function displaySignalLabel(label: string, score: number) {
-  if (label === "High-Confidence Winner") return "Exceptional";
-  if (label === "Proven Long Runner") return "Long Runner";
-  if (label === "Emerging Winner") return "Promising";
-  if (label === "Standard") return score >= 70 ? "Strong Signal" : score >= 55 ? "Promising" : "Testing";
-  return label;
+function CopyTab({ ad }: { ad: NormalizedAd }) {
+  return (
+    <div className="max-w-3xl space-y-4">
+      <CopyBlock text={ad.copy.primaryText} label="Primary Text" />
+      <CopyBlock text={ad.copy.headline} label="Headline" />
+      <CopyBlock text={ad.copy.description} label="Description" />
+      <CopyBlock text={ad.copy.cta} label="Call to Action" />
+    </div>
+  );
+}
+
+function DeliveryTab({ ad }: { ad: NormalizedAd }) {
+  return (
+    <div className="max-w-2xl space-y-6">
+       <div className="space-y-8 pl-4 border-l-2 border-line/60 py-2">
+         <TimelineEvent label="Started running" date={ad.delivery.startedAt ? formatDate(ad.delivery.startedAt) : "Unknown"} active={false} />
+         <TimelineEvent label="First seen" date={formatDate(ad.provider.fetchedAt)} active={false} />
+         <TimelineEvent label="Last checked" date={formatDate(ad.provider.fetchedAt)} active={ad.delivery.status === "active"} />
+         {ad.delivery.endedAt && <TimelineEvent label="Stopped running" date={formatDate(ad.delivery.endedAt)} active={false} />}
+       </div>
+    </div>
+  );
+}
+
+function LandingPageTab({ ad }: { ad: NormalizedAd }) {
+  return (
+    <div className="max-w-2xl">
+      <WebsitePreviewCard url={ad.destination.url} title={ad.copy.headline} />
+    </div>
+  );
+}
+
+function AdvertiserTab({ ad }: { ad: NormalizedAd }) {
+  return (
+    <div className="max-w-2xl">
+      <AdvertiserCard ad={ad} detailed />
+    </div>
+  );
+}
+
+// --------------------------------------------------------------------------------
+// Sub-components
+// --------------------------------------------------------------------------------
+
+// Replaces the large padded CopyCard
+function CopyBlock({ text, label }: { text?: string | null, label: string }) {
+  if (!text) return null;
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-[12px] font-[700] uppercase tracking-wide text-muted">{label}</span>
+        <CopyButton text={text} />
+      </div>
+      <p className="text-[15px] text-ink leading-[1.6] whitespace-pre-wrap font-[400] bg-zinc-50/50 p-4 rounded-xl border border-line/60">{text}</p>
+    </div>
+  );
+}
+
+function CarouselVariationCard({ item, index, advertiserName, fullWidth = false }: { item: NonNullable<NormalizedAd["creative"]["carouselItems"]>[number], index: number, advertiserName: string, fullWidth?: boolean }) {
+  const media = safeExternalUrl(item.imageUrl || item.videoUrl);
+  return (
+    <div className={cn("bg-white rounded-[12px] border border-line shadow-sm overflow-hidden flex flex-col", fullWidth ? "w-full" : "w-[280px]")}>
+      <div className="relative aspect-[4/5] bg-[#F8FAFC] flex items-center justify-center p-2 border-b border-line">
+        {media ? (
+           <img src={media} alt="Variation" className="w-full h-full object-contain rounded-[6px]" />
+        ) : (
+           <ImageIcon className="text-muted/50" size={32} />
+        )}
+        <div className="absolute top-2 left-2 bg-white/95 backdrop-blur px-2 py-0.5 rounded-[6px] text-[11px] font-[700] tracking-wide text-ink border border-line/60 shadow-sm">
+          {String(index + 1).padStart(2, '0')}
+        </div>
+      </div>
+      <div className="p-3 flex flex-col flex-1">
+        <p className="text-[13px] font-[500] text-ink line-clamp-2 leading-snug flex-1">{item.headline || advertiserName}</p>
+        {item.destinationUrl && (
+          <a href={item.destinationUrl} target="_blank" rel="noreferrer" className="mt-3 text-[12px] font-[600] text-blue-600 hover:underline flex items-center gap-1 w-fit">
+            <span className="truncate max-w-[180px]">{cleanUrl(item.destinationUrl)}</span> <ArrowRight size={12} />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TimelineEvent({ label, date, active }: { label: string, date: string, active: boolean }) {
+  return (
+    <div className="flex items-center gap-4 relative">
+      <div className="absolute -left-[21px] flex flex-col items-center z-10 bg-white py-1">
+        <div className={cn("size-2.5 rounded-full border-[2px]", active ? "bg-blue-600 border-blue-600" : "bg-white border-line")} />
+      </div>
+      <div>
+        <p className="text-[15px] font-[600] text-ink">{date}</p>
+        <p className="text-[13px] font-[500] text-muted">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+function AdvertiserCard({ ad, detailed = false }: { ad: NormalizedAd, detailed?: boolean }) {
+  return (
+    <div className="bg-white rounded-[16px] border border-line p-5">
+      <div className="flex items-center gap-4">
+        {ad.advertiser.logoUrl ? (
+          <img src={ad.advertiser.logoUrl} alt="" className="size-[48px] rounded-full border border-line/60 object-cover" />
+        ) : (
+          <span className="grid size-[48px] place-items-center rounded-full bg-ink font-[600] text-white text-[20px]">
+            {ad.advertiser.name?.[0] || "U"}
+          </span>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="text-[16px] font-[650] text-ink truncate">{ad.advertiser.name || "Unknown"}</p>
+          <div className="flex items-center gap-1.5 text-[13px] font-[500] text-muted mt-1">
+            <Check size={12} className="text-blue-600" strokeWidth={3} /> Verified Advertiser
+          </div>
+        </div>
+      </div>
+      
+      {detailed && (
+        <div className="mt-5 pt-5 border-t border-line grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-[12px] font-[650] uppercase tracking-wide text-muted mb-1">Page ID</p>
+            <p className="text-[14px] font-[500] text-ink">{ad.advertiser.id}</p>
+          </div>
+        </div>
+      )}
+      
+      <div className="mt-5">
+         <Link href={`/brands/${encodeURIComponent(ad.advertiser.id || "unknown")}`} className="flex justify-center items-center h-10 rounded-lg bg-zinc-50 border border-line text-[13px] font-[650] text-ink hover:bg-zinc-100 transition-colors w-full">
+           View Brand Intelligence <ArrowRight size={14} className="ml-1.5 text-muted" />
+         </Link>
+      </div>
+    </div>
+  );
+}
+
+function WebsitePreviewCard({ url, title }: { url?: string | null, title?: string | null }) {
+  if (!url) return <div className="text-[14px] font-[500] text-muted">Landing page data not available.</div>;
+  const domain = cleanUrl(url);
+  return (
+    <div className="bg-white rounded-[16px] border border-line overflow-hidden flex flex-col group">
+       <div className="bg-[#F8FAFC] border-b border-line px-4 py-3 flex items-center gap-2">
+         <Globe size={15} className="text-muted" />
+         <span className="text-[13px] font-[550] text-ink truncate">{domain}</span>
+         <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+           <CopyButton text={url} />
+         </div>
+       </div>
+       <div className="p-5 flex flex-col gap-3">
+         <div>
+           <p className="text-[11px] font-[700] uppercase tracking-[0.08em] text-muted mb-1">Destination</p>
+           <p className="text-[15px] font-[500] text-ink line-clamp-2 leading-relaxed">{title || "No page title available"}</p>
+         </div>
+         <a href={url} target="_blank" rel="noreferrer" className="mt-1 flex w-fit items-center gap-1.5 px-4 h-9 rounded-[8px] bg-zinc-50 border border-line text-ink text-[13px] font-[650] hover:bg-zinc-100 transition-colors">
+           Open Link <ExternalLink size={14} className="text-muted" />
+         </a>
+       </div>
+    </div>
+  );
 }

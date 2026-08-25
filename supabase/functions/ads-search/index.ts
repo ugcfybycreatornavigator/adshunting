@@ -4,11 +4,14 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { verifyClerkToken } from "../_shared/clerk.ts";
 import { AdsProviderOrchestrator } from "../_shared/ads/orchestrator.ts";
 import { ProviderError } from "../_shared/ads/providers/errors.ts";
+import type { AdSearchFilters } from "../_shared/ads/types.ts";
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  let filters: Record<string, unknown> = {};
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -36,7 +39,6 @@ serve(async (req: Request) => {
       });
     }
 
-    let filters = {};
     try {
       filters = await req.json();
     } catch {
@@ -47,10 +49,12 @@ serve(async (req: Request) => {
     }
 
     const orchestrator = new AdsProviderOrchestrator();
-    const result = await orchestrator.search(filters);
+    const requestId = filters.requestId as string | undefined;
+    const result = await orchestrator.search(filters as unknown as AdSearchFilters, { requestId });
 
     console.log(JSON.stringify({
       event: "ads_provider_request",
+      requestId,
       provider: result.providerMeta?.provider,
       fallbackUsed: result.providerMeta?.fallbackUsed,
       fallbackReason: result.providerMeta?.fallbackReason,
@@ -66,9 +70,11 @@ serve(async (req: Request) => {
     const isProviderError = error instanceof ProviderError;
     const code = isProviderError ? error.code : "UNKNOWN";
     const status = isProviderError ? error.status : 502;
+    const requestId = filters.requestId as string | undefined;
     
     console.error(JSON.stringify({
       event: "ads_search_function_error",
+      requestId,
       code,
       message: (error as Error).message,
       status
@@ -76,8 +82,10 @@ serve(async (req: Request) => {
     
     return new Response(JSON.stringify({ 
       success: false, 
-      code: "SEARCH_UNAVAILABLE", 
-      message: "Search is temporarily unavailable." 
+      code, 
+      message: (error as Error).message,
+      requestId,
+      retryable: status >= 500 || status === 429 || status === 408
     }), {
       status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

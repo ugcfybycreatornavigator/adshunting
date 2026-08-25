@@ -5,8 +5,7 @@ import { TrustProofSection } from '@/components/landing/sections/TrustProofSecti
 import { CoreValueSection } from '@/components/landing/sections/CoreValueSection';
 import { WorkflowSection } from '@/components/landing/sections/WorkflowSection';
 import { DiscoverAdsSection } from '@/components/landing/sections/DiscoverAdsSection';
-import { ReviewResearchSection } from '@/components/landing/sections/ReviewResearchSection';
-import { SaveShareSection } from '@/components/landing/sections/SaveShareSection';
+
 import { CapabilityGridSection } from '@/components/landing/sections/CapabilityGridSection';
 import { IntelligenceSharingSection } from '@/components/landing/sections/IntelligenceSharingSection';
 import { FAQSection } from '@/components/landing/sections/FAQSection';
@@ -28,24 +27,24 @@ export const metadata: Metadata = createMetadata({
 function PricingSection() {
   const scoutFeatures = [
     { text: "1 User", icon: User },
-    { text: "5 Swipe Files", icon: FolderOpen },
-    { text: "1 Shared Ads allowance", icon: Share2 },
-    { text: "1 Brand Search", icon: Search },
-    { text: "1 Active Competitor", icon: Target },
+    { text: "Swipe Files", icon: FolderOpen },
+    { text: "Shared Ads allowance", icon: Share2 },
+    { text: "Brand Search", icon: Search },
+    { text: "Active Competitor", icon: Target },
   ];
 
   return (
-    <section 
-      id="pricing" 
+    <section
+      id="pricing"
       className="py-[72px] md:py-[100px] lg:py-[120px] bg-slate-50/50 border-t border-border relative overflow-hidden"
     >
-      <div 
-        className="absolute inset-0 pointer-events-none" 
+      <div
+        className="absolute inset-0 pointer-events-none"
         style={{
           background: 'radial-gradient(ellipse at 50% 0%, rgba(37,99,235,0.08), transparent 70%)'
         }}
       />
-      
+
       <LandingContainer className="relative z-10">
         <div className="flex flex-col items-center text-center mb-12 md:mb-16">
           <div className="flex items-center gap-3 mb-6">
@@ -64,11 +63,11 @@ function PricingSection() {
 
         {/* Desktop: 3-column, Tablet: 1 top + 2 bottom, Mobile: Stacked with Scout first */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-[1200px] mx-auto items-start relative">
-          
+
           {/* Scout Plan - Rendered First in DOM for mobile accessibility */}
           <div className="flex flex-col rounded-[24px] p-7 md:p-9 border-[1.5px] border-brand shadow-[0_18px_50px_rgba(30,58,138,0.06),0_4px_14px_rgba(0,0,0,0.03)] order-first md:order-none lg:order-2 relative z-10 transition-transform duration-300 hover:-translate-y-1 bg-white"
-               style={{ background: 'linear-gradient(180deg, rgba(37,99,235,.06), #FFFFFF 28%)' }}>
-            
+            style={{ background: 'linear-gradient(180deg, rgba(37,99,235,.06), #FFFFFF 28%)' }}>
+
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-[24px] font-bold text-text-primary">SCOUT</h3>
               <span className="inline-flex items-center rounded-full bg-brand-soft px-3 py-1.5 text-[11px] font-bold tracking-wider text-brand-strong uppercase">
@@ -76,7 +75,7 @@ function PricingSection() {
                 LAUNCH OFFER
               </span>
             </div>
-            
+
             <div className="mb-8">
               <div className="flex flex-col">
                 <span className="text-[16px] font-semibold text-text-muted line-through mb-1">₹2,499</span>
@@ -110,7 +109,7 @@ function PricingSection() {
                 ))}
               </ul>
             </div>
-            
+
             <div className="mt-10">
               <CTAButton href={authLinks.signUp} className="w-full h-[52px] rounded-[14px] text-[16px] shadow-sm hover:shadow-md justify-center">
                 Start 7-Day Free Trial
@@ -121,39 +120,39 @@ function PricingSection() {
           {/* Hunter Plan */}
           <div className="flex flex-col bg-white rounded-[24px] p-7 md:p-8 border border-border order-2 md:order-1 lg:order-1 lg:mt-6 transition-all duration-300">
             <h3 className="text-[20px] font-bold text-text-primary mb-5 uppercase tracking-wide">HUNTER</h3>
-            
+
             <p className="text-[15px] text-text-secondary mb-8">
               More capacity for growing creative research workflows.
             </p>
 
             <div className="flex-grow border-t border-border pt-8 flex items-center justify-center min-h-[220px]">
-               <span className="inline-flex items-center rounded-full bg-slate-100 px-4 py-2 text-[12px] font-bold tracking-widest text-text-muted border border-border uppercase">
-                 Coming Soon
-               </span>
+              <span className="inline-flex items-center rounded-full bg-slate-100 px-4 py-2 text-[12px] font-bold tracking-widest text-text-muted border border-border uppercase">
+                Coming Soon
+              </span>
             </div>
           </div>
 
           {/* Agency Plan */}
           <div className="flex flex-col bg-white rounded-[24px] p-7 md:p-8 border border-border order-3 md:order-3 lg:order-3 md:col-span-2 lg:col-span-1 lg:mt-6 transition-all duration-300">
             <h3 className="text-[20px] font-bold text-text-primary mb-5 uppercase tracking-wide">AGENCY</h3>
-            
+
             <p className="text-[15px] text-text-secondary mb-8">
               Built for larger teams and agency workflows.
             </p>
 
             <div className="flex-grow border-t border-border pt-8 flex items-center justify-center min-h-[220px]">
-               <span className="inline-flex items-center rounded-full bg-slate-100 px-4 py-2 text-[12px] font-bold tracking-widest text-text-muted border border-border uppercase">
-                 Coming Soon
-               </span>
+              <span className="inline-flex items-center rounded-full bg-slate-100 px-4 py-2 text-[12px] font-bold tracking-widest text-text-muted border border-border uppercase">
+                Coming Soon
+              </span>
             </div>
           </div>
 
         </div>
 
         <div className="mt-16 md:mt-24 text-center">
-           <p className="text-[15px] text-text-muted">
-             Have questions about AdsHunting or billing? <br className="md:hidden" /> Scroll down for our FAQ.
-           </p>
+          <p className="text-[15px] text-text-muted">
+            Have questions about AdsHunting or billing? <br className="md:hidden" /> Scroll down for our FAQ.
+          </p>
         </div>
       </LandingContainer>
     </section>
@@ -185,8 +184,7 @@ export default function Home() {
       <CoreValueSection />
       <WorkflowSection />
       <DiscoverAdsSection />
-      <ReviewResearchSection />
-      <SaveShareSection />
+
       <CapabilityGridSection />
       <IntelligenceSharingSection />
       <PricingSection />

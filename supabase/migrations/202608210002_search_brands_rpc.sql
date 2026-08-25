@@ -29,8 +29,8 @@ BEGIN
     MAX(a.advertiser_name) as advertiser_name,
     MAX(a.advertiser_avatar_url) as advertiser_avatar_url,
     COALESCE(MAX(ap.platforms), ARRAY[]::text[]) as platforms,
-    count(DISTINCT a.canonical_ad_id) as unique_ads,
-    count(DISTINCT CASE WHEN a.status = 'active' THEN a.canonical_ad_id ELSE NULL END) as active_ads,
+    count(DISTINCT COALESCE(a.canonical_ad_id, a.id::text)) as unique_ads,
+    count(DISTINCT CASE WHEN a.status = 'active' THEN COALESCE(a.canonical_ad_id, a.id::text) ELSE NULL END) as active_ads,
     (array_agg(a.source_media_url) FILTER (WHERE a.source_media_url IS NOT NULL))[1:3] as preview_media,
     (array_agg(a.thumbnail_url) FILTER (WHERE a.thumbnail_url IS NOT NULL))[1:3] as preview_thumbs
   FROM ads a

@@ -85,7 +85,8 @@ export async function getSwipeFiles(supabase: SupabaseClient, userId: string) {
     `)
     .eq("user_id", userId)
     .order("is_system", { ascending: false }) // Default file first
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .limit(3, { foreignTable: 'swipe_file_items' });
 
   if (error || !data) return [];
 

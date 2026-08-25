@@ -56,6 +56,7 @@ const cache = new Map<string, CacheEntry>();
 const inFlight = new Map<string, Promise<AdSearchResult>>();
 
 export async function POST(request: NextRequest) {
+  const requestId = crypto.randomUUID();
   const accessError = await requirePaidWorkspaceAccess();
   if (accessError) return accessError;
 
@@ -250,18 +251,21 @@ export async function POST(request: NextRequest) {
       if (token) {
         const env = getServerEnv();
         const functionUrl = `${env.supabaseUrl}/functions/v1/ads-search`;
+        let providerError: unknown = null;
         
         try {
           const requestKey = `edge:${key}`;
           let pending = inFlight.get(requestKey);
           if (!pending) {
+            const edgePayload = { ...filters, requestId };
             pending = fetch(functionUrl, {
               method: "POST",
               headers: {
                 "Authorization": `Bearer ${token}`,
                 "Content-Type": "application/json"
               },
-              body: JSON.stringify(filters)
+              body: JSON.stringify(edgePayload),
+              signal: AbortSignal.timeout(12_000)
             }).then(async (res) => {
               if (!res.ok) {
                 const errData = await res.json().catch(() => ({}));
@@ -281,21 +285,63 @@ export async function POST(request: NextRequest) {
             after(() => {
               archiveAdsInBackground(adsToArchive).catch(console.error);
             });
-            payload = { ...result, ads: adsForClient(result.ads) };
+            payload = { ...result, ads: adsForClient(result.ads), requestId };
+          } else if (result && result.ads && result.ads.length === 0) {
+            payload = { ...result, ads: [], requestId };
           }
         } catch (error) {
-          console.error("Edge function error:", error);
-          if (error instanceof ProviderError) {
-             throw error;
+          console.error(`[AdsSearch][requestId=${requestId}] Edge function error:`, error);
+          providerError = error;
+        }
+
+        if (!payload) {
+          // Fallback to Supabase stored ads on total provider failure (query-aware)
+          console.info(`[AdsSearch][requestId=${requestId}] Attempting query-aware cache fallback`);
+          try {
+            let query = catalogClient!.from("ads").select("*", { count: "exact" });
+            
+            if (filters.brand) {
+              query = query.eq("advertiser_id", filters.brand);
+            } else if (filters.query) {
+              query = query.ilike("headline", `%${filters.query}%`);
+            }
+
+            if (filters.formats?.length) query = query.in("media_type", filters.formats);
+            if (filters.statuses?.length) query = query.in("status", filters.statuses);
+            if (filters.markets?.length) query = query.in("country", filters.markets);
+            if (filters.platforms?.length) query = query.contains("platforms", filters.platforms);
+            
+            if (filters.status && filters.status !== "all" && !filters.statuses?.length) query = query.eq("status", filters.status);
+            if (filters.mediaType && filters.mediaType !== "all" && !filters.formats?.length) query = query.eq("media_type", filters.mediaType);
+            if (filters.country && filters.country !== "ALL" && !filters.markets?.length) query = query.eq("country", filters.country);
+            if (filters.cta) query = query.ilike("cta", `%${filters.cta}%`);
+
+            query = query.order("last_seen_at", { ascending: false }).limit(25);
+            
+            const offset = filters.cursor ? parseInt(filters.cursor, 10) : 0;
+            if (offset > 0) {
+              query = query.range(offset, offset + 24);
+            }
+
+            const { data } = await query;
+            if (data && data.length > 0) {
+              const deduplicated = Array.from(new Map(data.map(dbAdToNormalized).map(ad => [ad.id, ad])).values());
+              payload = { 
+                ads: adsForClient(deduplicated), 
+                nextCursor: data.length === 25 ? (offset + 25).toString() : null, 
+                total: data.length, 
+                source: "cache",
+                stale: true,
+                requestId
+              } as AdSearchResult & { stale: boolean; requestId: string };
+            }
+          } catch (cacheErr) {
+            console.error(`[AdsSearch][requestId=${requestId}] Cache fallback error:`, cacheErr);
           }
         }
-      }
-
-      if (!payload) {
-        // Fallback to Supabase stored ads on total provider failure
-        const { data } = await catalogClient!.from("ads").select("*").order("last_seen_at", { ascending: false }).limit(24);
-        if (data && data.length) {
-          payload = { ads: adsForClient(data.map(dbAdToNormalized)), nextCursor: null, total: data.length, source: "catalog" };
+        
+        if (!payload && providerError) {
+          throw providerError;
         }
       }
     }
@@ -305,6 +351,7 @@ export async function POST(request: NextRequest) {
         cache.set(key, { expires: Date.now() + 5 * 60_000, payload });
       }
       payload.resolvedIntent = resolvedIntent;
+      payload.requestId = requestId;
       return NextResponse.json(payload);
     }
 
@@ -313,10 +360,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(payload, { headers: { "Cache-Control": "private, max-age=60" } });
   } catch (error) {
     if (error instanceof ProviderError) {
-      return NextResponse.json({ success: false, code: error.code, message: error.message }, { status: error.status });
+      return NextResponse.json({ success: false, code: error.code, message: error.message, requestId, retryable: error.status >= 500 || error.status === 429 || error.status === 408 }, { status: error.status });
     }
     return NextResponse.json(
-      { success: false, code: "SEARCH_UNAVAILABLE", message: "Search is temporarily unavailable." },
+      { success: false, code: "SEARCH_UNAVAILABLE", message: "Search is temporarily unavailable.", requestId, retryable: true },
       { status: 502 }
     );
   }
