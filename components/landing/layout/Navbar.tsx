@@ -56,7 +56,7 @@ export function Navbar() {
 
   return (
     <header className="fixed top-2 md:top-5 inset-x-0 z-50 transition-all duration-300 px-4 md:px-6">
-      <div className="w-full max-w-[1200px] mx-auto bg-white/70 backdrop-blur-xl border border-black/[0.05] shadow-[0_8px_30px_rgba(37,99,235,0.08),0_1px_3px_rgba(0,0,0,0.02)] rounded-[20px] md:rounded-full">
+      <div className="w-full max-w-[1200px] mx-auto bg-white/70 backdrop-blur-xl border border-black/[0.05] shadow-[0_8px_30px_rgba(94,169,32,0.08),0_1px_3px_rgba(0,0,0,0.02)] rounded-[20px] md:rounded-full">
         <div className="px-5 md:px-8">
           <div className="flex h-14 md:h-16 items-center justify-between">
           <Link href="/" onClick={closeMenus}>

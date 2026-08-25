@@ -138,7 +138,7 @@ export function HeroSection() {
                 <br className="hidden sm:block" />
                 <span
                   style={{
-                    background: 'linear-gradient(90deg, #1D4ED8, #2563EB, #3B82F6)',
+                    background: 'linear-gradient(90deg, #4d8a1a, #5ea920, #a3e635)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
                     backgroundClip: 'text',
@@ -183,16 +183,16 @@ export function HeroSection() {
                 className="group inline-flex items-center justify-center h-[48px] md:h-[52px] px-7 md:px-8 text-[15px] md:text-[16px] font-semibold text-white transition-all duration-200 hover:-translate-y-[1px] w-full sm:w-auto"
                 style={{
                   borderRadius: '12px',
-                  background: '#2563EB',
-                  boxShadow: '0 1px 3px rgba(37,99,235,0.18), 0 4px 12px rgba(37,99,235,0.10)',
+                  background: '#68B32F',
+                  boxShadow: '0 1px 3px rgba(94,169,32,0.18), 0 4px 12px rgba(94,169,32,0.10)',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#1D4ED8';
-                  e.currentTarget.style.boxShadow = '0 2px 6px rgba(37,99,235,0.22), 0 6px 16px rgba(37,99,235,0.14)';
+                  e.currentTarget.style.background = '#4F9223';
+                  e.currentTarget.style.boxShadow = '0 2px 6px rgba(94,169,32,0.22), 0 6px 16px rgba(94,169,32,0.14)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#2563EB';
-                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(37,99,235,0.18), 0 4px 12px rgba(37,99,235,0.10)';
+                  e.currentTarget.style.background = '#68B32F';
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(94,169,32,0.18), 0 4px 12px rgba(94,169,32,0.10)';
                 }}
               >
                 Start 7-Day Free Trial
@@ -254,7 +254,7 @@ export function HeroSection() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: 'spring', damping: 30, stiffness: 400, mass: 0.8 }}
-              className="relative w-full max-w-5xl aspect-video bg-black rounded-[24px] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5),0_0_40px_rgba(37,99,235,0.15)] ring-1 ring-white/10 z-10"
+              className="relative w-full max-w-5xl aspect-video bg-black rounded-[24px] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5),0_0_40px_rgba(94,169,32,0.15)] ring-1 ring-white/10 z-10"
             >
               <button
                 onClick={() => setIsVideoModalOpen(false)}

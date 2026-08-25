@@ -55,10 +55,10 @@ function getScoreTheme(rawScore: number) {
     };
   }
   return {
-    text: "text-blue-600",
-    bg: "bg-blue-50",
-    border: "border-blue-200",
-    bar: "bg-blue-600",
+    text: "text-brand",
+    bg: "bg-brand",
+    border: "border-brand",
+    bar: "bg-brand",
     label: score >= 85 ? "Excellent Potential" : score >= 70 ? "Strong Potential" : "Moderate Potential"
   };
 }
@@ -314,7 +314,7 @@ export function AdDetailDrawer({
               content={
                 <div className="p-4 space-y-4">
                   <div className="flex items-center gap-2 mb-2">
-                     <span className={cn("size-2 rounded-full", ad.delivery.status === "active" ? "bg-blue-600" : "bg-zinc-400")} />
+                     <span className={cn("size-2 rounded-full", ad.delivery.status === "active" ? "bg-brand" : "bg-zinc-400")} />
                      <span className="text-[14px] font-[650] text-ink">{ad.delivery.status === "active" ? "Active" : "Inactive"}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -336,8 +336,8 @@ export function AdDetailDrawer({
                 </div>
               }
             >
-              <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-[650] bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 transition-colors">
-                <span className="size-1.5 rounded-full bg-blue-600" /> {ad.delivery.status === "active" ? "Active" : "Inactive"}
+              <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-[650] bg-brand text-brand border border-brand hover:bg-brand transition-colors">
+                <span className="size-1.5 rounded-full bg-brand" /> {ad.delivery.status === "active" ? "Active" : "Inactive"}
               </button>
             </MetadataPopover>
 
@@ -387,7 +387,7 @@ export function AdDetailDrawer({
                                ) : <ImageIcon size={14} className="text-muted/50" />}
                              </div>
                              <div className="flex-1 min-w-0">
-                               <p className="text-[13px] font-[500] text-ink line-clamp-1 group-hover:text-blue-600 transition-colors">
+                               <p className="text-[13px] font-[500] text-ink line-clamp-1 group-hover:text-brand transition-colors">
                                  {String(idx + 1).padStart(2, '0')} · {item.headline || "Slide"}
                                </p>
                              </div>
@@ -449,7 +449,7 @@ export function AdDetailDrawer({
                 "flex items-center gap-2 h-9 px-3 sm:px-4 rounded-[8px] text-[13px] font-[600] transition-colors ml-1 sm:ml-2 shadow-sm",
                 isSaved || saving 
                   ? "bg-zinc-100 text-muted cursor-not-allowed border border-line" 
-                  : "bg-blue-600 text-white hover:bg-blue-700 border border-blue-700"
+                  : "bg-brand text-white hover:bg-brand border border-brand"
               )}
             >
               {saving ? <Loader2 size={16} className="animate-spin" /> : isSaved ? <Check size={16} /> : <Bookmark size={16} />}
@@ -485,7 +485,7 @@ export function AdDetailDrawer({
                       className={cn(
                         "relative shrink-0 h-16 w-16 md:h-18 md:w-18 rounded-[8px] overflow-hidden bg-[#F8FAFC] flex items-center justify-center transition-all",
                         activeSlideIndex === idx 
-                          ? "border-[2px] border-blue-600 shadow-sm" 
+                          ? "border-[2px] border-brand shadow-sm" 
                           : "border border-line hover:border-zinc-300 opacity-80 hover:opacity-100"
                       )}
                     >
@@ -538,7 +538,7 @@ export function AdDetailDrawer({
                 <h3 className="text-[12px] font-[700] uppercase tracking-[0.08em] text-muted mb-3">Delivery</h3>
                 <div className="flex flex-col gap-2">
                    <div className="flex items-center gap-2 text-[15px] font-[650] text-ink">
-                     <span className={cn("size-2 rounded-full", ad.delivery.status === "active" ? "bg-blue-600" : "bg-zinc-400")} />
+                     <span className={cn("size-2 rounded-full", ad.delivery.status === "active" ? "bg-brand" : "bg-zinc-400")} />
                      {ad.delivery.status === "active" ? "Active" : "Inactive"}
                      {ad.delivery.daysRunning && <span className="text-muted font-[500]">· {ad.delivery.daysRunning} days</span>}
                    </div>
@@ -568,7 +568,7 @@ export function AdDetailDrawer({
                 <>
                   <div className="w-full h-px bg-line/60 my-4" />
                   <div>
-                    <h3 className="text-[12px] font-[700] uppercase tracking-[0.08em] text-blue-600 mb-2 flex items-center gap-1.5">
+                    <h3 className="text-[12px] font-[700] uppercase tracking-[0.08em] text-brand mb-2 flex items-center gap-1.5">
                       ✦ Why this ad stands out
                     </h3>
                     <p className="text-[15px] text-ink leading-[1.6] font-[400] max-w-lg">
@@ -591,7 +591,7 @@ export function AdDetailDrawer({
                   className={cn(
                     "pb-3.5 text-[14px] font-[550] transition-colors whitespace-nowrap border-b-[2px]",
                     activeTab === tab 
-                      ? "text-blue-600 border-blue-600" 
+                      ? "text-brand border-brand" 
                       : "text-muted border-transparent hover:text-ink"
                   )}
                 >
@@ -671,7 +671,7 @@ function DenseSignalRow({ label, score, value }: { label: string; score: number;
     <div className="flex items-center gap-4">
       <p className="w-[145px] shrink-0 text-[13px] font-[550] text-ink">{label}</p>
       <div className="flex-1 h-[5px] rounded-full bg-zinc-100 overflow-hidden">
-        <div className="h-full rounded-full bg-blue-600 transition-all" style={{ width: `${Math.min(100, Math.max(0, score))}%` }} />
+        <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${Math.min(100, Math.max(0, score))}%` }} />
       </div>
       <span className="w-10 shrink-0 text-right text-[13px] font-[650] text-ink">{value || score}</span>
     </div>
@@ -689,8 +689,8 @@ function CopyButton({ text }: { text: string }) {
   };
   
   return (
-    <button onClick={handleCopy} className="text-muted hover:text-blue-600 transition-colors p-1.5 rounded-md hover:bg-blue-50" title="Copy text" aria-label="Copy">
-      {copied ? <Check size={14} className="text-blue-600" /> : <Copy size={14} />}
+    <button onClick={handleCopy} className="text-muted hover:text-brand transition-colors p-1.5 rounded-md hover:bg-brand" title="Copy text" aria-label="Copy">
+      {copied ? <Check size={14} className="text-brand" /> : <Copy size={14} />}
     </button>
   );
 }
@@ -966,7 +966,7 @@ function CarouselVariationCard({ item, index, advertiserName, fullWidth = false 
       <div className="p-3 flex flex-col flex-1">
         <p className="text-[13px] font-[500] text-ink line-clamp-2 leading-snug flex-1">{item.headline || advertiserName}</p>
         {item.destinationUrl && (
-          <a href={item.destinationUrl} target="_blank" rel="noreferrer" className="mt-3 text-[12px] font-[600] text-blue-600 hover:underline flex items-center gap-1 w-fit">
+          <a href={item.destinationUrl} target="_blank" rel="noreferrer" className="mt-3 text-[12px] font-[600] text-brand hover:underline flex items-center gap-1 w-fit">
             <span className="truncate max-w-[180px]">{cleanUrl(item.destinationUrl)}</span> <ArrowRight size={12} />
           </a>
         )}
@@ -979,7 +979,7 @@ function TimelineEvent({ label, date, active }: { label: string, date: string, a
   return (
     <div className="flex items-center gap-4 relative">
       <div className="absolute -left-[21px] flex flex-col items-center z-10 bg-white py-1">
-        <div className={cn("size-2.5 rounded-full border-[2px]", active ? "bg-blue-600 border-blue-600" : "bg-white border-line")} />
+        <div className={cn("size-2.5 rounded-full border-[2px]", active ? "bg-brand border-brand" : "bg-white border-line")} />
       </div>
       <div>
         <p className="text-[15px] font-[600] text-ink">{date}</p>
@@ -1003,7 +1003,7 @@ function AdvertiserCard({ ad, detailed = false }: { ad: NormalizedAd, detailed?:
         <div className="flex-1 min-w-0">
           <p className="text-[16px] font-[650] text-ink truncate">{ad.advertiser.name || "Unknown"}</p>
           <div className="flex items-center gap-1.5 text-[13px] font-[500] text-muted mt-1">
-            <Check size={12} className="text-blue-600" strokeWidth={3} /> Verified Advertiser
+            <Check size={12} className="text-brand" strokeWidth={3} /> Verified Advertiser
           </div>
         </div>
       </div>

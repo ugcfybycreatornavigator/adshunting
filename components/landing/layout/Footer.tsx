@@ -137,7 +137,7 @@ export function Footer() {
           className="font-extrabold text-center tracking-[-0.055em] leading-[0.78] bg-clip-text text-transparent"
           style={{
             fontSize: 'clamp(4.5rem, 19.5vw, 22rem)',
-            backgroundImage: 'linear-gradient(180deg, #2563EB 0%, rgba(37,99,235,0.72) 45%, rgba(37,99,235,0.15) 85%, transparent 100%)',
+            backgroundImage: 'linear-gradient(180deg, #68B32F 0%, rgba(94,169,32,0.72) 45%, rgba(94,169,32,0.15) 85%, transparent 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
           }}

@@ -18,9 +18,9 @@ type BillingStep =
   | "error";
 
 interface WindowWithRazorpay extends Window {
-  Razorpay: new (options: Record<string, unknown>) => { 
-    on: (event: string, handler: () => void) => void; 
-    open: () => void; 
+  Razorpay: new (options: Record<string, unknown>) => {
+    on: (event: string, handler: () => void) => void;
+    open: () => void;
   };
 }
 
@@ -56,10 +56,10 @@ export function BillingGateClient({ config }: { config: PlanConfig }) {
   const pollReconciliation = async () => {
     if (isPolling.current) return;
     isPolling.current = true;
-    
+
     const delays = [1000, 2000, 3000, 5000, 8000];
     let success = false;
-    
+
     for (const delay of delays) {
       await new Promise(r => setTimeout(r, delay));
       const { data: verifyRes, error: verifyError } = await supabase.functions.invoke('billing-reconcile-subscription', { method: 'POST' });
@@ -68,9 +68,9 @@ export function BillingGateClient({ config }: { config: PlanConfig }) {
         break;
       }
     }
-    
+
     isPolling.current = false;
-    
+
     if (success) {
       setStep("success");
       router.push("/welcome");
@@ -96,7 +96,7 @@ export function BillingGateClient({ config }: { config: PlanConfig }) {
       }
 
       setStep("creating_subscription");
-      const { data, error: invokeError } = await supabase.functions.invoke('billing-create-subscription', { 
+      const { data, error: invokeError } = await supabase.functions.invoke('billing-create-subscription', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -121,7 +121,7 @@ export function BillingGateClient({ config }: { config: PlanConfig }) {
             } catch (e: unknown) {
               // If it failed to parse as JSON or threw inside try
               if (e instanceof Error && (e as Error & { code?: string }).code) throw e;
-              
+
               const errorText = await context.clone().text();
               console.error(`Edge Function error (${context.status}):`, errorText.substring(0, 500));
             }
@@ -147,21 +147,21 @@ export function BillingGateClient({ config }: { config: PlanConfig }) {
           pollReconciliation();
         },
         modal: {
-          ondismiss: function() { 
-            setStep("idle"); 
+          ondismiss: function () {
+            setStep("idle");
             setActiveCheckoutType(null);
           }
         },
-        theme: { color: "#2563EB" },
+        theme: { color: "#68B32F" },
       };
 
       const rzp = new (window as unknown as WindowWithRazorpay).Razorpay(options);
       rzp.on('payment.failed', function () {
-         setStep("error");
-         setActiveCheckoutType(null);
-         setError("We couldn't complete the authorization. Please try another payment method or retry.");
+        setStep("error");
+        setActiveCheckoutType(null);
+        setError("We couldn't complete the authorization. Please try another payment method or retry.");
       });
-      
+
       setStep("authorizing");
       rzp.open();
     } catch (err: unknown) {
@@ -170,7 +170,7 @@ export function BillingGateClient({ config }: { config: PlanConfig }) {
       // Map known internal error codes to user-friendly messages securely
       const code = typeof err === 'object' && err !== null ? (err as Record<string, unknown>).code : "";
       const errMsg = err instanceof Error ? err.message : String(err);
-      
+
       if (code === "SUBSCRIPTION_CREATE_FAILED") {
         setError("Checkout configuration is invalid. Please contact support or try again shortly.");
       } else if (code === "BILLING_CONFIG_MISSING") {
@@ -197,7 +197,7 @@ export function BillingGateClient({ config }: { config: PlanConfig }) {
         <h3 className="text-2xl font-bold text-ink">Confirming your payment...</h3>
         <p className="mt-4 text-muted">Please wait while we verify your access. This usually takes a few seconds.</p>
         <div className="mt-8 flex justify-center">
-           <div className="h-6 w-6 rounded-full border-2 border-brand border-t-transparent animate-spin"></div>
+          <div className="h-6 w-6 rounded-full border-2 border-brand border-t-transparent animate-spin"></div>
         </div>
       </Card>
     );
@@ -265,7 +265,7 @@ export function BillingGateClient({ config }: { config: PlanConfig }) {
           <p className="text-sm text-red-700">{error}</p>
         </div>
       )}
-      
+
       <p className="text-center text-xs text-muted mt-8">Secure payments powered by Razorpay.</p>
     </div>
   );

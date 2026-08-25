@@ -39,9 +39,9 @@ export default function HowItWorksPage() {
       <div className="mb-16 md:mb-24 bg-[#FCFCFA] border border-[#e4e8e2] rounded-[24px] p-6 sm:p-8 md:p-12 max-w-[1000px] mx-auto overflow-hidden">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-4 w-full relative">
           <div className="hidden md:block absolute top-[28px] left-0 right-0 h-px bg-[#e4e8e2] z-0"></div>
-          
+
           <div className="md:hidden absolute left-[31px] top-4 bottom-4 w-px bg-[#e4e8e2] z-0"></div>
-          
+
           {[
             { num: '01', title: 'Search', desc: 'Find relevant ads' },
             { num: '02', title: 'Review', desc: 'Inspect context' },
@@ -79,7 +79,7 @@ export default function HowItWorksPage() {
             <li className="flex items-start gap-3"><span className="text-brand mt-1">•</span> Available filters (such as format and status)</li>
           </ul>
         </section>
-        
+
         <div className="h-px bg-border max-w-[200px]" />
 
         {/* Section 02 */}
@@ -119,7 +119,7 @@ export default function HowItWorksPage() {
             When you find a relevant creative, save it to a Swipe File to ensure you can revisit the reference later without losing track of it.
           </p>
         </section>
-        
+
         <div className="h-px bg-border max-w-[200px]" />
 
         {/* Section 04 */}
@@ -156,45 +156,45 @@ export default function HowItWorksPage() {
       {/* Transparency Section */}
       <section className="bg-[#FCFCFA] border border-[#e4e8e2] rounded-[24px] py-12 md:py-16 my-16 md:my-24 max-w-[1000px] mx-auto px-6 md:px-12">
         <div className="max-w-[760px] mx-auto">
-            <h2 className="text-[28px] md:text-[36px] font-bold text-text-primary leading-[1.2] mb-10 text-balance text-center">
-              What AdsHunting does — and does not — show.
-            </h2>
-            <div className="grid md:grid-cols-2 gap-8 md:gap-12">
-              <div>
-                <h3 className="text-[18px] font-bold text-text-primary mb-4 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#2563EB]"></span>
-                  AdsHunting can help you review
-                </h3>
-                <ul className="space-y-3 text-[15px] text-text-secondary">
-                  <li>Observable ad creatives</li>
-                  <li>Advertiser information available through supported sources</li>
-                  <li>Available ad status, date, and context</li>
-                  <li>Creative formats</li>
-                  <li>Captions and media where available</li>
-                  <li>Organized saved references</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="text-[18px] font-bold text-text-primary mb-4 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-red-400"></span>
-                  AdsHunting does not claim access to
-                </h3>
-                <ul className="space-y-3 text-[15px] text-text-secondary">
-                  <li>ROAS (Return on Ad Spend)</li>
-                  <li>CTR (Click-Through Rate)</li>
-                  <li>CPC or CPA</li>
-                  <li>Sales or revenue</li>
-                  <li>Conversion rate or profitability</li>
-                  <li>Private Meta Ads Manager metrics</li>
-                </ul>
-              </div>
+          <h2 className="text-[28px] md:text-[36px] font-bold text-text-primary leading-[1.2] mb-10 text-balance text-center">
+            What AdsHunting does — and does not — show.
+          </h2>
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12">
+            <div>
+              <h3 className="text-[18px] font-bold text-text-primary mb-4 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#68B32F]"></span>
+                AdsHunting can help you review
+              </h3>
+              <ul className="space-y-3 text-[15px] text-text-secondary">
+                <li>Observable ad creatives</li>
+                <li>Advertiser information available through supported sources</li>
+                <li>Available ad status, date, and context</li>
+                <li>Creative formats</li>
+                <li>Captions and media where available</li>
+                <li>Organized saved references</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-[18px] font-bold text-text-primary mb-4 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-red-400"></span>
+                AdsHunting does not claim access to
+              </h3>
+              <ul className="space-y-3 text-[15px] text-text-secondary">
+                <li>ROAS (Return on Ad Spend)</li>
+                <li>CTR (Click-Through Rate)</li>
+                <li>CPC or CPA</li>
+                <li>Sales or revenue</li>
+                <li>Conversion rate or profitability</li>
+                <li>Private Meta Ads Manager metrics</li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>
 
       <ResourceCTA />
-      
-      <ResourceRelatedLinks 
+
+      <ResourceRelatedLinks
         links={[
           { text: 'Creative Research Guide', href: '/resources/creative-research' },
           { text: 'Competitor Ad Research', href: '/resources/competitor-ad-research' }

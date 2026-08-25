@@ -59,7 +59,7 @@ const STRIPS: StripConfig[] = [
 const MOBILE_STRIP_INDICES = [0, 2, 5, 8, 10, 13, 15, 18, 20, 22, 24, 26, 28, 29];
 
 /* ─────────────────────────────────────────────────────────────────────
-   BLUE LIGHT FIELD CONFIGURATION
+   GREEN LIGHT FIELD CONFIGURATION
    ───────────────────────────────────────────────────────────────────── */
 
 interface LightField {
@@ -76,27 +76,27 @@ interface LightField {
 const LIGHT_FIELDS: LightField[] = [
   {
     width: '60vw', height: '50vw', top: '0%', left: '50%',
-    background: 'radial-gradient(ellipse at center, rgba(37,99,235,0.35) 0%, rgba(37,99,235,0.12) 45%, transparent 75%)',
+    background: 'radial-gradient(ellipse at center, rgba(94,169,32,0.35) 0%, rgba(94,169,32,0.12) 45%, transparent 75%)',
     blur: 90, animName: 'hero-light-drift-1', animDuration: '18s',
   },
   {
     width: '52vw', height: '42vw', top: '20%', left: '5%',
-    background: 'radial-gradient(ellipse at center, rgba(59,130,246,0.28) 0%, rgba(59,130,246,0.08) 50%, transparent 75%)',
+    background: 'radial-gradient(ellipse at center, rgba(94,169,32,0.28) 0%, rgba(94,169,32,0.08) 50%, transparent 75%)',
     blur: 100, animName: 'hero-light-drift-2', animDuration: '22s',
   },
   {
     width: '45vw', height: '55vw', top: '-15%', left: '25%',
-    background: 'radial-gradient(ellipse at center, rgba(29,78,216,0.22) 0%, rgba(29,78,216,0.06) 45%, transparent 70%)',
+    background: 'radial-gradient(ellipse at center, rgba(94,169,32,0.22) 0%, rgba(94,169,32,0.06) 45%, transparent 70%)',
     blur: 80, animName: 'hero-light-drift-3', animDuration: '16s',
   },
   {
     width: '40vw', height: '35vw', top: '45%', left: '65%',
-    background: 'radial-gradient(ellipse at center, rgba(37,99,235,0.20) 0%, rgba(37,99,235,0.05) 55%, transparent 75%)',
+    background: 'radial-gradient(ellipse at center, rgba(94,169,32,0.20) 0%, rgba(94,169,32,0.05) 55%, transparent 75%)',
     blur: 95, animName: 'hero-light-drift-4', animDuration: '24s',
   },
   {
     width: '35vw', height: '40vw', top: '10%', left: '-8%',
-    background: 'radial-gradient(ellipse at center, rgba(59,130,246,0.16) 0%, rgba(59,130,246,0.03) 60%, transparent 75%)',
+    background: 'radial-gradient(ellipse at center, rgba(94,169,32,0.16) 0%, rgba(94,169,32,0.03) 60%, transparent 75%)',
     blur: 70, animName: 'hero-light-drift-5', animDuration: '14s',
   },
 ];
@@ -135,15 +135,15 @@ export function HeroOpticalBackground() {
         className="absolute inset-0"
         style={{
           backgroundImage: `
-            linear-gradient(rgba(37,99,235,0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(37,99,235,0.04) 1px, transparent 1px)
+            linear-gradient(rgba(94,169,32,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(94,169,32,0.04) 1px, transparent 1px)
           `,
           backgroundSize: '56px 56px',
           animation: 'hero-grid-pulse 20s ease-in-out infinite',
         }}
       />
 
-      {/* ── Layer 2: Moving blue light fields ── */}
+      {/* ── Layer 2: Moving green light fields ── */}
       <div
         className="absolute inset-0"
         style={{
@@ -280,16 +280,16 @@ function GlassStrip({ config }: { config: StripConfig }) {
           90deg,
           rgba(255,255,255,${highlightAlpha}) 0%,
           rgba(255,255,255,0.02) 30%,
-          rgba(37,99,235,${shadowAlpha}) 55%,
+          rgba(94,169,32,${shadowAlpha}) 55%,
           rgba(255,255,255,${highlightAlpha * 0.6}) 100%
         )`,
         boxShadow: `
           inset 1px 0 0 rgba(255,255,255,${highlightAlpha + 0.05}),
-          inset -1px 0 0 rgba(37,99,235,${shadowAlpha}),
-          0 0 1px rgba(37,99,235,0.03)
+          inset -1px 0 0 rgba(94,169,32,${shadowAlpha}),
+          0 0 1px rgba(94,169,32,0.03)
         `,
         borderLeft: `1px solid rgba(255,255,255,${highlightAlpha * 0.8})`,
-        borderRight: `1px solid rgba(37,99,235,${shadowAlpha * 0.5})`,
+        borderRight: `1px solid rgba(94,169,32,${shadowAlpha * 0.5})`,
         animation: `${animName} ${animDuration} cubic-bezier(0.45, 0, 0.55, 1) ${animDelay} infinite`,
         willChange: 'transform, opacity',
         ['--strip-opacity' as string]: opacity,

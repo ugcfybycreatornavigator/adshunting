@@ -171,7 +171,7 @@ export function SharedAdsManager() {
                         {link.status?.toUpperCase()}
                       </span>
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-[11px] font-semibold tracking-wide ${
-                        link.visibility === "public" ? "bg-blue-50 text-blue-700" : "bg-zinc-100 text-zinc-700"
+                        link.visibility === "public" ? "bg-brand text-brand" : "bg-zinc-100 text-zinc-700"
                       }`}>
                         {link.visibility === "public" ? "PUBLIC" : "PRIVATE"}
                       </span>
@@ -196,7 +196,7 @@ export function SharedAdsManager() {
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button onClick={() => toggleVisibility(link.id, link.visibility)} className="p-2 text-muted hover:text-ink hover:bg-line rounded-md transition" title={link.visibility === "public" ? "Make Private" : "Make Public"}>
-                        <Globe size={16} className={link.visibility === "public" ? "text-blue-500" : "text-muted"} />
+                        <Globe size={16} className={link.visibility === "public" ? "text-brand" : "text-muted"} />
                       </button>
                       <button onClick={() => copyLink(link.tokenHash)} className="p-2 text-muted hover:text-ink hover:bg-line rounded-md transition" title="Copy Link">
                         <Copy size={16} />

@@ -30,7 +30,7 @@ let checkoutScriptPromise: Promise<boolean> | null = null;
 
 const loadCheckoutScript = (): Promise<boolean> => {
   if (checkoutScriptPromise) return checkoutScriptPromise;
-  
+
   if (typeof window !== "undefined" && (window as unknown as { Razorpay: unknown }).Razorpay) {
     checkoutScriptPromise = Promise.resolve(true);
     return checkoutScriptPromise;
@@ -75,25 +75,25 @@ export function PlanCard({
   const pollReconciliation = async () => {
     if (isPolling.current) return;
     isPolling.current = true;
-    
+
     const delays = [1000, 2000, 3000, 5000, 8000];
     let success = false;
-    
+
     for (const delay of delays) {
       await new Promise(r => setTimeout(r, delay));
-      
+
       const { data: verifyRes, error: verifyError } = await supabase.functions.invoke('billing-reconcile-subscription', {
         method: 'POST',
       });
-      
+
       if (!verifyError && verifyRes?.status && (verifyRes.status === "trialing" || verifyRes.status === "active")) {
         success = true;
         break;
       }
     }
-    
+
     isPolling.current = false;
-    
+
     if (success) {
       setStep("success");
       router.refresh();
@@ -105,7 +105,7 @@ export function PlanCard({
 
   const handleStartTrial = async () => {
     if (step !== "idle" && step !== "error") return;
-    
+
     setStep("preparing");
     setError(null);
     try {
@@ -144,21 +144,21 @@ export function PlanCard({
           pollReconciliation();
         },
         modal: {
-          ondismiss: function() {
-             setStep("idle");
+          ondismiss: function () {
+            setStep("idle");
           }
         },
         theme: {
-          color: "#2563EB",
+          color: "#68B32F",
         },
       };
 
       const rzp = new (window as unknown as { Razorpay: new (options: unknown) => { on: (event: string, handler: () => void) => void; open: () => void; } }).Razorpay(options);
       rzp.on('payment.failed', function () {
-         setStep("error");
-         setError({ message: "We couldn't complete the authorization. Please try another payment method or retry." });
+        setStep("error");
+        setError({ message: "We couldn't complete the authorization. Please try another payment method or retry." });
       });
-      
+
       setStep("authorizing");
       rzp.open();
     } catch (err: unknown) {
@@ -195,11 +195,11 @@ export function PlanCard({
     expired: "Expired",
     completed: "Completed"
   };
-  
-  const displayStatus = isLegacyGrace 
-    ? "Complimentary Access" 
+
+  const displayStatus = isLegacyGrace
+    ? "Complimentary Access"
     : statusLabels[entitlement.billingStatus] || entitlement.billingStatus;
-    
+
   const getBadgeColor = () => {
     if (isLegacyGrace) return "bg-brand-soft text-brand border border-brand/20";
     if (entitlement.billingStatus === "active") return "bg-brand-soft text-brand border border-brand/20";
@@ -212,26 +212,26 @@ export function PlanCard({
   // Not started state (Trial onboarding)
   if (isNotStarted) {
     if (step === "confirming") {
-       return (
-         <Card className="p-5 md:p-6 shadow-sm border border-line bg-white w-full">
-           <div className="max-w-xl">
-             <h3 className="text-xl md:text-2xl font-bold tracking-tight text-ink break-words">
-               Confirming your trial
-             </h3>
-             <p className="mt-4 text-sm md:text-base text-muted leading-relaxed">
-               Your AutoPay authorization was successful.
-               <br />
-               We&apos;re waiting for confirmation from Razorpay. This usually takes a few seconds.
-             </p>
-             <div className="mt-8 flex items-center gap-3 text-sm text-muted">
-               <div className="h-4 w-4 rounded-full border-2 border-brand border-t-transparent animate-spin"></div>
-               Confirming subscription...
-             </div>
-           </div>
-         </Card>
-       );
+      return (
+        <Card className="p-5 md:p-6 shadow-sm border border-line bg-white w-full">
+          <div className="max-w-xl">
+            <h3 className="text-xl md:text-2xl font-bold tracking-tight text-ink break-words">
+              Confirming your trial
+            </h3>
+            <p className="mt-4 text-sm md:text-base text-muted leading-relaxed">
+              Your AutoPay authorization was successful.
+              <br />
+              We&apos;re waiting for confirmation from Razorpay. This usually takes a few seconds.
+            </p>
+            <div className="mt-8 flex items-center gap-3 text-sm text-muted">
+              <div className="h-4 w-4 rounded-full border-2 border-brand border-t-transparent animate-spin"></div>
+              Confirming subscription...
+            </div>
+          </div>
+        </Card>
+      );
     }
-    
+
     return (
       <Card className="p-5 md:p-6 shadow-sm border border-line bg-white w-full">
         <div className="max-w-xl">
@@ -242,17 +242,17 @@ export function PlanCard({
           <p className="mt-4 text-sm md:text-base text-muted leading-relaxed">
             {isLegacyGrace ? (
               <>
-                You have full AdsHunting access through 31 August 2026.<br/>
+                You have full AdsHunting access through 31 August 2026.<br />
                 AdsHunting will require billing setup from 1 September.
               </>
             ) : (
               <>
-                Set up AutoPay to unlock your 7-day free trial.<br/>
+                Set up AutoPay to unlock your 7-day free trial.<br />
                 ₹{config.currentPrice?.toLocaleString('en-IN')}/month launch price after the trial.
               </>
             )}
           </p>
-          
+
           <ul className="mt-6 space-y-3 text-sm text-muted break-words">
             {config.features.slice(0, 5).map((feature, i) => (
               <li key={i} className="flex items-center gap-3">
@@ -275,7 +275,7 @@ export function PlanCard({
           >
             <span>{getButtonText()}</span>
           </button>
-          
+
           <p className="mt-4 text-xs text-muted max-w-sm">
             Secure payments powered by Razorpay. A small refundable authorization transaction may be required to activate AutoPay.
           </p>
@@ -288,61 +288,61 @@ export function PlanCard({
   return (
     <Card className="p-5 md:p-6 shadow-sm border border-line bg-white w-full">
       <h3 className="text-[10px] font-bold tracking-wider text-muted uppercase mb-4">Current Subscription</h3>
-      
+
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
         <div>
           <div className="flex flex-wrap items-center gap-3">
-             <h4 className="text-2xl font-bold tracking-tight text-ink break-words">{config.name}</h4>
-             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${getBadgeColor()}`}>
-               {displayStatus}
-             </span>
+            <h4 className="text-2xl font-bold tracking-tight text-ink break-words">{config.name}</h4>
+            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${getBadgeColor()}`}>
+              {displayStatus}
+            </span>
           </div>
-          
+
           <div className="mt-4 flex flex-col gap-1">
-             <div className="flex items-baseline gap-2">
-               <span className="text-xl font-bold text-ink">₹{config.currentPrice?.toLocaleString('en-IN')}<span className="text-sm font-medium text-muted">/month</span></span>
-             </div>
-             
-             {config.currentPrice !== config.regularPrice && (
-               <div className="flex items-center gap-2 mt-1">
-                 <span className="inline-flex items-center rounded bg-brand-soft px-1.5 py-0.5 text-[10px] font-bold text-brand uppercase tracking-wider">
-                   Launch Price
-                 </span>
-                 <span className="text-[13px] text-muted line-through">Regular price ₹{config.regularPrice?.toLocaleString('en-IN')}/month</span>
-               </div>
-             )}
+            <div className="flex items-baseline gap-2">
+              <span className="text-xl font-bold text-ink">₹{config.currentPrice?.toLocaleString('en-IN')}<span className="text-sm font-medium text-muted">/month</span></span>
+            </div>
+
+            {config.currentPrice !== config.regularPrice && (
+              <div className="flex items-center gap-2 mt-1">
+                <span className="inline-flex items-center rounded bg-brand-soft px-1.5 py-0.5 text-[10px] font-bold text-brand uppercase tracking-wider">
+                  Launch Price
+                </span>
+                <span className="text-[13px] text-muted line-through">Regular price ₹{config.regularPrice?.toLocaleString('en-IN')}/month</span>
+              </div>
+            )}
           </div>
-          
+
           <p className="mt-4 text-sm text-muted max-w-md break-words">
             Your current AdsHunting research plan.
           </p>
-          
+
           <div className="mt-6 pt-6 border-t border-line/50 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {isTrial && entitlement.trialEndsAt ? (
               <div>
-                 <p className="text-[11px] font-semibold tracking-wider text-muted uppercase">Trial ends</p>
-                 <p className="mt-1 text-sm font-medium text-ink">
-                   {formatBillingDate(entitlement.trialEndsAt)}
-                 </p>
-                 <p className="mt-1 text-[13px] text-muted">
-                   ₹{config.currentPrice?.toLocaleString('en-IN')}/month launch price after trial
-                 </p>
+                <p className="text-[11px] font-semibold tracking-wider text-muted uppercase">Trial ends</p>
+                <p className="mt-1 text-sm font-medium text-ink">
+                  {formatBillingDate(entitlement.trialEndsAt)}
+                </p>
+                <p className="mt-1 text-[13px] text-muted">
+                  ₹{config.currentPrice?.toLocaleString('en-IN')}/month launch price after trial
+                </p>
               </div>
             ) : entitlement.currentPeriodEnd ? (
               <div>
-                 <p className="text-[11px] font-semibold tracking-wider text-muted uppercase">
-                   {entitlement.billingStatus === "cancelled" ? "Access valid until" : "Next billing"}
-                 </p>
-                 <p className="mt-1 text-sm font-medium text-ink">
-                   {formatBillingDate(entitlement.currentPeriodEnd)}
-                 </p>
+                <p className="text-[11px] font-semibold tracking-wider text-muted uppercase">
+                  {entitlement.billingStatus === "cancelled" ? "Access valid until" : "Next billing"}
+                </p>
+                <p className="mt-1 text-sm font-medium text-ink">
+                  {formatBillingDate(entitlement.currentPeriodEnd)}
+                </p>
               </div>
             ) : null}
-            
+
             {entitlement.billingStatus === "active" && (
               <div>
-                 <p className="text-[11px] font-semibold tracking-wider text-muted uppercase">Billing cycle</p>
-                 <p className="mt-1 text-sm font-medium text-ink">Monthly</p>
+                <p className="text-[11px] font-semibold tracking-wider text-muted uppercase">Billing cycle</p>
+                <p className="mt-1 text-sm font-medium text-ink">Monthly</p>
               </div>
             )}
           </div>

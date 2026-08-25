@@ -51,7 +51,7 @@ const CREATIVE_ASSETS = [
 ];
 
 // --- TIMELINE ---
-type Phase = 
+type Phase =
   | "chaos"        // 0.0–1.8s
   | "recognition"  // 1.8–3.0s
   | "structure"    // 3.0–4.6s
@@ -103,7 +103,7 @@ export function CreativeIntelligenceAnimation() {
   const prefersReducedMotion = useReducedMotion();
   const containerRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(containerRef, { margin: "0px", amount: 0.2 });
-  
+
   const [phase, setPhase] = useState<Phase>("chaos");
   const [score, setScore] = useState(0);
 
@@ -177,12 +177,12 @@ export function CreativeIntelligenceAnimation() {
   const isResetting = phase === "reset";
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="relative w-full h-[550px] sm:h-[650px] flex items-center justify-center overflow-hidden rounded-[20px] bg-[#FAFAFA] border border-[#E4E4E7]"
       style={{
         backgroundImage: `
-          radial-gradient(circle at 60% 40%, rgba(37,99,235,0.025), transparent 60%),
+          radial-gradient(circle at 60% 40%, rgba(94,169,32,0.025), transparent 60%),
           linear-gradient(rgba(0,0,0,0.025) 1px, transparent 1px),
           linear-gradient(90deg, rgba(0,0,0,0.025) 1px, transparent 1px)
         `,
@@ -192,9 +192,9 @@ export function CreativeIntelligenceAnimation() {
       {/* Background Soft Reset Wash */}
       <AnimatePresence>
         {isResetting && (
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.8 }}
             className="absolute inset-0 bg-[#FAFAFA] z-50 pointer-events-none"
@@ -203,11 +203,11 @@ export function CreativeIntelligenceAnimation() {
       </AnimatePresence>
 
       <div className="relative w-full max-w-[900px] h-full flex items-center justify-center scale-[0.65] sm:scale-90 md:scale-100">
-        
+
         {/* --- CONNECTOR PATHS (SVG) --- */}
         <AnimatePresence>
           {hasIntelligence && (
-            <motion.svg 
+            <motion.svg
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -215,8 +215,8 @@ export function CreativeIntelligenceAnimation() {
               className="absolute inset-0 w-full h-full pointer-events-none z-10"
             >
               {/* Pattern Connectors (Linking Secondary 1 & Hero to Pattern block) */}
-              <path d="M 240 245 L 280 245" stroke="rgba(37,99,235,0.25)" strokeWidth="1.5" strokeDasharray="3 3" fill="none" />
-              <path d="M 410 400 L 460 380" stroke="rgba(37,99,235,0.25)" strokeWidth="1.5" strokeDasharray="3 3" fill="none" />
+              <path d="M 240 245 L 280 245" stroke="rgba(94,169,32,0.25)" strokeWidth="1.5" strokeDasharray="3 3" fill="none" />
+              <path d="M 410 400 L 460 380" stroke="rgba(94,169,32,0.25)" strokeWidth="1.5" strokeDasharray="3 3" fill="none" />
             </motion.svg>
           )}
         </AnimatePresence>
@@ -225,7 +225,7 @@ export function CreativeIntelligenceAnimation() {
         {CREATIVE_ASSETS.map((asset, idx) => {
           const isHero = asset.id === "hero";
           const posData = CARD_POSITIONS[asset.id as keyof typeof CARD_POSITIONS];
-          
+
           let target = posData.chaos;
           if (isStructured) target = posData.structured;
           if (hasScore && isHero && 'scoreReveal' in posData) target = posData.scoreReveal; // Hero shifts for score
@@ -233,7 +233,7 @@ export function CreativeIntelligenceAnimation() {
           // 3-Plane Depth Calculation
           const isBackground = !isHero && idx > 2;
           const isMidground = !isHero && idx <= 2;
-          
+
           let zLevel = 20 - idx;
           if (isStructured && isHero) zLevel = 40;
           if (isStructured && isBackground) zLevel = 5;
@@ -261,8 +261,8 @@ export function CreativeIntelligenceAnimation() {
               style={{
                 width: asset.aspect === "9/16" ? 170 : asset.aspect === "4/5" ? 180 : 160,
                 aspectRatio: asset.aspect,
-                boxShadow: (isRecognition && isHero) 
-                  ? "0 0 0 1.5px #2563EB, 0 15px 35px -5px rgba(37,99,235,0.2)"
+                boxShadow: (isRecognition && isHero)
+                  ? "0 0 0 1.5px #68B32F, 0 15px 35px -5px rgba(94,169,32,0.2)"
                   : isHero && isStructured
                     ? "0 30px 60px -15px rgba(0,0,0,0.15)"
                     : isMidground && isStructured
@@ -276,7 +276,7 @@ export function CreativeIntelligenceAnimation() {
               {/* Focus Brackets (Recognition Phase) */}
               <AnimatePresence>
                 {isRecognition && isHero && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, scale: 1.1 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}
@@ -288,7 +288,7 @@ export function CreativeIntelligenceAnimation() {
               {/* Chaos Fake Filenames */}
               <AnimatePresence>
                 {isChaos && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     className="absolute bottom-2 left-2 text-[10px] font-mono text-[#71717A] bg-white/90 px-1.5 py-0.5 rounded shadow-sm backdrop-blur-md"
                   >
@@ -300,7 +300,7 @@ export function CreativeIntelligenceAnimation() {
               {/* Structured Metadata Layer */}
               <AnimatePresence>
                 {isStructured && (isHero || isMidground) && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     transition={{ delay: 0.4 }}
                     className="absolute inset-0 pointer-events-none flex flex-col justify-between p-3"
@@ -333,13 +333,13 @@ export function CreativeIntelligenceAnimation() {
               {/* Saved Micro-State */}
               <AnimatePresence>
                 {isSaving && !isHero && isMidground && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}
                     className="absolute inset-0 bg-white/20 backdrop-blur-[2px] flex items-center justify-center z-10"
                   >
-                    <div className="bg-[#2563EB] text-white text-[11px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
+                    <div className="bg-[#68B32F] text-white text-[11px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       Saved
                     </div>
@@ -353,7 +353,7 @@ export function CreativeIntelligenceAnimation() {
         {/* --- DOCKED WINNING SCORE --- */}
         <AnimatePresence>
           {hasScore && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -20, rotateY: -15 }}
               animate={{ opacity: 1, x: 0, rotateY: 0 }}
               exit={{ opacity: 0 }}
@@ -361,19 +361,19 @@ export function CreativeIntelligenceAnimation() {
               className="absolute left-[54%] top-[25%] bg-white border border-[#E4E4E7] shadow-xl rounded-[14px] p-5 z-40 w-[180px] perspective-[1000px]"
             >
               <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-4 h-4 text-[#2563EB]" />
+                <TrendingUp className="w-4 h-4 text-[#68B32F]" />
                 <span className="text-[10px] font-bold text-[#71717A] tracking-widest uppercase">Winning Score</span>
               </div>
               <div className="flex items-baseline gap-1 mb-1">
                 <span className="text-[40px] font-bold text-[#18181B] leading-none tracking-tight">{score}</span>
                 <span className="text-[12px] font-bold text-[#A1A1AA]">/ 100</span>
               </div>
-              <span className="text-[12px] font-semibold text-[#2563EB] block mb-4">Strong Potential</span>
-              
+              <span className="text-[12px] font-semibold text-[#68B32F] block mb-4">Strong Potential</span>
+
               <div className="w-full h-1.5 bg-[#F4F4F5] rounded-full overflow-hidden">
-                <motion.div 
-                  className="h-full bg-[#2563EB] rounded-full"
-                  style={{ width: `${score}%` }} 
+                <motion.div
+                  className="h-full bg-[#68B32F] rounded-full"
+                  style={{ width: `${score}%` }}
                 />
               </div>
             </motion.div>
@@ -383,7 +383,7 @@ export function CreativeIntelligenceAnimation() {
         {/* --- RUNNING ON PLATFORMS --- */}
         <AnimatePresence>
           {hasIntelligence && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
@@ -403,7 +403,7 @@ export function CreativeIntelligenceAnimation() {
         {/* --- CREATIVE PATTERN --- */}
         <AnimatePresence>
           {hasIntelligence && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: -15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
@@ -411,7 +411,7 @@ export function CreativeIntelligenceAnimation() {
               className="absolute bottom-[20%] right-[10%] bg-[#111217] text-white px-5 py-3 rounded-[14px] shadow-2xl z-40"
             >
               <div className="flex items-center gap-2 mb-1">
-                <Layers className="w-4 h-4 text-[#2563EB]" />
+                <Layers className="w-4 h-4 text-[#68B32F]" />
                 <span className="text-[10px] text-white/50 uppercase tracking-widest font-bold">Creative Pattern</span>
               </div>
               <span className="text-[14px] font-semibold tracking-tight">Product-led hook</span>
@@ -431,9 +431,9 @@ export function CreativeIntelligenceAnimation() {
                     initial={{ x: pos.x, y: pos.y, scale: pos.s, opacity: 0 }}
                     animate={{ x: 10 + (i * 50), y: 220, scale: 0.3, opacity: [0, 1, 0] }}
                     exit={{ opacity: 0 }}
-                    transition={{ 
-                      delay: 0.2 + (i * 0.15), 
-                      duration: 0.9, 
+                    transition={{
+                      delay: 0.2 + (i * 0.15),
+                      duration: 0.9,
                       ease: [0.22, 1, 0.36, 1],
                       opacity: { times: [0, 0.1, 1], duration: 0.9 }
                     }}
@@ -454,7 +454,7 @@ export function CreativeIntelligenceAnimation() {
         {/* --- WINNING CREATIVES SWIPE FILE --- */}
         <AnimatePresence>
           {isSaving && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
@@ -463,8 +463,8 @@ export function CreativeIntelligenceAnimation() {
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#EFF6FF] flex items-center justify-center">
-                    <Bookmark className="w-4 h-4 text-[#2563EB] fill-current" />
+                  <div className="w-8 h-8 rounded-lg bg-[#F4F9F0] flex items-center justify-center">
+                    <Bookmark className="w-4 h-4 text-[#68B32F] fill-current" />
                   </div>
                   <div>
                     <span className="text-[14px] font-bold text-[#18181B] block">Winning Creatives</span>
@@ -473,10 +473,10 @@ export function CreativeIntelligenceAnimation() {
                 </div>
                 <span className="text-[12px] font-bold text-[#71717A] bg-[#F4F4F5] px-2 py-1 rounded-md">12 Ads</span>
               </div>
-              
+
               <div className="flex items-center gap-2.5">
                 {CREATIVE_ASSETS.slice(1).map((asset, i) => (
-                  <motion.div 
+                  <motion.div
                     key={`thumb-${asset.id}`}
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}

@@ -21,7 +21,7 @@ export function FAQSection() {
       <div 
         className="absolute inset-0 pointer-events-none" 
         style={{
-          background: 'radial-gradient(circle at 15% 20%, rgba(37,99,235,0.045), transparent 32%)'
+          background: 'radial-gradient(circle at 15% 20%, rgba(94,169,32,0.045), transparent 32%)'
         }}
       />
       

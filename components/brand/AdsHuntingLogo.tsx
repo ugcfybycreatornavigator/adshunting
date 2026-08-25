@@ -27,8 +27,8 @@ export function AdsHuntingLogo({
   // If surface is dark, we want white logo text/mark. If light, dark logo.
   // Using explicit variables instead of text color utility classes to ensure it doesn't get overridden by a parent container's arbitrary text-foreground.
   const isDarkSurface = surface === "dark";
-  const primaryColor = isDarkSurface ? "#FFFFFF" : "#0F172A"; // White for dark surface, Slate-900 for light surface
-  const accentColor = "#2563EB"; // Brand Blue
+  const primaryColor = isDarkSurface ? "#FFFFFF" : "#5EA920"; // White for dark, Brand Green for light
+  const accentColor = "#5EA920"; // Brand Green
 
   const markSvg = (
     <svg
@@ -48,7 +48,7 @@ export function AdsHuntingLogo({
         strokeWidth="3.5"
         strokeLinecap="round"
       />
-      
+
       {/* A + H Monogram */}
       <path
         d="M16 6L7 24M16 6L25 24"
@@ -64,7 +64,7 @@ export function AdsHuntingLogo({
         strokeWidth="3.5"
         strokeLinecap="square"
       />
-      
+
       {/* Signal dot */}
       <circle cx="16" cy="12" r="2.5" fill={accentColor} className="transition-opacity duration-200 group-hover:opacity-100 opacity-90" />
     </svg>
@@ -82,7 +82,7 @@ export function AdsHuntingLogo({
       {markSvg}
       <span
         className="font-[650] tracking-tight whitespace-nowrap leading-none transition-opacity duration-200"
-        style={{ 
+        style={{
           fontSize: `${Math.max(currentSize * 0.55, 14.5)}px`,
           color: primaryColor,
           letterSpacing: "-0.015em"

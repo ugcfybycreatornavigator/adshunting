@@ -12,10 +12,10 @@
   --text-muted: #8a908a;
   --border: #e4e8e2;
   --border-strong: #d8ddd5;
-  --brand: #2563EB;
-  --brand-strong: #1D4ED8;
-  --brand-soft: #DBEAFE;
-  --surface-blue: #EFF6FF;
+  --brand: #5ea920;
+  --brand-strong: #4d8a1a;
+  --brand-soft: #e7f5db;
+  --surface-blue: #f3faeb;
 }
 
 :root {
@@ -89,7 +89,7 @@ a {
    Hero Refractive Glass — Keyframes
    ──────────────────────────────────────────────── */
 
-/* Blue light field drift animations — each blob has a unique period and path */
+/* Green light field drift animations — each blob has a unique period and path */
 @keyframes hero-light-drift-1 {
   0% {
     transform: translate(0, 0) scale(1) rotate(0deg);

@@ -17,7 +17,7 @@ export function CapabilityGridSection() {
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(circle at 50% 0%, rgba(37,99,235,0.05), transparent 50%)'
+          background: 'radial-gradient(circle at 50% 0%, rgba(94,169,32,0.05), transparent 50%)'
         }}
       />
       <LandingContainer className="relative z-10">

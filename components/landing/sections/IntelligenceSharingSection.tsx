@@ -49,7 +49,7 @@ export function IntelligenceSharingSection() {
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(circle at 30% 45%, rgba(37,99,235,0.05), transparent 34%)'
+          background: 'radial-gradient(circle at 30% 45%, rgba(94,169,32,0.05), transparent 34%)'
         }}
       />
       

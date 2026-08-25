@@ -26,8 +26,8 @@ export function AnimatedProductCanvas() {
       opacity: 1,
       y: 0,
       scale: 1,
-      transition: { 
-        delay: custom * 0.1, 
+      transition: {
+        delay: custom * 0.1,
         duration: prefersReducedMotion ? 0 : 0.6,
         ease: [0.16, 1, 0.3, 1] as const
       }
@@ -49,7 +49,7 @@ export function AnimatedProductCanvas() {
   return (
     <div className="absolute inset-0 overflow-hidden bg-[#080B12] flex items-center justify-center">
       {/* Subtle Technical Grid */}
-      <div 
+      <div
         className="absolute inset-0 opacity-[0.03] pointer-events-none"
         style={{
           backgroundImage: `
@@ -61,10 +61,10 @@ export function AnimatedProductCanvas() {
       />
 
       {/* Electric Blue Radial Glow */}
-      <div 
+      <div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
         style={{
-          background: 'radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 65%)'
+          background: 'radial-gradient(circle, rgba(94,169,32,0.08) 0%, transparent 65%)'
         }}
       />
 
@@ -76,7 +76,7 @@ export function AnimatedProductCanvas() {
           <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }}>
             {/* Connection: Central to Score (Top Right) */}
             <path id="path-score" d="M 300 250 L 480 140" stroke="rgba(255,255,255,0.05)" strokeWidth="1.5" fill="none" strokeDasharray="4 4" />
-            <circle r="3" fill="#2563EB" opacity="0.6">
+            <circle r="3" fill="#68B32F" opacity="0.6">
               <animateMotion dur="3s" repeatCount="indefinite" calcMode="linear">
                 <mpath href="#path-score" />
               </animateMotion>
@@ -84,7 +84,7 @@ export function AnimatedProductCanvas() {
 
             {/* Connection: Competitor to Central (Bottom Left) */}
             <path id="path-comp" d="M 140 380 L 300 250" stroke="rgba(255,255,255,0.05)" strokeWidth="1.5" fill="none" strokeDasharray="4 4" />
-            <circle r="3" fill="#2563EB" opacity="0.6">
+            <circle r="3" fill="#68B32F" opacity="0.6">
               <animateMotion dur="4s" repeatCount="indefinite" calcMode="linear">
                 <mpath href="#path-comp" />
               </animateMotion>
@@ -92,7 +92,7 @@ export function AnimatedProductCanvas() {
 
             {/* Connection: Central to Platforms (Bottom Right) */}
             <path id="path-plat" d="M 300 250 L 460 360" stroke="rgba(255,255,255,0.05)" strokeWidth="1.5" fill="none" strokeDasharray="4 4" />
-            <circle r="3" fill="#2563EB" opacity="0.6">
+            <circle r="3" fill="#68B32F" opacity="0.6">
               <animateMotion dur="3.5s" repeatCount="indefinite" calcMode="linear">
                 <mpath href="#path-plat" />
               </animateMotion>
@@ -101,7 +101,7 @@ export function AnimatedProductCanvas() {
         )}
 
         {/* --- CENTRAL AD CARD --- */}
-        <motion.div 
+        <motion.div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20"
           variants={fadeIn}
           initial="hidden"
@@ -125,7 +125,7 @@ export function AnimatedProductCanvas() {
                 <span className="text-[10px] font-medium text-[#16A34A]">Active</span>
               </div>
             </div>
-            
+
             {/* Faux Creative */}
             <div className="h-[200px] w-full bg-[#1A2132] flex items-center justify-center relative">
               <PlaySquare className="text-white/20 w-10 h-10" strokeWidth={1.5} />
@@ -133,7 +133,7 @@ export function AnimatedProductCanvas() {
                 <Activity className="w-3 h-3 text-brand" /> Running 85 days
               </div>
             </div>
-            
+
             {/* Footer Signals */}
             <div className="px-4 py-3 bg-[#0B1018]/50">
               <div className="flex items-center justify-between mb-2">
@@ -148,7 +148,7 @@ export function AnimatedProductCanvas() {
         </motion.div>
 
         {/* --- WINNING SCORE (Top Right) --- */}
-        <motion.div 
+        <motion.div
           className="absolute top-[80px] right-[40px] z-10"
           variants={fadeIn}
           initial="hidden"
@@ -156,7 +156,7 @@ export function AnimatedProductCanvas() {
           custom={1.5}
         >
           <motion.div
-            className="w-[180px] bg-[#101622]/90 backdrop-blur-xl border border-brand/20 rounded-xl p-4 shadow-[0_0_30px_rgba(37,99,235,0.15)]"
+            className="w-[180px] bg-[#101622]/90 backdrop-blur-xl border border-brand/20 rounded-xl p-4 shadow-[0_0_30px_rgba(94,169,32,0.15)]"
             {...float(0.5, 7)}
           >
             <div className="flex items-center gap-2 mb-2">
@@ -164,7 +164,7 @@ export function AnimatedProductCanvas() {
               <span className="text-[11px] text-white/60 font-semibold uppercase tracking-wider">Winning Score</span>
             </div>
             <div className="flex items-end gap-1 mb-1">
-              <motion.span 
+              <motion.span
                 className="text-3xl font-bold text-white leading-none"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -179,7 +179,7 @@ export function AnimatedProductCanvas() {
         </motion.div>
 
         {/* --- COMPETITOR (Bottom Left) --- */}
-        <motion.div 
+        <motion.div
           className="absolute bottom-[90px] left-[40px] z-10"
           variants={fadeIn}
           initial="hidden"
@@ -208,7 +208,7 @@ export function AnimatedProductCanvas() {
         </motion.div>
 
         {/* --- RUNNING PLATFORMS (Bottom Right) --- */}
-        <motion.div 
+        <motion.div
           className="absolute bottom-[60px] right-[60px] z-10"
           variants={fadeIn}
           initial="hidden"

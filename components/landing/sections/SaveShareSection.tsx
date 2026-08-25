@@ -21,7 +21,7 @@ export function SaveShareSection() {
             </p>
           </div>
           <div className="w-full lg:w-1/2 rounded-2xl bg-slate-50 border border-border shadow-[0_20px_50px_rgba(0,0,0,0.04)] p-8 flex flex-col items-center justify-center relative overflow-hidden">
-            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 50%, rgba(37,99,235,0.04), transparent 70%)' }} />
+            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 50%, rgba(94,169,32,0.04), transparent 70%)' }} />
             
             <div className="noise-texture absolute inset-0 opacity-[0.03]"></div>
             
@@ -58,7 +58,7 @@ export function SaveShareSection() {
             </p>
           </div>
           <div className="w-full lg:w-1/2 rounded-2xl bg-slate-50 border border-border shadow-[0_20px_50px_rgba(0,0,0,0.04)] p-8 md:p-12 relative overflow-hidden">
-            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 50%, rgba(37,99,235,0.04), transparent 70%)' }} />
+            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 50%, rgba(94,169,32,0.04), transparent 70%)' }} />
             <div className="w-full max-w-[400px] mx-auto bg-white rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.08)] border border-border overflow-hidden relative z-10">
                <div className="p-5 border-b border-border bg-white flex items-center gap-3">
                  <div className="w-12 h-12 bg-brand/10 text-brand rounded-xl flex items-center justify-center"><Users size={20} /></div>

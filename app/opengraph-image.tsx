@@ -62,7 +62,7 @@ export default function Image() {
                 width: 24,
                 height: 24,
                 borderRadius: 999,
-                background: "#2563EB",
+                background: "#68B32F",
               }}
             />
             AdsHunting

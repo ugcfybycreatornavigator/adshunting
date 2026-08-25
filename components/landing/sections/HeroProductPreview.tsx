@@ -70,7 +70,7 @@ export function HeroProductPreview() {
       <div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] rounded-full pointer-events-none -z-10"
         style={{
-          background: 'radial-gradient(ellipse at center, rgba(37,99,235,0.06) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse at center, rgba(94,169,32,0.06) 0%, transparent 70%)',
           filter: 'blur(60px)',
         }}
       />
@@ -105,13 +105,13 @@ export function HeroProductPreview() {
           className="group ml-2 h-full px-6 md:px-8 flex items-center justify-center flex-shrink-0 text-[15px] md:text-[17px] font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           style={{
             borderRadius: '14px',
-            background: '#2563EB',
+            background: '#68B32F',
           }}
           onMouseEnter={(e) => {
-            if (!e.currentTarget.disabled) e.currentTarget.style.background = '#1D4ED8';
+            if (!e.currentTarget.disabled) e.currentTarget.style.background = '#4F9223';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#2563EB';
+            e.currentTarget.style.background = '#68B32F';
           }}
         >
           {isRedirecting ? (
@@ -130,7 +130,7 @@ export function HeroProductPreview() {
 
       {isRedirecting && (
         <div className="mt-6 flex flex-col items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2">
-          <p className="text-[15px] font-semibold" style={{ color: '#2563EB' }}>
+          <p className="text-[15px] font-semibold" style={{ color: '#68B32F' }}>
             Preparing your search results...
           </p>
           <p className="text-[13px] text-[#52525B] max-w-[400px] text-center">

@@ -8,7 +8,7 @@ export function CoreValueSection() {
       <div 
         className="absolute inset-0 pointer-events-none" 
         style={{
-          background: 'radial-gradient(circle at 50% 50%, rgba(37,99,235,0.03), transparent 60%)'
+          background: 'radial-gradient(circle at 50% 50%, rgba(94,169,32,0.03), transparent 60%)'
         }}
       />
       <LandingContainer className="relative z-10">

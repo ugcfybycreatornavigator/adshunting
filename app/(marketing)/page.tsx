@@ -41,7 +41,7 @@ function PricingSection() {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at 50% 0%, rgba(37,99,235,0.08), transparent 70%)'
+          background: 'radial-gradient(ellipse at 50% 0%, rgba(94,169,32,0.08), transparent 70%)'
         }}
       />
 
@@ -66,7 +66,7 @@ function PricingSection() {
 
           {/* Scout Plan - Rendered First in DOM for mobile accessibility */}
           <div className="flex flex-col rounded-[24px] p-7 md:p-9 border-[1.5px] border-brand shadow-[0_18px_50px_rgba(30,58,138,0.06),0_4px_14px_rgba(0,0,0,0.03)] order-first md:order-none lg:order-2 relative z-10 transition-transform duration-300 hover:-translate-y-1 bg-white"
-            style={{ background: 'linear-gradient(180deg, rgba(37,99,235,.06), #FFFFFF 28%)' }}>
+            style={{ background: 'linear-gradient(180deg, rgba(94,169,32,.06), #FFFFFF 28%)' }}>
 
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-[24px] font-bold text-text-primary">SCOUT</h3>
