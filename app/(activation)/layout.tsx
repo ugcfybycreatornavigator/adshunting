@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
+import { UserButton } from "@clerk/nextjs";
 import { isPreviewMode } from "@/lib/preview";
 import type { Metadata } from "next";
 import { createMetadata } from "@/lib/seo";
@@ -16,6 +17,9 @@ export default async function ActivationLayout({ children }: { children: React.R
   if (!authState.userId && !isPreviewMode) redirect("/sign-in");
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
+      <div className="absolute top-6 right-8">
+        <UserButton afterSignOutUrl="/sign-in" />
+      </div>
       {children}
     </div>
   );

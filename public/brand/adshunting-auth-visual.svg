@@ -32,7 +32,7 @@
   <rect width="100%" height="100%" fill="url(#grid)" />
 
   <!-- Abstract Radial Glow -->
-  <circle cx="600" cy="450" r="400" fill="#2563EB" opacity="0.03" filter="blur(80px)" />
+  <circle cx="600" cy="450" r="400" fill="#68B32F" opacity="0.03" filter="blur(80px)" />
   <circle cx="900" cy="200" r="300" fill="#FFFFFF" opacity="0.02" filter="blur(60px)" />
 
   <!-- LAYER 1: Background small cards -->
@@ -43,7 +43,7 @@
       <rect x="20" y="20" width="200" height="140" rx="8" fill="#1C1F28" />
       <rect x="20" y="180" width="140" height="12" rx="6" fill="#2A2D38" />
       <rect x="20" y="205" width="90" height="12" rx="6" fill="#2A2D38" />
-      <circle cx="200" cy="190" r="16" fill="#2563EB" opacity="0.5" />
+      <circle cx="200" cy="190" r="16" fill="#68B32F" opacity="0.5" />
     </g>
 
     <!-- Bottom right card -->
@@ -79,7 +79,7 @@
       <rect x="24" y="24" width="212" height="150" rx="10" fill="#1C1F28" />
       <!-- Data bars -->
       <rect x="24" y="200" width="212" height="8" rx="4" fill="#252834" />
-      <rect x="24" y="200" width="140" height="8" rx="4" fill="#2563EB" />
+      <rect x="24" y="200" width="140" height="8" rx="4" fill="#68B32F" />
 
       <rect x="24" y="225" width="212" height="8" rx="4" fill="#252834" />
       <rect x="24" y="225" width="80" height="8" rx="4" fill="#3B82F6" />
@@ -94,7 +94,7 @@
     <rect width="320" height="420" rx="20" fill="#171A22" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" />
     
     <!-- Header -->
-    <circle cx="40" cy="40" r="14" fill="#2563EB" />
+    <circle cx="40" cy="40" r="14" fill="#68B32F" />
     <path d="M 33 40 L 47 40 M 40 33 L 40 47" stroke="#FFF" stroke-width="2" stroke-linecap="round" />
     <rect x="68" y="32" width="120" height="16" rx="8" fill="#F7F7F8" />
     <rect x="260" y="32" width="30" height="16" rx="8" fill="rgba(255,255,255,0.05)" />
@@ -113,13 +113,13 @@
 
     <!-- Action Bar -->
     <rect x="24" y="366" width="272" height="34" rx="8" fill="rgba(37,99,235,0.08)" stroke="rgba(37,99,235,0.2)" stroke-width="1" />
-    <rect x="40" y="379" width="80" height="8" rx="4" fill="#2563EB" />
+    <rect x="40" y="379" width="80" height="8" rx="4" fill="#68B32F" />
   </g>
 
   <!-- Accent Particles -->
-  <circle cx="300" cy="200" r="3" fill="#2563EB" />
+  <circle cx="300" cy="200" r="3" fill="#68B32F" />
   <circle cx="850" cy="400" r="2" fill="#FFFFFF" opacity="0.6" />
-  <circle cx="450" cy="750" r="4" fill="#2563EB" opacity="0.8" />
+  <circle cx="450" cy="750" r="4" fill="#68B32F" opacity="0.8" />
   <circle cx="800" cy="700" r="2" fill="#FFFFFF" opacity="0.4" />
 
   <!-- Connecting Lines (Subtle) -->

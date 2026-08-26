@@ -4,8 +4,23 @@ import { BillingStatus, EntitlementReason, WorkspaceEntitlement, AccessSource } 
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { isPreviewMode } from "@/lib/preview";
+import { isPaymentReviewer } from "./reviewer";
 
 export async function getWorkspaceEntitlement(workspaceId: string): Promise<WorkspaceEntitlement> {
+  const reviewerAccess = await isPaymentReviewer(workspaceId);
+  if (reviewerAccess) {
+    return {
+        hasAccess: true,
+        accessSource: "subscription",
+        billingStatus: "active",
+        trialEndsAt: null,
+        currentPeriodEnd: null,
+        nextChargeAt: null,
+        legacyGraceEndsAt: null,
+        reason: "active_subscription",
+    };
+  }
+
   if (isPreviewMode) {
      return {
         hasAccess: true,

@@ -25,6 +25,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
           </p>
         </div>
       )}
+
       <SignIn appearance={authAppearance} routing="path" path="/sign-in" />
     </AuthShell>
   );
