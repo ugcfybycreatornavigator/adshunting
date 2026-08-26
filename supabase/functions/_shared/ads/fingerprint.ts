@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { NormalizedAd } from "./types";
+import type { NormalizedAd } from "./types.ts";
 
 function sha256(content: string) {
   return createHash("sha256").update(content).digest("hex");
@@ -32,35 +32,22 @@ export function normalizeUrl(url: string | null | undefined): string {
 }
 
 export function computeAdFingerprints(ad: NormalizedAd) {
-  const normAdvertiser = normalizeText(ad.advertiserId || ad.advertiserName);
+  const normAdvertiser = normalizeText(ad.advertiser?.id || ad.advertiser?.name);
   
   // Create a deterministic media identity
   let mediaIdentity = "";
-  if (ad.sourceMediaUrl) {
-    mediaIdentity = normalizeUrl(ad.sourceMediaUrl);
-  } else if (ad.carouselAssets && ad.carouselAssets.length > 0) {
-    mediaIdentity = ad.carouselAssets.map(normalizeUrl).join("|");
-  } else if (ad.thumbnailUrl) {
-    mediaIdentity = normalizeUrl(ad.thumbnailUrl);
+  if (ad.creative?.videoUrl || ad.creative?.imageUrl) {
+    mediaIdentity = normalizeUrl(ad.creative.videoUrl || ad.creative.imageUrl);
+  } else if (ad.creative?.carouselItems && ad.creative.carouselItems.length > 0) {
+    mediaIdentity = ad.creative.carouselItems.map(item => normalizeUrl(item.imageUrl || item.videoUrl)).join("|");
+  } else if (ad.creative?.thumbnailUrl) {
+    mediaIdentity = normalizeUrl(ad.creative.thumbnailUrl);
   }
 
-  const normHeadline = normalizeText(ad.headline);
-  const normBody = normalizeText(ad.body);
-  const landingUrl = normalizeUrl(ad.landingUrl);
-  
-  // Use externalAdId as the primary stable identifier if available, fallback to a deep fingerprint
-  const stableId = ad.externalAdId || "";
-  
-  let creativePayload = "";
-  if (stableId) {
-    // If the provider gives us a distinct ad_archive_id, use it directly!
-    // But mix in advertiser just to namespace it securely.
-    creativePayload = `id::${normAdvertiser}::${stableId}`;
-  } else {
-    // Fallback fingerprint using all available identity signals
-    creativePayload = `fallback::${normAdvertiser}::${mediaIdentity}::${normHeadline}::${normBody}::${landingUrl}`;
-  }
+  const normHeadline = normalizeText(ad.copy?.headline);
+  const normBody = normalizeText(ad.copy?.primaryText);
 
+  const creativePayload = `${normAdvertiser}::${mediaIdentity}::${normHeadline}::${normBody}`;
   const groupPayload = `${normAdvertiser}::${mediaIdentity}`;
 
   const creativeFingerprint = sha256(creativePayload);

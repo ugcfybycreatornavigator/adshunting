@@ -175,6 +175,7 @@ export interface AdSearchResult {
   resolvedIntent?: SearchIntent;
   requestId?: string;
   stale?: boolean;
+  degraded?: boolean;
 }
 
 export interface Advertiser {

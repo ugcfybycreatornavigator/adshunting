@@ -18,7 +18,7 @@ export default async function ActivationLayout({ children }: { children: React.R
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
       <div className="absolute top-6 right-8">
-        <UserButton afterSignOutUrl="/sign-in" />
+        <UserButton />
       </div>
       {children}
     </div>

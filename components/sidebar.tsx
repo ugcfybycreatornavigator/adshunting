@@ -257,7 +257,7 @@ function SidebarProfile() {
           <div className="h-px w-full bg-[#ECEDEF] my-1" />
           <div className="flex flex-col gap-0.5">
             <Link
-              href="/settings/account"
+              href="/settings"
               onClick={() => setIsOpen(false)}
               className="flex h-[42px] w-full items-center gap-2.5 rounded-[10px] px-2.5 text-[13px] font-medium text-[#3F3F46] transition hover:bg-[#F5F5F6] hover:text-[#18181B] group outline-none focus-visible:ring-2 focus-visible:ring-signal"
               role="menuitem"

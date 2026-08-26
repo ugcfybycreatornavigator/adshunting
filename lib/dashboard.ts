@@ -3,7 +3,7 @@ import { dbAdToNormalized, type DatabaseAdRow } from "@/lib/catalog";
 import type { NormalizedAd } from "@/lib/types";
 import { requireUser } from "@/lib/auth";
 import { ensureDefaultSwipeFile } from "@/lib/swipe-files";
-import { getBrands } from "@/lib/brand-data";
+
 import { currentUser } from "@clerk/nextjs/server";
 
 type HomeCount = number | null;
@@ -36,9 +36,8 @@ export async function getDashboardData(): Promise<DashboardData> {
   const savedAdsFileId = await safeValue("Home.defaultSavedAds", () => ensureDefaultSwipeFile(supabase, userId));
   const savedAdsHref = savedAdsFileId ? `/swipe-files/${savedAdsFileId}` : "/swipe-files";
 
-  const [discoverAds, brandsList, savedAds, sharedAds, competitorCount, top, recent, catalogue, savedRows, competitorRows] = await Promise.all([
+  const [discoverAds, savedAds, sharedAds, competitorCount, top, recent, catalogue, savedRows, competitorRows] = await Promise.all([
     countRows("Home.discoverAds", () => supabase.from("ads").select("*", { count: "exact", head: true })),
-    safeValue("Home.brands", () => getBrands()),
     savedAdsFileId ? countRows("Home.savedAds", () => supabase.from("swipe_file_items").select("*", { count: "exact", head: true }).eq("swipe_file_id", savedAdsFileId)) : Promise.resolve(null),
     countRows("Home.sharedAds", () => supabase.from("shared_ad_links").select("*", { count: "exact", head: true }).eq("owner_user_id", userId).is("revoked_at", null).or(`expires_at.is.null,expires_at.gte.${now}`)),
     countRows("Home.competitors", () => supabase.from("competitors").select("*", { count: "exact", head: true }).eq("user_id", userId)),
@@ -57,7 +56,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   }));
   const mostSaved = savedRows.flatMap((row) => row.ads ? [dbAdToNormalized(Array.isArray(row.ads) ? row.ads[0] : row.ads)] : []);
 
-  return { user, actions: { discoverAds, brands: brandsList ? brandsList.length : null, savedAds, sharedAds, competitors: competitorCount, savedAdsHref }, topRunning: top.map(dbAdToNormalized), trending, recent: recent.map(dbAdToNormalized), mostSaved, competitors: tracked };
+  return { user, actions: { discoverAds, brands: competitorCount, savedAds, sharedAds, competitors: competitorCount, savedAdsHref }, topRunning: top.map(dbAdToNormalized), trending, recent: recent.map(dbAdToNormalized), mostSaved, competitors: tracked };
 }
 
 async function countRows(operation: string, query: () => PromiseLike<{ count: number | null; error: { message?: string; code?: string; details?: string; hint?: string } | null }>) {

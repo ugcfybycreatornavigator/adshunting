@@ -107,15 +107,22 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
       }
       const result = data as AdSearchResult;
       
-      if (result.stale || result.source === "cache") {
-        setToast({ message: "Showing recently fetched results while live search reconnects.", tone: "error" });
+      if (result.degraded) {
+        setToast({ message: "Showing recently indexed results." });
       }
 
       if (result.resolvedIntent?.type === "advertiser" && nextFilters.brand !== result.resolvedIntent.advertiserId) {
         setFilters({ brand: result.resolvedIntent.advertiserId, query: result.resolvedIntent.advertiserName });
       }
 
-      setAds(current => append ? [...current, ...result.ads.filter(ad => !current.some(existing => (existing.externalId || existing.id) === (ad.externalId || ad.id)))] : result.ads);
+      setAds(current => {
+        if (!append) return result.ads;
+        const dedup = new Map(current.map(ad => [ad.id, ad]));
+        for (const ad of result.ads) {
+          if (!dedup.has(ad.id)) dedup.set(ad.id, ad);
+        }
+        return Array.from(dedup.values());
+      });
       setCursor(result.nextCursor);
       setTotal(result.total);
 
@@ -476,7 +483,7 @@ export function DiscoverExperience({ brandId }: { brandId?: string }) {
             <div className={cn(gridClass(), loading && !loadingMore && "opacity-60 transition-opacity")}>
               {displayedAds.map(ad => (
                 <AdCard
-                  key={`${(ad.externalId || ad.id)}-${ad.id}`}
+                  key={ad.id}
                   ad={ad}
                   saved={savedAdIds.has((ad.externalId || ad.id))}
                   swipeFileCount={adCollectionIds[(ad.externalId || ad.id)]?.length ?? 0}

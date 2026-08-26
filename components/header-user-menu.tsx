@@ -43,7 +43,7 @@ export function HeaderUserMenu() {
       </div>
       <UserButton
         userProfileMode="navigation"
-        userProfileUrl="/settings/account"
+        userProfileUrl="/settings"
         appearance={{
           elements: {
             avatarBox: "size-8 rounded-full border border-line shadow-sm",

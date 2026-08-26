@@ -71,9 +71,6 @@ export async function ensureDefaultSwipeFile(supabase: SupabaseClient, userId: s
 }
 
 export async function getSwipeFiles(supabase: SupabaseClient, userId: string) {
-  // Ensure default exists
-  await ensureDefaultSwipeFile(supabase, userId);
-
   const { data, error } = await supabase
     .from("swipe_files")
     .select(`
@@ -89,6 +86,14 @@ export async function getSwipeFiles(supabase: SupabaseClient, userId: string) {
     .limit(3, { foreignTable: 'swipe_file_items' });
 
   if (error || !data) return [];
+  
+  // Create default in background or on demand if missing
+  const hasDefault = data.some(d => d.is_system && d.system_key === "saved_ads");
+  if (!hasDefault) {
+    await ensureDefaultSwipeFile(supabase, userId);
+    // If it was missing and we just created it, recursive call to get fresh list
+    return getSwipeFiles(supabase, userId);
+  }
 
   return data.map(d => {
     // Extract up to 3 preview images

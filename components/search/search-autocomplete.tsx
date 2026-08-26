@@ -15,6 +15,32 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
+function SuggestionAvatar({ suggestion, fallbackIcon }: { suggestion: SearchSuggestion, fallbackIcon: React.ReactNode }) {
+  const [failed, setFailed] = useState(false);
+
+  if (suggestion.imageUrl && !failed) {
+    return (
+      <img
+        src={suggestion.imageUrl}
+        alt=""
+        className="size-full rounded-md object-cover"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
+  if (suggestion.type === "brand" || suggestion.type === "advertiser") {
+    const initial = suggestion.label ? suggestion.label.charAt(0).toUpperCase() : "B";
+    return (
+      <div className="flex size-full items-center justify-center bg-surface text-[11px] font-bold text-ink">
+        {initial}
+      </div>
+    );
+  }
+
+  return <>{fallbackIcon}</>;
+}
+
 interface SearchAutocompleteProps {
   value: string;
   onChange: (val: string) => void;
@@ -273,10 +299,8 @@ export function SearchAutocomplete({
                   onClick={() => handleSelectSuggestion(s)}
                 >
                   <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="grid size-7 shrink-0 place-items-center rounded-md border border-line bg-surface">
-                      {s.imageUrl ? (
-                        <img src={s.imageUrl} alt="" className="size-full rounded-md object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
-                      ) : getIconForType(s.type, s.subtitle)}
+                    <div className="grid size-7 shrink-0 place-items-center rounded-md border border-line bg-surface overflow-hidden">
+                      <SuggestionAvatar suggestion={s} fallbackIcon={getIconForType(s.type, s.subtitle)} />
                     </div>
                     <div className="flex flex-col truncate">
                       <span className={cn("truncate text-sm font-medium", activeIndex === idx ? "text-signal" : "text-ink")}>{s.label}</span>

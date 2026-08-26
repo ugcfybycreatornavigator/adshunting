@@ -1,7 +1,8 @@
 import { Search, Store } from "lucide-react";
 import { EmptyState, PageHeader } from "@/components/ui";
 import { BrandCard } from "@/components/brand-card";
-import { getBrands } from "@/lib/brand-data";
+import { getCompetitorSummaries, type BrandSummary } from "@/lib/brand-data";
+import { requireUser } from "@/lib/auth";
 
 export const metadata = { title: "Brands" };
 
@@ -12,7 +13,35 @@ export default async function BrandsPage({
 }) {
   const { q } = await searchParams;
   const query = q?.trim() || "";
-  const brands = await getBrands(query);
+  const auth = await requireUser();
+
+  // Fetch only the explicit tracked brands for this user
+  const { data: competitors } = await auth.supabase!
+    .from("competitors")
+    .select("*")
+    .eq("user_id", auth.user!.id)
+    .order("created_at", { ascending: false });
+
+  // Resolve data efficiently in bulk
+  const intelList = await getCompetitorSummaries(competitors || []);
+
+  // Map to the existing BrandSummary format to preserve the UI
+  let brands: BrandSummary[] = intelList.map(intel => ({
+    id: intel.advertiserId,
+    name: intel.brandName,
+    avatar: intel.logoUrl,
+    platforms: intel.platforms,
+    totalUnique: intel.totalAds,
+    activeUnique: intel.activeAds,
+    previewMedia: intel.latestCreatives.map(c => c.url),
+    previewThumbs: intel.latestCreatives.map(c => c.url)
+  }));
+
+  // Apply search filter if query exists
+  if (query) {
+    const qLower = query.toLowerCase();
+    brands = brands.filter(b => b.name.toLowerCase().includes(qLower));
+  }
 
   return (
     <>
@@ -48,8 +77,8 @@ export default async function BrandsPage({
             title={query ? "No matching brands found" : "No brands tracked yet"}
             body={
               query
-                ? `No advertiser matching "${query}" was found in your catalogue.`
-                : "Brands appear automatically as live ads are saved into your intelligence catalogue."
+                ? `No advertiser matching "${query}" was found in your tracked brands.`
+                : "Search for a brand and start tracking it to build your brand intelligence workspace."
             }
           />
         )}

@@ -5,9 +5,7 @@ const nextConfig = {
   images: {
     remotePatterns: [{ protocol: "https", hostname: "**" }],
   },
-  experimental: {
-    serverActions: { bodySizeLimit: "2mb" },
-  },
+  serverActions: { bodySizeLimit: "2mb" },
   async redirects() {
     const redirects = [
       { source: "/trial", destination: "/sign-up", permanent: true },

@@ -21,21 +21,26 @@ export async function POST(request: Request) {
     if (query && query.trim() && isSearchConfigured) {
       try {
         const searchApi = new SearchApiProvider(getServerEnv().searchApiKeys);
+        // Only fetch a small number of ads to extract brand information efficiently
         const result = await searchApi.searchAds({ query, status: "all" });
         
         // Extract distinct advertisers
         const advertiserMap = new Map<string, BrandSummary>();
-        for (const ad of result.ads) {
-          const advId = ad.advertiser.id;
+        
+        // Limit to 5 results to prevent massive loops since we only need a few brand candidates
+        const adsToProcess = result.ads.slice(0, 5);
+        
+        for (const ad of adsToProcess) {
+          const advId = ad.advertiser?.id;
           if (!advId) continue;
           
           if (!advertiserMap.has(advId)) {
             advertiserMap.set(advId, {
               id: advId,
-              name: ad.advertiser.name || "Unknown",
-              avatar: ad.advertiser.logoUrl || null,
-              platforms: ad.delivery.platforms || [],
-              totalUnique: null, // To be filled by getBrandStats
+              name: ad.advertiser?.name || "Unknown",
+              avatar: ad.advertiser?.logoUrl || null,
+              platforms: ad.delivery?.platforms || [],
+              totalUnique: null, // To be filled by getBrandStats if needed
               activeUnique: null,
               previewMedia: ad.creative?.videoUrl ? [ad.creative.videoUrl] : ad.creative?.imageUrl ? [ad.creative.imageUrl] : [],
               previewThumbs: ad.creative?.thumbnailUrl ? [ad.creative.thumbnailUrl] : []

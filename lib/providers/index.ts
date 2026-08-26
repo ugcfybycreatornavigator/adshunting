@@ -3,6 +3,7 @@ import { getServerEnv } from "@/lib/env/server";
 import { MetaProvider } from "@/lib/providers/meta";
 import { SearchApiProvider } from "@/lib/providers/searchapi";
 import { ForeplayProvider } from "@/lib/providers/foreplay";
+import { SpyglassProvider } from "@/lib/providers/spyglass";
 import { ProviderError } from "@/lib/providers/errors";
 
 export type ProviderHealthState =
@@ -16,7 +17,7 @@ export type ProviderHealthState =
   | "NOT_CONFIGURED";
 
 type CircuitState = { state: ProviderHealthState; lastChecked: number; errorDetail?: string; failures?: number };
-export type ProviderName = "meta" | "searchapi" | "foreplay";
+export type ProviderName = "meta" | "searchapi" | "foreplay" | "spyglass";
 export type NamedAdProvider = { provider: AdProvider; name: ProviderName };
 
 const circuitStore = new Map<ProviderName, CircuitState>();
@@ -71,24 +72,63 @@ function canSatisfy(provider: AdProvider, filters: AdSearchFilters) {
 export function getAdProviders(filters: AdSearchFilters = {}): NamedAdProvider[] {
   const env = getServerEnv();
   const configured: NamedAdProvider[] = [];
-
-  // Exhaust the SearchAPI key pool first, then use the direct Meta provider.
-  // Foreplay remains the final compatible fallback.
-  if (env.searchApiKeys.length) configured.push({ provider: new SearchApiProvider(env.searchApiKeys), name: "searchapi" });
-  if (env.metaAccessToken && env.metaApiVersion) configured.push({
-    provider: new MetaProvider({ accessToken: env.metaAccessToken, apiVersion: env.metaApiVersion, defaultCountry: env.metaDefaultCountry }),
-    name: "meta",
+  
+  const registry = new Map<ProviderName, () => NamedAdProvider | null>();
+  
+  registry.set("spyglass", () => {
+    if (env.spyglassApiKey && env.spyglassEnabled) {
+      return { provider: new SpyglassProvider(env.spyglassApiKey, env.spyglassEnabled), name: "spyglass" };
+    }
+    return null;
   });
-  if (env.foreplayApiKey) configured.push({ provider: new ForeplayProvider(env.foreplayApiKey), name: "foreplay" });
 
-  const selected = env.adsProvider === "auto" ? configured : configured.filter((item) => item.name === env.adsProvider);
-  if (!selected.length) throw new ProviderError("PROVIDER_NOT_CONFIGURED", `${env.adsProvider === "auto" ? "No ads provider is" : `${env.adsProvider} is not`} configured.`, 503);
+  registry.set("meta", () => {
+    if (env.metaAccessToken && env.metaApiVersion && env.metaEnabled) {
+      return { 
+        provider: new MetaProvider({ accessToken: env.metaAccessToken, apiVersion: env.metaApiVersion, defaultCountry: env.metaDefaultCountry }), 
+        name: "meta" 
+      };
+    }
+    return null;
+  });
 
-  const capable = selected.filter(({ provider, name }) => canSatisfy(provider, filters) && !circuitOpen(name));
+  registry.set("foreplay", () => {
+    if (env.foreplayApiKey) {
+      return { provider: new ForeplayProvider(env.foreplayApiKey), name: "foreplay" };
+    }
+    return null;
+  });
+
+  registry.set("searchapi", () => {
+    if (env.searchApiKeys.length > 0) {
+      return { provider: new SearchApiProvider(env.searchApiKeys), name: "searchapi" };
+    }
+    return null;
+  });
+
+  // Deduplicate and resolve order
+  const order = [...new Set(env.adsProvider === "auto" ? env.adsProviderOrder : [env.adsProvider as string])];
+  
+  for (const providerName of order) {
+    if (!["spyglass", "meta", "foreplay", "searchapi"].includes(providerName)) {
+      console.warn(`[Orchestrator] Unknown ads provider ignored: ${providerName}`);
+      continue;
+    }
+    const factory = registry.get(providerName as ProviderName);
+    if (factory) {
+      const instance = factory();
+      if (instance) configured.push(instance);
+    }
+  }
+
+  if (!configured.length) throw new ProviderError("PROVIDER_NOT_CONFIGURED", "No providers configured or authorized.", 503);
+
+  const capable = configured.filter(({ provider, name }) => canSatisfy(provider, filters) && !circuitOpen(name));
   if (capable.length) return capable;
 
-  const compatibleButOpen = selected.filter(({ provider }) => canSatisfy(provider, filters));
+  const compatibleButOpen = configured.filter(({ provider }) => canSatisfy(provider, filters));
   if (compatibleButOpen.length) throw new ProviderError("PROVIDER_UNAVAILABLE", "Compatible ad providers are temporarily paused after repeated failures.", 503);
+  
   throw new ProviderError("PROVIDER_NOT_CONFIGURED", "No configured provider supports these search filters.", 422);
 }
 
@@ -96,4 +136,5 @@ export const providerCapabilities = {
   meta: new MetaProvider({ accessToken: "capability-only", apiVersion: "v25.0" }).capabilities,
   searchapi: new SearchApiProvider("capability-only").capabilities,
   foreplay: new ForeplayProvider("capability-only").capabilities,
+  spyglass: new SpyglassProvider().capabilities,
 } as const;

@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NICHES, CONTENT_STYLES, LANGUAGES, MARKETS } from "@/lib/taxonomy";
+import { getAdProviders } from "@/lib/providers";
+
+// Short-lived memory cache for external provider lookups to prevent rate limit pressure
+const externalProviderCache = new Map<string, { timestamp: number; results: SearchSuggestion[] }>();
+const CACHE_TTL_MS = 60_000;
 
 export type SearchSuggestion = {
   id: string;
@@ -74,7 +79,7 @@ export async function GET(request: NextRequest) {
       // Fallback if migration not applied
       const { data: fallbackData, error: fallbackError } = await supabase
         .from('ads')
-        .select('advertiser_id, advertiser_name, status')
+        .select('advertiser_id, advertiser_name, status, advertiser_avatar_url')
         .ilike('advertiser_name', `${query}%`)
         .limit(100);
 
@@ -87,7 +92,8 @@ export async function GET(request: NextRequest) {
             brandMap.set(ad.advertiser_name, { 
               id: ad.advertiser_id, 
               label: ad.advertiser_name, 
-              activeCount: 0 
+              activeCount: 0,
+              logoUrl: ad.advertiser_avatar_url
             });
           }
           if (ad.status === 'active') {
@@ -100,7 +106,8 @@ export async function GET(request: NextRequest) {
             id: b.id,
             label: b.label,
             normalized_label: b.label.toLowerCase(),
-            active_ad_count: b.activeCount
+            active_ad_count: b.activeCount,
+            advertiser_avatar_url: b.logoUrl
           }))
           .slice(0, limit);
       }
@@ -115,7 +122,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to load suggestions" }, { status: 500 });
     }
 
-    if (dbBrands) {
+    if (dbBrands && dbBrands.length > 0) {
       for (const b of dbBrands) {
         suggestions.push({
           id: b.id as string,
@@ -124,7 +131,73 @@ export async function GET(request: NextRequest) {
           normalizedLabel: b.normalized_label as string,
           subtitle: "Brand",
           activeAdCount: b.active_ad_count as number,
+          imageUrl: b.advertiser_avatar_url as string | null,
         });
+      }
+    } else if (query.length >= 3) {
+      // Local miss: Fallback to provider orchestrator to discover brand identity
+      const now = Date.now();
+      const cacheKey = query;
+      let externalBrands: SearchSuggestion[] = [];
+      
+      const cached = externalProviderCache.get(cacheKey);
+      if (cached && (now - cached.timestamp < CACHE_TTL_MS)) {
+        externalBrands = cached.results;
+      } else {
+        try {
+          const providers = getAdProviders({ query });
+          // Find first capable provider (searchapi/foreplay)
+          const provider = providers.find(p => p.provider.capabilities.keywordSearch || p.provider.capabilities.advertiserSearch);
+          
+          if (provider) {
+             const abortController = new AbortController();
+             const timeout = setTimeout(() => abortController.abort(), 400); // 400ms budget
+             
+             // Cast to any to pass the signal if the provider supports it, or it will just abort at network level if the provider uses a global signal
+             const result = await Promise.race([
+                provider.provider.searchAds({ query, status: "all" }),
+                new Promise<never>((_, reject) => {
+                  abortController.signal.addEventListener('abort', () => reject(new Error('Provider autocomplete timeout')));
+                })
+             ]);
+             clearTimeout(timeout);
+             
+             // Extract unique advertisers
+             const brandMap = new Map();
+             for (const ad of result.ads) {
+               if (ad.advertiser.name && !brandMap.has(ad.advertiser.name.toLowerCase())) {
+                 brandMap.set(ad.advertiser.name.toLowerCase(), {
+                   id: ad.advertiser.id,
+                   label: ad.advertiser.name,
+                   logoUrl: ad.advertiser.logoUrl || null,
+                   activeCount: 0
+                 });
+               }
+               if (ad.advertiser.name && ad.delivery.status === "active") {
+                 brandMap.get(ad.advertiser.name.toLowerCase()).activeCount++;
+               }
+             }
+             
+             externalBrands = Array.from(brandMap.values()).map(b => ({
+                id: b.id as string,
+                type: "brand" as const,
+                label: b.label as string,
+                normalizedLabel: b.label.toLowerCase(),
+                subtitle: "Brand",
+                activeAdCount: b.activeCount,
+                imageUrl: b.logoUrl as string | null,
+             }));
+             
+             externalProviderCache.set(cacheKey, { timestamp: now, results: externalBrands });
+          }
+        } catch (err) {
+          console.warn(`[Autocomplete] External provider lookup failed/timeout for '${query}'`);
+          // Fails safely; we just don't have provider brands
+        }
+      }
+      
+      for (const b of externalBrands) {
+        suggestions.push(b);
       }
     }
   } catch (error) {

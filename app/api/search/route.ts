@@ -100,32 +100,6 @@ export async function POST(request: NextRequest) {
 
   if (filters.brand) {
     resolvedIntent = { type: "advertiser", advertiserId: filters.brand, advertiserName: filters.query || "" };
-  } else if (filters.query && isSupabaseConfigured) {
-    const q = filters.query.trim().toLowerCase();
-    const { data: fallbackData } = await catalogClient!.from('ads')
-      .select('advertiser_id, advertiser_name')
-      .ilike('advertiser_name', `${q}%`)
-      .limit(500);
-
-    if (fallbackData) {
-      const exactMatches = new Map();
-      for (const ad of fallbackData) {
-        if (ad.advertiser_name.toLowerCase() === q) {
-           exactMatches.set(ad.advertiser_id, ad.advertiser_name);
-        }
-      }
-      
-      if (exactMatches.size === 1) {
-        const [resolvedId, resolvedName] = Array.from(exactMatches.entries())[0];
-        filters.brand = resolvedId;
-        filters.query = resolvedName;
-        resolvedIntent = { type: "advertiser", advertiserId: resolvedId, advertiserName: resolvedName };
-      } else {
-        resolvedIntent = { type: "keyword", query: filters.query };
-      }
-    } else {
-      resolvedIntent = { type: "keyword", query: filters.query };
-    }
   } else if (filters.query) {
     resolvedIntent = { type: "keyword", query: filters.query };
   }
@@ -280,10 +254,20 @@ export async function POST(request: NextRequest) {
           const result = await pending;
           
           if (result && result.ads && result.ads.length > 0) {
-            await persistNormalizedAds(result.ads);
+            // Deduplicate provider results canonically by ad.id before persistence
+            const dedupMap = new Map<string, NormalizedAd>();
+            for (const ad of result.ads) {
+              if (!dedupMap.has(ad.id)) {
+                dedupMap.set(ad.id, ad);
+              }
+            }
+            result.ads = Array.from(dedupMap.values());
+            
             const adsToArchive = result.ads;
             after(() => {
-              archiveAdsInBackground(adsToArchive).catch(console.error);
+              persistNormalizedAds(adsToArchive)
+                .then(() => archiveAdsInBackground(adsToArchive))
+                .catch(console.error);
             });
             payload = { ...result, ads: adsForClient(result.ads), requestId };
           } else if (result && result.ads && result.ads.length === 0) {
@@ -326,15 +310,27 @@ export async function POST(request: NextRequest) {
             const { data } = await query;
             if (data && data.length > 0) {
               const deduplicated = Array.from(new Map(data.map(dbAdToNormalized).map(ad => [ad.id, ad])).values());
-              payload = { 
-                ads: adsForClient(deduplicated), 
-                nextCursor: data.length === 25 ? (offset + 25).toString() : null, 
-                total: data.length, 
-                source: "cache",
-                stale: true,
-                requestId
-              } as AdSearchResult & { stale: boolean; requestId: string };
-            }
+                payload = { 
+                  ads: adsForClient(deduplicated), 
+                  nextCursor: data.length === 25 ? (offset + 25).toString() : null, 
+                  total: data.length, 
+                  source: "cache",
+                  stale: true,
+                  degraded: true,
+                  requestId
+                } as AdSearchResult & { stale: boolean; degraded: boolean; requestId: string };
+              } else {
+                // Return an empty success array if cache has no results either, rather than failing the whole UI
+                payload = {
+                  ads: [],
+                  nextCursor: null,
+                  total: 0,
+                  source: "cache",
+                  stale: true,
+                  degraded: true,
+                  requestId
+                } as AdSearchResult & { stale: boolean; degraded: boolean; requestId: string };
+              }
           } catch (cacheErr) {
             console.error(`[AdsSearch][requestId=${requestId}] Cache fallback error:`, cacheErr);
           }
