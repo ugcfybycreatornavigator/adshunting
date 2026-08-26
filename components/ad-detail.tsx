@@ -5,14 +5,13 @@ import Link from "next/link";
 import { 
   Bookmark, Check, ExternalLink, ImageIcon, Info, Loader2, 
   Copy, ArrowRight, Globe, Share, LayoutTemplate, X, Download, 
-  ChevronLeft, ChevronRight, MoreHorizontal
+  MoreHorizontal
 } from "lucide-react";
-import { VideoPreview } from "@/components/video-preview";
+import { AdMedia } from "@/components/ad-media";
 import { SwipeFilePicker } from "@/components/swipe-file-picker";
 import { ShareModal } from "@/components/share-modal";
 import type { NormalizedAd } from "@/lib/types";
 import { cn, formatDate, safeExternalUrl } from "@/lib/utils";
-import { computeAdIntelligence } from "@/lib/intelligence";
 
 // --------------------------------------------------------------------------------
 // Data Normalization Helpers
@@ -131,13 +130,15 @@ function MetadataPopover({
 export function AdDetailDrawer({
   ad,
   saved = false,
+  isPublicShare = false,
   onClose,
   onSave,
 }: {
   ad: NormalizedAd;
   saved?: boolean;
+  isPublicShare?: boolean;
   onClose: () => void;
-  onSave: () => Promise<void> | void;
+  onSave?: () => Promise<void> | void;
 }) {
   const [optimisticSaved, setOptimisticSaved] = useState(saved);
   const [saving, setSaving] = useState(false);
@@ -152,57 +153,22 @@ export function AdDetailDrawer({
   const [downloading, setDownloading] = useState(false);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
 
-  const intelligence = computeAdIntelligence({ 
-    startDate: ad.delivery.startedAt, 
-    stopDate: ad.delivery.endedAt, 
-    status: ad.delivery.status, 
-    lastSeenAt: ad.provider.fetchedAt, 
-    variants: ad.variants || 1, 
-    creativeRepetition: 0, 
-    platforms: ad.delivery.platforms, 
-    mediaType: ad.creative.type, 
-    headline: ad.copy.headline, 
-    body: ad.copy.primaryText, 
-    cta: ad.copy.cta, 
-    landingPageUrl: ad.destination.url, 
-    sourceMediaUrl: ad.creative.imageUrl || ad.creative.videoUrl, 
-    advertiserId: ad.advertiser.id 
-  });
   const isSaved = saved || optimisticSaved;
   
-  // Guard missing scores
-  const hasValidScore = intelligence.adjustedWinnerScore !== undefined && intelligence.adjustedWinnerScore !== null && !isNaN(intelligence.adjustedWinnerScore);
-  const clampedScore = hasValidScore ? Math.max(0, Math.min(100, intelligence.adjustedWinnerScore || 0)) : null;
+  // Use canonical score from the ad payload
+  const rawScore = ad.intelligence.winnerScore;
+  const hasValidScore = rawScore !== undefined && rawScore !== null && !isNaN(rawScore);
+  const clampedScore = hasValidScore ? Math.max(0, Math.min(100, rawScore || 0)) : null;
   const scoreTheme = clampedScore !== null ? getScoreTheme(clampedScore) : null;
 
-  // Insight Generator
-  const generateInsight = () => {
-    const insights = [];
-    if (ad.delivery.daysRunning && ad.delivery.daysRunning > 30) {
-      insights.push(`running for ${ad.delivery.daysRunning} days`);
-    }
-    if (ad.creative.carouselItems && ad.creative.carouselItems.length > 1) {
-      insights.push("multiple creative variants");
-    }
-    if (ad.delivery.platforms?.length && ad.delivery.platforms.length > 1) {
-      insights.push(`consistent delivery across ${ad.delivery.platforms.length} platforms`);
-    } else if (intelligence.brandCommitmentScore > 75) {
-      insights.push("consistent product-focused messaging");
-    }
-    
-    if (insights.length === 0) return null;
-    
-    const capitalizedFirst = insights[0].charAt(0).toUpperCase() + insights[0].slice(1);
-    const rest = insights.slice(1).join(" and ");
-    return rest ? `${capitalizedFirst} with ${rest}.` : `${capitalizedFirst}.`;
-  };
-  const insight = generateInsight();
 
   async function handleSave() {
     if (isSaved || saving) return;
     setSaving(true);
     try {
-      await onSave();
+      if (onSave) {
+        await onSave();
+      }
       setOptimisticSaved(true);
     } catch {
       // Revert if failed
@@ -274,7 +240,7 @@ export function AdDetailDrawer({
 
   return (
     <div 
-      className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-[4px] flex items-center justify-center p-0 md:p-6 transition-all duration-200" 
+      className="fixed inset-0 z-[60] flex justify-end bg-black/40 backdrop-blur-[4px] transition-all duration-200" 
       role="dialog" 
       aria-modal="true" 
       aria-label={`Ad details for ${ad.advertiser.name}`} 
@@ -283,7 +249,7 @@ export function AdDetailDrawer({
       }}
     >
       <div 
-        className="relative flex flex-col bg-white overflow-hidden rounded-t-[24px] md:rounded-[20px] shadow-2xl border border-line/60 w-full md:max-w-[1440px] mt-12 md:mt-0 max-h-[calc(100dvh-32px)] h-auto"
+        className="relative flex flex-col bg-white overflow-hidden shadow-2xl w-full h-[100dvh] md:w-[1024px] md:h-screen md:border-l md:border-line/60"
         onMouseDown={event => event.stopPropagation()}
       >
         {/* Sticky Header */}
@@ -329,8 +295,11 @@ export function AdDetailDrawer({
                     {ad.delivery.daysRunning && (
                       <div className="col-span-2">
                         <p className="text-[11px] font-[650] uppercase tracking-wide text-muted mb-1">Observed Lifespan</p>
-                        <p className="text-[13px] font-[500] text-ink">{ad.delivery.daysRunning} days</p>
-                      </div>
+                        <p className="mt-2 text-sm font-semibold text-ink">
+                {Array.isArray(ad.intelligence?.labels) && ad.intelligence!.labels.length > 0
+                  ? ad.intelligence!.labels[0].replace(/\(.+\)/, "").trim()
+                  : "Not enough data"}
+              </p></div>
                     )}
                   </div>
                 </div>
@@ -415,13 +384,17 @@ export function AdDetailDrawer({
                 disabled={!hasDownload || downloading}
                 title={!hasDownload ? "Download unavailable" : "Download media"}
               />
-              <HeaderButton icon={<Share size={16} />} label="Share" onClick={() => setShowShare(true)} />
-              <HeaderButton 
-                ref={swipeBtnRef} 
-                icon={<LayoutTemplate size={16} />} 
-                label="Add to Swipe File" 
-                onClick={() => setShowSwipePicker(true)} 
-              />
+              {!isPublicShare && (
+                <>
+                  <HeaderButton icon={<Share size={16} />} label="Share" onClick={() => setShowShare(true)} />
+                  <HeaderButton 
+                    ref={swipeBtnRef} 
+                    icon={<LayoutTemplate size={16} />} 
+                    label="Add to Swipe File" 
+                    onClick={() => setShowSwipePicker(true)} 
+                  />
+                </>
+              )}
             </div>
             
             {/* Mobile Actions Menu */}
@@ -431,8 +404,12 @@ export function AdDetailDrawer({
                 content={
                   <div className="p-2 flex flex-col gap-1 min-w-[180px]">
                     <MobileMenuButton icon={<Download size={16} />} label="Download" onClick={handleDownload} disabled={!hasDownload} />
-                    <MobileMenuButton icon={<Share size={16} />} label="Share" onClick={() => setShowShare(true)} />
-                    <MobileMenuButton icon={<LayoutTemplate size={16} />} label="Swipe File" onClick={() => setShowSwipePicker(true)} />
+                    {!isPublicShare && (
+                      <>
+                        <MobileMenuButton icon={<Share size={16} />} label="Share" onClick={() => setShowShare(true)} />
+                        <MobileMenuButton icon={<LayoutTemplate size={16} />} label="Swipe File" onClick={() => setShowSwipePicker(true)} />
+                      </>
+                    )}
                   </div>
                 }
               >
@@ -442,19 +419,21 @@ export function AdDetailDrawer({
               </MetadataPopover>
             </div>
             
-            <button 
-              onClick={handleSave} 
-              disabled={isSaved || saving} 
-              className={cn(
-                "flex items-center gap-2 h-9 px-3 sm:px-4 rounded-[8px] text-[13px] font-[600] transition-colors ml-1 sm:ml-2 shadow-sm",
-                isSaved || saving 
-                  ? "bg-zinc-100 text-muted cursor-not-allowed border border-line" 
-                  : "bg-brand text-white hover:bg-brand border border-brand"
-              )}
-            >
-              {saving ? <Loader2 size={16} className="animate-spin" /> : isSaved ? <Check size={16} /> : <Bookmark size={16} />}
-              <span className="hidden sm:inline">{saving ? "Saving" : isSaved ? "Saved" : "Save"}</span>
-            </button>
+            {!isPublicShare && (
+              <button 
+                onClick={handleSave} 
+                disabled={isSaved || saving} 
+                className={cn(
+                  "flex items-center gap-2 h-9 px-3 sm:px-4 rounded-[8px] text-[13px] font-[600] transition-colors ml-1 sm:ml-2 shadow-sm",
+                  isSaved || saving 
+                    ? "bg-zinc-100 text-muted cursor-not-allowed border border-line" 
+                    : "bg-brand text-white hover:bg-brand-strong border border-transparent hover:shadow-md"
+                )}
+              >
+                {saving ? <Loader2 size={15} className="animate-spin" /> : isSaved ? <Check size={15} /> : <Bookmark size={15} />}
+                <span className="hidden sm:inline">{isSaved ? "Saved" : "Save"}</span>
+              </button>
+            )}
             <div className="w-px h-6 bg-line/60 mx-1 sm:mx-2" />
             <button onClick={onClose} className="grid size-9 place-items-center rounded-lg text-muted hover:bg-zinc-100 transition-colors" aria-label="Close">
               <X size={18} />
@@ -523,12 +502,6 @@ export function AdDetailDrawer({
                 ) : (
                   <div className="text-[15px] font-[500] text-muted mb-4">Score unavailable</div>
                 )}
-
-                <div className="space-y-4">
-                  <DenseSignalRow label="Creative Quality" score={intelligence.clickPropensityScore} />
-                  <DenseSignalRow label="Conversion Potential" score={intelligence.conversionPotentialScore} />
-                  <DenseSignalRow label="Confidence" score={intelligence.confidenceScore} value={`${intelligence.confidenceScore}%`} />
-                </div>
               </div>
               
               <div className="w-full h-px bg-line/60 my-4" />
@@ -563,21 +536,7 @@ export function AdDetailDrawer({
                 </>
               )}
 
-              {/* Insight Group */}
-              {insight && (
-                <>
-                  <div className="w-full h-px bg-line/60 my-4" />
-                  <div>
-                    <h3 className="text-[12px] font-[700] uppercase tracking-[0.08em] text-brand mb-2 flex items-center gap-1.5">
-                      ✦ Why this ad stands out
-                    </h3>
-                    <p className="text-[15px] text-ink leading-[1.6] font-[400] max-w-lg">
-                      {insight}
-                    </p>
-                  </div>
-                </>
-              )}
-              
+
             </div>
           </div>
 
@@ -702,132 +661,24 @@ function CopyButton({ text }: { text: string }) {
 function AdCreativeViewer({ 
   ad, 
   activeSlideIndex, 
-  setActiveSlideIndex 
+  setActiveSlideIndex,
+  className,
+  style
 }: { 
   ad: NormalizedAd; 
   activeSlideIndex: number; 
-  setActiveSlideIndex: (i: number) => void; 
+  setActiveSlideIndex: (i: number) => void;
+  className?: string;
+  style?: React.CSSProperties;
 }) {
-  const isCarousel = ad.creative.type === "carousel" && ad.creative.carouselItems?.length;
-  
-  // Adaptive responsive height container
-  const containerClass = "relative w-full bg-[#F8FAFC] rounded-[16px] border border-[#E4E4E7] flex items-center justify-center overflow-hidden transition-all duration-200 h-fit max-w-full min-w-0";
-  const containerStyle = { maxHeight: "min(58vh, 620px)" };
-  const mediaStyle = { maxHeight: "min(58vh, 620px)", objectFit: "contain" as const };
+  const containerClass = "relative w-full bg-[#F8FAFC] rounded-[16px] border border-[#E4E4E7] flex items-center justify-center overflow-hidden transition-all duration-200 h-fit max-w-full min-w-0" + (className ? ` ${className}` : "");
+  const containerStyle = { maxHeight: "min(58vh, 620px)", ...style };
 
-  // Keyboard navigation for carousel
-  useEffect(() => {
-    if (!isCarousel) return;
-    const handleKey = (e: KeyboardEvent) => {
-      // Basic safeguard so we don't interfere with inputs
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.key === "ArrowLeft") setActiveSlideIndex(Math.max(0, activeSlideIndex - 1));
-      if (e.key === "ArrowRight") setActiveSlideIndex(Math.min((ad.creative.carouselItems?.length || 1) - 1, activeSlideIndex + 1));
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [isCarousel, activeSlideIndex, ad.creative.carouselItems?.length, setActiveSlideIndex]);
-
-  if (ad.creative.type === "video" && ad.creative.videoUrl) {
-    const videoSources: string[] = [];
-    if (ad.enrichment?.archiveStatus === "archived") {
-      const ext = ad.creative.videoUrl.includes(".webm") ? "webm" : "mp4";
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ctvmjxpblfdrxvvyjebw.supabase.co";
-      videoSources.push(`${supabaseUrl}/storage/v1/object/public/ad-creatives/${ad.provider.discoveryProvider}/${ad.id}/source.${ext}`);
-    }
-    const safeUrl = safeExternalUrl(ad.creative.videoUrl);
-    if (safeUrl) videoSources.push(safeUrl);
-    
-    return (
-      <div className={containerClass} style={containerStyle}>
-         <VideoPreview 
-           src={videoSources.length > 0 ? videoSources : [""]} 
-           poster={ad.creative.thumbnailUrl} 
-           controls 
-           objectFit="contain" 
-           className="w-full h-auto rounded-[16px] max-h-[min(58vh,620px)]" 
-         />
-      </div>
-    );
-  }
-
-  if (isCarousel) {
-    const slide = ad.creative.carouselItems![activeSlideIndex];
-    const media = safeExternalUrl(slide.imageUrl || slide.videoUrl);
-    const total = ad.creative.carouselItems!.length;
-    
-    return (
-      <div className={containerClass} style={containerStyle}>
-          <div className="w-full flex items-center justify-center relative group p-2">
-            {slide.videoUrl ? (() => {
-              const videoSources: string[] = [];
-              if (ad.enrichment?.archiveStatus === "archived") {
-                const ext = slide.videoUrl.includes(".webm") ? "webm" : "mp4";
-                const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ctvmjxpblfdrxvvyjebw.supabase.co";
-                videoSources.push(`${supabaseUrl}/storage/v1/object/public/ad-creatives/${ad.provider.discoveryProvider}/${ad.id}/carousel_${activeSlideIndex}.${ext}`);
-              }
-              const safeUrl = safeExternalUrl(slide.videoUrl);
-              if (safeUrl) videoSources.push(safeUrl);
-              
-              return (
-                <VideoPreview 
-                  src={videoSources.length > 0 ? videoSources : [""]} 
-                  poster={slide.imageUrl} 
-                  controls 
-                  objectFit="contain" 
-                  className="w-full h-auto rounded-[10px] max-h-[min(58vh,620px)]" 
-                />
-              );
-            })() : media ? (
-              <img 
-                src={media} 
-                alt={`Slide ${activeSlideIndex + 1}`} 
-                className="w-auto h-auto max-w-full rounded-[10px] transition-all duration-200" 
-                style={mediaStyle}
-              />
-            ) : (
-              <div className="py-24"><ImageIcon size={32} className="text-muted/50" /></div>
-            )}
-           
-           {/* Navigation Controls over media */}
-           {total > 1 && (
-             <>
-               <button 
-                 onClick={(e) => { e.stopPropagation(); setActiveSlideIndex(Math.max(0, activeSlideIndex - 1)); }}
-                 disabled={activeSlideIndex === 0}
-                 className="absolute left-4 top-1/2 -translate-y-1/2 size-9 bg-white/90 backdrop-blur border border-line rounded-full flex items-center justify-center shadow-md disabled:opacity-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-10"
-               >
-                 <ChevronLeft size={20} />
-               </button>
-               <button 
-                 onClick={(e) => { e.stopPropagation(); setActiveSlideIndex(Math.min(total - 1, activeSlideIndex + 1)); }}
-                 disabled={activeSlideIndex === total - 1}
-                 className="absolute right-4 top-1/2 -translate-y-1/2 size-9 bg-white/90 backdrop-blur border border-line rounded-full flex items-center justify-center shadow-md disabled:opacity-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-10"
-               >
-                 <ChevronRight size={20} />
-               </button>
-             </>
-           )}
-         </div>
-      </div>
-    );
-  }
-
-  const imageSource = safeExternalUrl(ad.creative.imageUrl || ad.creative.thumbnailUrl);
-  if (imageSource) {
-    return (
-      <div className={containerClass} style={containerStyle}>
-        <img 
-          src={imageSource} 
-          alt={`Creative`} 
-          className="w-auto h-auto max-w-full rounded-[16px] p-2" 
-          style={mediaStyle}
-        />
-      </div>
-    );
-  }
-
-  return <div className={containerClass} style={containerStyle}><div className="py-24"><ImageIcon size={32} className="text-muted/50" /></div></div>;
+  return (
+    <div className={containerClass} style={containerStyle}>
+      <AdMedia ad={ad} variant="detail" className="w-full h-full rounded-[16px]" />
+    </div>
+  );
 }
 
 // --------------------------------------------------------------------------------
@@ -937,14 +788,30 @@ function AdvertiserTab({ ad }: { ad: NormalizedAd }) {
 
 // Replaces the large padded CopyCard
 function CopyBlock({ text, label }: { text?: string | null, label: string }) {
+  const [expanded, setExpanded] = useState(false);
   if (!text) return null;
+  
+  const MAX_LENGTH = 350;
+  const isLong = text.length > MAX_LENGTH;
+  const displayText = !isLong || expanded ? text : text.slice(0, MAX_LENGTH) + "...";
+
   return (
     <div>
       <div className="flex justify-between items-center mb-1">
         <span className="text-[12px] font-[700] uppercase tracking-wide text-muted">{label}</span>
         <CopyButton text={text} />
       </div>
-      <p className="text-[15px] text-ink leading-[1.6] whitespace-pre-wrap font-[400] bg-zinc-50/50 p-4 rounded-xl border border-line/60">{text}</p>
+      <div className="bg-zinc-50/50 p-4 rounded-xl border border-line/60">
+        <p className="text-[15px] text-ink leading-[1.6] whitespace-pre-wrap font-[400]">{displayText}</p>
+        {isLong && (
+          <button 
+            onClick={() => setExpanded(!expanded)} 
+            className="mt-2 text-[13px] font-semibold text-brand hover:text-brand-strong transition-colors"
+          >
+            {expanded ? "Read less" : "Read more"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Check, Copy, ExternalLink, FolderPlus, ImageIcon, Images, MoreHorizontal, PlaySquare, Share2, Loader2, ChevronDown, FileText, Tag, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui";
-import { VideoPreview } from "@/components/video-preview";
-import { CarouselPreview } from "@/components/carousel-preview";
+import { AdMedia } from "@/components/ad-media";
 import type { NormalizedAd } from "@/lib/types";
 import { cn, formatDuration, safeExternalUrl, sanitizeAdCopy } from "@/lib/utils";
 
@@ -85,9 +84,19 @@ export function AdCard({
   }, [menuOpen]);
 
   return (
-    <article className="group flex flex-col w-full overflow-hidden rounded-[12px] border border-line bg-white shadow-sm transition-all duration-200 hover:border-zinc-300 hover:shadow-md">
+    <article className="group relative flex flex-col w-full overflow-hidden rounded-[12px] border border-line bg-white shadow-sm transition-all duration-200 hover:border-zinc-300 hover:shadow-md">
+      {/* Full-card accessible clickable overlay */}
+      <div 
+        className="absolute inset-0 z-0 cursor-pointer" 
+        onClick={onOpen} 
+        role="button" 
+        tabIndex={0} 
+        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen()} 
+        aria-label={`Open ad by ${advertiserName}`}
+      />
+      
       {/* Header */}
-      <div className="flex h-[52px] items-center gap-2.5 px-3">
+      <div className="relative z-10 flex h-[52px] items-center gap-2.5 px-3">
         {ad.advertiser.logoUrl && !avatarFailed ? (
           <img 
             src={ad.advertiser.logoUrl} 
@@ -173,11 +182,11 @@ export function AdCard({
       </div>
 
       {/* Media 4:5 Fixed Viewport */}
-      <div className="relative aspect-[4/5] w-full bg-zinc-50 overflow-hidden border-y border-line group-hover:border-zinc-300 transition-colors">
-        <div className="absolute inset-0 cursor-pointer" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen()} aria-label={`Open ad by ${advertiserName}`}>
-          <CreativePreview ad={ad} media={media} thumb={thumb} advertiserName={advertiserName} />
+      <div className="relative z-10 pointer-events-none aspect-[4/5] w-full bg-zinc-50 overflow-hidden border-y border-line group-hover:border-zinc-300 transition-colors">
+        <div className="absolute inset-0 pointer-events-auto">
+          <AdMedia ad={ad} variant="card" />
         </div>
-        <div className="pointer-events-none absolute left-2.5 top-2.5 z-10 flex flex-col gap-1.5 items-start">
+        <div className="pointer-events-none absolute left-2.5 top-2.5 z-20 flex flex-col gap-1.5 items-start">
           <Badge className={cn("px-2 py-1 text-[10px] shadow-sm uppercase font-bold tracking-wider", ad.delivery.status === "active" ? "bg-white text-brand border border-line" : "bg-zinc-900 text-white border border-transparent")}>
             {ad.delivery.status}
           </Badge>
@@ -185,8 +194,8 @@ export function AdCard({
       </div>
 
       {/* Primary Action Row */}
-      <div className="flex w-full flex-wrap items-center justify-between gap-y-2 gap-x-1 border-b border-line px-2 py-1.5 relative" ref={saveBtnRef}>
-        <div className="flex-1" />
+      <div className="relative z-10 flex w-full flex-wrap items-center justify-between gap-y-2 gap-x-1 border-b border-line px-2 py-1.5" ref={saveBtnRef}>
+        <div className="flex-1 pointer-events-none" />
         
         <div className="flex items-center gap-1 shrink-0 ml-auto">
           <div className="flex items-center">
@@ -235,12 +244,15 @@ export function AdCard({
         </div>
       </div>
 
-      {/* Metadata */}
-      <div className="flex flex-col border-t border-line px-3 py-3">
-        <h3 className={cn("line-clamp-2 text-[13px] leading-5 font-medium min-h-[40px]", displayCopy ? "text-ink" : "text-muted")}>
-          {displayCopy || "Copy unavailable"}
-        </h3>
-
+      {/* Copy / Details Section */}
+      <div className="relative z-0 flex min-h-0 flex-1 flex-col gap-2 p-3 pb-4 pointer-events-none">
+        <div className="flex items-start justify-between gap-2">
+          {displayCopy ? (
+            <p className="line-clamp-4 text-[13px] leading-relaxed text-ink/90 whitespace-pre-wrap">{displayCopy}</p>
+          ) : (
+            <p className="text-[13px] italic text-muted">No copy available</p>
+          )}
+        </div>
         <div className="mt-2.5 flex items-center justify-between gap-2 text-[11px] font-medium text-muted">
           <span className="truncate">{formatDuration(ad.delivery.daysRunning)}</span>
           <span className="inline-flex shrink-0 items-center gap-1.5 capitalize">
@@ -311,94 +323,6 @@ export function AdCard({
         />
       )}
     </article>
-  );
-}
-
-function CreativePreview({
-  ad,
-  media,
-  thumb,
-  advertiserName,
-}: {
-  ad: NormalizedAd;
-  media: string | null;
-  thumb: string | null;
-  advertiserName: string;
-}) {
-  if (ad.creative.type === "video" && media) {
-    return <VideoCreativePreview src={media} poster={thumb} />;
-  }
-
-  if (ad.creative.type === "carousel" && ad.creative.carouselItems.length) {
-    const assets = ad.creative.carouselItems
-      .map(item => item.imageUrl || item.videoUrl)
-      .filter((url): url is string => Boolean(url));
-    return <CarouselCreativePreview assets={assets} alt={`Creative from ${advertiserName}`} />;
-  }
-
-  if (media || thumb) {
-    return <ImageCreativePreview src={media || thumb!} alt={`Creative from ${advertiserName}`} />;
-  }
-
-  // Fallback
-  return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-zinc-50 text-muted">
-      <div className="grid size-12 place-items-center rounded-full bg-white shadow-sm border border-line">
-        <ImageIcon size={20} className="text-zinc-400" />
-      </div>
-      <p className="text-[13px] font-semibold text-ink">Creative unavailable</p>
-      <p className="text-[11px] font-medium text-center px-6 max-w-[200px]">The source did not provide preview media for this ad.</p>
-    </div>
-  );
-}
-
-function VideoCreativePreview({ src, poster }: { src: string; poster: string | null }) {
-  // Always object-fit: contain to avoid cutting off essential creative on vertical ads inside a 4:5 box
-  return (
-    <div className="h-full w-full bg-zinc-950 flex items-center justify-center relative">
-      <VideoPreview
-        src={src}
-        poster={poster}
-        objectFit="contain"
-        className="h-full w-full"
-      />
-    </div>
-  );
-}
-
-function ImageCreativePreview({ src, alt }: { src: string; alt: string }) {
-  const [failed, setFailed] = useState(false);
-  
-  if (failed) {
-    return (
-      <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-zinc-50/80 text-muted">
-        <div className="grid size-12 place-items-center rounded-full bg-white shadow-sm border border-line">
-          <ImageIcon size={20} className="text-zinc-400" />
-        </div>
-        <p className="text-xs font-medium">Creative unavailable</p>
-      </div>
-    );
-  }
-  
-  return (
-    <div className="h-full w-full bg-zinc-900 flex items-center justify-center">
-      <img
-        src={src}
-        alt={alt}
-        loading="lazy"
-        onError={() => setFailed(true)}
-        className="h-full w-full object-contain text-transparent"
-      />
-    </div>
-  );
-}
-
-function CarouselCreativePreview({ assets, alt }: { assets: string[]; alt: string }) {
-  // Using the existing CarouselPreview component but constraining it
-  return (
-    <div className="h-full w-full bg-zinc-900 flex items-center justify-center relative">
-      <CarouselPreview assets={assets} alt={alt} className="h-full w-full" />
-    </div>
   );
 }
 

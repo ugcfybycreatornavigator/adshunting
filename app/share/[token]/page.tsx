@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import Link from "next/link";
-import { SharedCreativeView } from "@/components/shared-creative-view";
+import { SharedAdsViewer } from "./shared-ads-viewer";
 import { EmptyState, Badge } from "@/components/ui";
 import { FolderHeart, Lock, ShieldCheck } from "lucide-react";
 import { CopyLinkButton } from "@/components/copy-link-button";
@@ -155,11 +155,7 @@ export default async function SharedAdPage({ params }: { params: Promise<{ token
               body="This share does not contain any creatives or they were deleted."
             />
           ) : (
-            <div className="flex flex-col gap-8">
-              {safeAds.map(ad => (
-                <SharedCreativeView key={ad.id} ad={ad} />
-              ))}
-            </div>
+            <SharedAdsViewer ads={safeAds} isPrivate={isPrivate} />
           )}
 
           {!isPrivate && (

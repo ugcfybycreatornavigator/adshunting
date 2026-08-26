@@ -3,8 +3,7 @@
 import { ImageIcon, PlaySquare, Images } from "lucide-react";
 import type { NormalizedAd } from "@/lib/types";
 import { formatDuration, safeExternalUrl, sanitizeAdCopy, cn } from "@/lib/utils";
-import { VideoPreview } from "@/components/video-preview";
-import { CarouselPreview } from "@/components/carousel-preview";
+import { AdMedia } from "@/components/ad-media";
 import { Badge } from "@/components/ui";
 
 function signalLabel(label: string | undefined | null, ad: NormalizedAd) {
@@ -22,9 +21,7 @@ function titleCase(value: string) {
   return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-export function SharedCreativeView({ ad }: { ad: NormalizedAd }) {
-  const media = safeExternalUrl(ad.creative.videoUrl || ad.creative.imageUrl);
-  const thumb = safeExternalUrl(ad.creative.thumbnailUrl);
+export function SharedCreativeView({ ad, onOpen }: { ad: NormalizedAd; onOpen?: () => void }) {
   const advertiserName = ad.advertiser.name || "Unknown advertiser";
   const initial = advertiserName.slice(0, 1).toUpperCase() || "A";
 
@@ -34,16 +31,27 @@ export function SharedCreativeView({ ad }: { ad: NormalizedAd }) {
     sanitizeAdCopy(ad.copy.description);
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-[16px] border border-line bg-white shadow-sm md:flex-row mb-6 w-full max-w-5xl mx-auto">
+    <article className="relative flex flex-col overflow-hidden rounded-[16px] border border-line bg-white shadow-sm md:flex-row w-full max-w-5xl mx-auto transition-shadow hover:shadow-md">
+      {onOpen && (
+        <div 
+          className="absolute inset-0 z-0 cursor-pointer" 
+          onClick={onOpen} 
+          role="button" 
+          tabIndex={0} 
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen()} 
+          aria-label={`Open ad by ${advertiserName}`}
+        />
+      )}
+      
       {/* 60% Media Section */}
-      <div className="relative w-full md:w-[55%] lg:w-[60%] shrink-0 bg-zinc-50 border-b md:border-b-0 md:border-r border-line aspect-square md:aspect-auto">
-        <div className="absolute inset-0">
-           <CreativePreview ad={ad} media={media} thumb={thumb} advertiserName={advertiserName} />
+      <div className="relative z-10 w-full md:w-[55%] lg:w-[60%] shrink-0 bg-zinc-50 border-b md:border-b-0 md:border-r border-line aspect-square md:aspect-auto pointer-events-none">
+        <div className="absolute inset-0 pointer-events-auto">
+           <AdMedia ad={ad} variant="detail" />
         </div>
       </div>
 
       {/* 40% Information Section */}
-      <div className="flex w-full md:w-[45%] lg:w-[40%] flex-col p-5 md:p-6 lg:p-8">
+      <div className="relative z-10 flex w-full md:w-[45%] lg:w-[40%] flex-col p-5 md:p-6 lg:p-8 pointer-events-none">
         <div className="flex items-center gap-3">
           {ad.advertiser.logoUrl ? (
             <img 
@@ -112,61 +120,5 @@ export function SharedCreativeView({ ad }: { ad: NormalizedAd }) {
         </div>
       </div>
     </article>
-  );
-}
-
-function CreativePreview({
-  ad,
-  media,
-  thumb,
-  advertiserName,
-}: {
-  ad: NormalizedAd;
-  media: string | null;
-  thumb: string | null;
-  advertiserName: string;
-}) {
-  if (ad.creative.type === "video" && media) {
-    return (
-      <div className="h-full w-full bg-zinc-950 flex items-center justify-center relative">
-        <VideoPreview
-          src={media}
-          poster={thumb}
-          controls={true}
-          objectFit="contain"
-          className="h-full w-full"
-        />
-      </div>
-    );
-  }
-
-  if (ad.creative.type === "carousel" && Array.isArray(ad.creative.carouselItems) && ad.creative.carouselItems.length) {
-    const assets = ad.creative.carouselItems.map(item => item.imageUrl || item.videoUrl).filter(Boolean) as string[];
-    return (
-      <div className="h-full w-full bg-zinc-900 flex items-center justify-center relative">
-        <CarouselPreview assets={assets} alt={`Creative from ${advertiserName}`} className="h-full w-full" />
-      </div>
-    );
-  }
-
-  if (media || thumb) {
-    return (
-      <div className="h-full w-full bg-zinc-900 flex items-center justify-center">
-        <img
-          src={media || thumb!}
-          alt={`Creative from ${advertiserName}`}
-          className="h-full w-full object-contain text-transparent"
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-zinc-50/80 text-muted">
-      <div className="grid size-12 place-items-center rounded-full bg-white shadow-sm border border-line">
-        <ImageIcon size={20} className="text-zinc-400" />
-      </div>
-      <p className="text-xs font-medium">Creative unavailable</p>
-    </div>
   );
 }
